@@ -1,0 +1,81 @@
+version: 2
+
+project_name: zap
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: zap
+    dir: "."
+    main: "."
+    binary: zap
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm64
+    goarm:
+      - "7"
+
+homebrew_casks:
+  - name: zap
+    binary: zap
+    directory: Casks
+    description: A command line .http file toolkit
+    homepage: https://github.com/FollowTheProcess/zap
+    commit_author:
+      name: Tom Fleet
+      email: me@followtheprocess.codes
+    repository:
+      owner: FollowTheProcess
+      name: homebrew-tap
+      token: "{{.Env.HOMEBREW_TAP_TOKEN}}"
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status.zero?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/zap"]
+          end
+
+archives:
+  - id: zap
+    name_template: >-
+      {{ .ProjectName }}-
+      {{- .Version }}-
+      {{- .Os }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
+sboms:
+  - id: zap
+    artifacts: archive
+    documents:
+      - >-
+        {{ .ProjectName }}-
+        {{- .Version }}-
+        {{- .Os }}-
+        {{- if eq .Arch "amd64" }}x86_64
+        {{- else if eq .Arch "386" }}i386
+        {{- else }}{{ .Arch }}{{ end }}.sbom
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ .Tag }}-dev{{ .ShortCommit }}"
+
+changelog:
+  # The changelog is handled by release drafter
+  disable: true
