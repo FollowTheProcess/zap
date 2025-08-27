@@ -21,12 +21,20 @@ tasks:
     cmds:
       - go mod tidy
 
+  gen:
+    desc: Run go generate
+    sources:
+      - "**/*.go"
+    cmds:
+      - go generate ./...
+
   fmt:
     desc: Run go fmt on all source files
     sources:
       - "**/*.go"
+      - .golangci.yml
     cmds:
-      - go fmt ./...
+      - golangci-lint fmt ./...
 
   test:
     desc: Run the test suite
@@ -125,4 +133,3 @@ tasks:
     desc: Uninstall the project from your machine
     cmds:
       - rm -rf $GOBIN/zap
-  
