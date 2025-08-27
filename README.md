@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://github.com/FollowTheProcess/zap/raw/main/docs/img/logo.png" alt="logo" width=75%>
+<img src="https://github.com/FollowTheProcess/zap/raw/main/docs/img/logo.png" alt="logo">
 </p>
 
 # Zap
@@ -118,7 +118,7 @@ This project makes no such requirement, whitespace is entirely ignored meaning t
 
 The [JetBrains HTTP Request in Editor Spec] allows for custom JavaScript [Response Handlers](https://github.com/JetBrains/http-request-in-editor-spec/blob/master/spec.md#324-response-handler) (e.g. the `{% ... %}` blocks), that take the response and transform it in some way:
 
-```plaintext
+```http
 GET http://example.com/auth
 
 > {% client.global.set("auth", response.body.token); %}
@@ -128,7 +128,7 @@ This is not supported in `zap` as it relies on editor-specific context and requi
 
 However, the version of this syntax where you dump the response body to a file *is* supported!
 
-```plaintext
+```http
 GET http://example.com/auth
 
 > ./response.json
@@ -138,7 +138,7 @@ GET http://example.com/auth
 
 The [JetBrains HTTP Request in Editor Spec] allows for a [Response Reference], but doesn't actually explain what that is or what should be done with it? So I've left it out for now 🤷🏻
 
-```plaintext
+```http
 GET http://example.com
 
 <> previous-response.200.json
