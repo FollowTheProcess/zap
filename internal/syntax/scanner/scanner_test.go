@@ -40,6 +40,23 @@ func TestBasics(t *testing.T) {
 				{Kind: token.EOF, Start: 22, End: 22},
 			},
 		},
+		{
+			name: "request separator",
+			src:  "###",
+			want: []token.Token{
+				{Kind: token.Separator, Start: 0, End: 3},
+				{Kind: token.EOF, Start: 3, End: 3},
+			},
+		},
+		{
+			name: "request separator with comment",
+			src:  "### My Special Request",
+			want: []token.Token{
+				{Kind: token.Separator, Start: 0, End: 3},
+				{Kind: token.Comment, Start: 4, End: 22},
+				{Kind: token.EOF, Start: 22, End: 22},
+			},
+		},
 	}
 
 	for _, tt := range tests {
