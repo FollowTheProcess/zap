@@ -256,7 +256,7 @@ func scanStart(s *Scanner) scanFn {
 func scanHash(s *Scanner) scanFn {
 	if s.peek() == '#' {
 		// It's a request separator
-		panic("TODO: Handle separators")
+		return scanSeparator
 	}
 
 	return scanComment
@@ -296,6 +296,35 @@ func scanComment(s *Scanner) scanFn {
 	s.takeUntil('\n', eof)
 
 	s.emit(token.Comment)
+
+	return scanStart
+}
+
+// scanSeparator scans the literal '###' used as a request separator.
+func scanSeparator(s *Scanner) scanFn {
+	// Absorb no more than 3 '#'
+	count := 0
+
+	const sepLength = 3 // len("###")
+
+	for s.peek() == '#' {
+		count++
+
+		s.next()
+
+		if count == sepLength {
+			break
+		}
+	}
+
+	s.emit(token.Separator)
+
+	// If there is text on the same line as the separator it is a request comment
+	s.skip(isLineSpace)
+
+	if s.peek() != '\n' && s.peek() != eof {
+		return scanComment
+	}
 
 	return scanStart
 }
