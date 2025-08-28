@@ -24,6 +24,22 @@ func TestBasics(t *testing.T) {
 				{Kind: token.EOF, Start: 0, End: 0},
 			},
 		},
+		{
+			name: "hash comment",
+			src:  "# I'm a hash comment",
+			want: []token.Token{
+				{Kind: token.Comment, Start: 2, End: 20},
+				{Kind: token.EOF, Start: 20, End: 20},
+			},
+		},
+		{
+			name: "slash comment",
+			src:  "// I'm a slash comment",
+			want: []token.Token{
+				{Kind: token.Comment, Start: 3, End: 22},
+				{Kind: token.EOF, Start: 22, End: 22},
+			},
+		},
 	}
 
 	for _, tt := range tests {

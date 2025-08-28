@@ -151,8 +151,6 @@ func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 // the next call to [Scanner.next] returns the offending rune.
 //
 //	s.takeUntil('\n', '\t') // Consume runes until you hit a newline or a tab
-//
-//nolint:unused // We will need this
 func (s *Scanner) takeUntil(runes ...rune) {
 	for {
 		next := s.peek()
@@ -243,8 +241,67 @@ func scanStart(s *Scanner) scanFn {
 	case utf8.RuneError:
 		s.errorf("invalid utf8 character: %U", char)
 		return nil
+	case '#':
+		return scanHash
+	case '/':
+		return scanSlash
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
 	}
+}
+
+// scanHash scans a '#' character, either as the beginning token for a comment
+// or as the first character of a '###' request separator.
+func scanHash(s *Scanner) scanFn {
+	if s.peek() == '#' {
+		// It's a request separator
+		panic("TODO: Handle separators")
+	}
+
+	return scanComment
+}
+
+// scanSlash scans a '/' character, either as the beginning of a '//' style comment
+// or as part of some other text we don't care about.
+func scanSlash(s *Scanner) scanFn {
+	if s.peek() != '/' {
+		// Ignore
+		s.next()
+		return scanStart
+	}
+
+	s.next() // Consume the second '/'
+
+	return scanComment
+}
+
+// scanComment scans a line comment started by either a '#' or '//'.
+//
+// The comment opening character(s) have already been consumed.
+func scanComment(s *Scanner) scanFn {
+	// It must be a comment, skip any leading whitespace between the marker
+	// and the comment text
+	s.skip(isLineSpace)
+
+	// Requests may have '{//|#} @ident [=] <text>' to set request-scoped
+	// variables
+	if s.peek() == '@' {
+		panic("TODO: Handle request variables")
+		// s.next() // Consume the '@'
+		// return scanAt
+	}
+
+	// Absorb everything until the end of the line or eof
+	s.takeUntil('\n', eof)
+
+	s.emit(token.Comment)
+
+	return scanStart
+}
+
+// isLineSpace reports whether r is a non line terminating whitespace character,
+// imagine [unicode.IsSpace] but without '\n' or '\r'.
+func isLineSpace(r rune) bool {
+	return r == ' ' || r == '\t'
 }

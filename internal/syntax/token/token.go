@@ -11,8 +11,9 @@ type Kind int
 
 //go:generate stringer -type Kind -linecomment
 const (
-	EOF   Kind = iota // EOF
-	Error             // Error
+	EOF     Kind = iota // EOF
+	Error               // Error
+	Comment             // Comment
 )
 
 // Token is a lexical token in a .http file.
