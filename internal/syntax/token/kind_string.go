@@ -12,11 +12,13 @@ func _() {
 	_ = x[Error-1]
 	_ = x[Comment-2]
 	_ = x[Separator-3]
+	_ = x[At-4]
+	_ = x[Ident-5]
 }
 
-const _Kind_name = "EOFErrorCommentSeparator"
+const _Kind_name = "EOFErrorCommentSeparatorAtIdent"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 24}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {

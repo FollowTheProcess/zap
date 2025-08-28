@@ -138,7 +138,7 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 //
-//nolint:unused // We will need this
+
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 	for predicate(s.peek()) {
 		s.next()
@@ -245,6 +245,8 @@ func scanStart(s *Scanner) scanFn {
 		return scanHash
 	case '/':
 		return scanSlash
+	case '@':
+		return scanAt
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
@@ -329,8 +331,48 @@ func scanSeparator(s *Scanner) scanFn {
 	return scanStart
 }
 
+// scanAt scans an '@' character, used to declare a variable either globally
+// scoped at the top level `@name = thing` or request scoped `# @name = thing`.
+func scanAt(s *Scanner) scanFn {
+	s.emit(token.At)
+
+	// if bytes.HasPrefix(s.src[s.pos:], []byte("http")) {
+	// 	return scanURL
+	// }
+
+	if isAlpha(s.peek()) {
+		// @ident [=] <value>
+		return scanIdent
+	}
+
+	return scanStart
+}
+
+// scanIdent scans an ident, that is; a continuous sequence of
+// characters that are valid as an identifier.
+func scanIdent(s *Scanner) scanFn {
+	s.takeWhile(isIdent)
+	s.emit(token.Ident)
+	return scanStart
+}
+
 // isLineSpace reports whether r is a non line terminating whitespace character,
 // imagine [unicode.IsSpace] but without '\n' or '\r'.
 func isLineSpace(r rune) bool {
 	return r == ' ' || r == '\t'
+}
+
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isDigit reports whether r is a valid ASCII digit.
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
 }

@@ -57,6 +57,14 @@ func TestBasics(t *testing.T) {
 				{Kind: token.EOF, Start: 22, End: 22},
 			},
 		},
+		{
+			name: "at",
+			src:  "@",
+			want: []token.Token{
+				{Kind: token.At, Start: 0, End: 1},
+				{Kind: token.EOF, Start: 1, End: 1},
+			},
+		},
 	}
 
 	for _, tt := range tests {

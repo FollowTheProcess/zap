@@ -15,6 +15,8 @@ const (
 	Error                 // Error
 	Comment               // Comment
 	Separator             // Separator
+	At                    // At
+	Ident                 // Ident
 )
 
 // Token is a lexical token in a .http file.
