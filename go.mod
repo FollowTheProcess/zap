@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/charmbracelet/fang v0.4.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
-	github.com/charmbracelet/log/v2 v2.0.0-20250226163916-c379e29ff706
+	github.com/charmbracelet/log/v2 8b92f26171d6
 	github.com/spf13/cobra v1.9.1
 	go.followtheprocess.codes/test v0.23.0
 	go.uber.org/goleak v1.3.0
