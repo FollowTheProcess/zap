@@ -30,3 +30,28 @@ func FuzzTokenString(f *testing.F) {
 		test.Equal(t, got, want)
 	})
 }
+
+func TestKeyword(t *testing.T) {
+	tests := []struct {
+		text string     // Text input
+		want token.Kind // Expected token Kind return
+		ok   bool       // Expected ok return
+	}{
+		{text: "name", want: token.Name, ok: true},
+		{text: "timeout", want: token.Timeout, ok: true},
+		{text: "connection-timeout", want: token.ConnectionTimeout, ok: true},
+		{text: "no-redirect", want: token.NoRedirect, ok: true},
+		{text: "something-else", want: token.Ident, ok: false},
+		{text: "base", want: token.Ident, ok: false},
+		{text: "myVar", want: token.Ident, ok: false},
+		{text: "lots of random crap", want: token.Ident, ok: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.text, func(t *testing.T) {
+			got, ok := token.Keyword(tt.text)
+			test.Equal(t, ok, tt.ok)
+			test.Equal(t, got, tt.want)
+		})
+	}
+}
