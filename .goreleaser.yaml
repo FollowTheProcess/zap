@@ -9,7 +9,7 @@ before:
 builds:
   - id: zap
     dir: "."
-    main: "."
+    main: "./cmd/zap"
     binary: zap
     flags:
       - -trimpath
