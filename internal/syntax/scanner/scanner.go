@@ -138,7 +138,7 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 //
-//nolint:unused // We will need this
+
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 	for predicate(s.peek()) {
 		s.next()
@@ -245,6 +245,8 @@ func scanStart(s *Scanner) scanFn {
 		return scanHash
 	case '/':
 		return scanSlash
+	case '@':
+		return scanAt
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
@@ -287,9 +289,8 @@ func scanComment(s *Scanner) scanFn {
 	// Requests may have '{//|#} @ident [=] <text>' to set request-scoped
 	// variables
 	if s.peek() == '@' {
-		panic("TODO: Handle request variables")
-		// s.next() // Consume the '@'
-		// return scanAt
+		s.next() // Consume the '@'
+		return scanAt
 	}
 
 	// Absorb everything until the end of the line or eof
@@ -333,4 +334,117 @@ func scanSeparator(s *Scanner) scanFn {
 // imagine [unicode.IsSpace] but without '\n' or '\r'.
 func isLineSpace(r rune) bool {
 	return r == ' ' || r == '\t'
+}
+
+// scanAt scans an '@' character, used to declare a variable either globally
+// scoped at the top level `@name = thing` or request scoped `# @name = thing`.
+func scanAt(s *Scanner) scanFn {
+	s.emit(token.At)
+
+	if isAlpha(s.peek()) {
+		// The name of the variable e.g. @ident [=] <value>
+		return scanIdent
+	}
+
+	return scanStart
+}
+
+// scanIdent scans an ident, that is; a continuous sequence of
+// characters that are valid as an identifier.
+func scanIdent(s *Scanner) scanFn {
+	s.takeWhile(isIdent)
+
+	// Is it a keyword? If so token.Keyword will return it's
+	// proper token type, else [token.Ident].
+	// Either way we need to emit it and then check for an optional '='
+	text := string(s.src[s.start:s.pos])
+	kind, _ := token.Keyword(text)
+	s.emit(kind)
+	s.skip(isLineSpace)
+
+	switch {
+	case kind == token.Prompt:
+		// Prompts are handled in a special way as you may have e.g.
+		// @prompt username <Arbitrary description on a single line>
+		return scanPrompt
+	case s.peek() == '=':
+		// @var = <value>
+		return scanEq
+	case isAlphaNumeric(s.peek()):
+		// @var <value>
+		// Note: value could be a timeout, hence alpha numeric
+		return scanText
+	default:
+		return scanStart
+	}
+}
+
+// scanPrompt scans a variable prompt e.g. @prompt username [description].
+//
+// The '@' and the 'prompt' have already been consumed and their tokens emitted.
+func scanPrompt(s *Scanner) scanFn {
+	// The first thing up should be the name of the variable we're prompting
+	// for, which follows standard ident rules
+	s.takeWhile(isIdent)
+	s.emit(token.Ident)
+
+	// Arbitrary space is allowed so long as it's on the same line
+	s.skip(isLineSpace)
+
+	// If the next thing looks like regular text, this is the optional
+	// description for the prompt
+	if isAlphaNumeric(s.peek()) {
+		s.takeUntil('\n', eof)
+		s.emit(token.Text)
+	}
+
+	return scanStart
+}
+
+// scanEq scans a '=' character, as used in a variable declaration.
+func scanEq(s *Scanner) scanFn {
+	s.next()
+	s.emit(token.Eq)
+
+	s.skip(isLineSpace)
+
+	if isAlphaNumeric(s.peek()) {
+		return scanText
+	}
+
+	return scanStart
+}
+
+// scanText scans a series of continuous text characters (no whitespace).
+func scanText(s *Scanner) scanFn {
+	s.takeWhile(isText)
+
+	s.emit(token.Text)
+
+	return scanStart
+}
+
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
+}
+
+// isDigit reports whether r is a valid ASCII digit.
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+// isAlphaNumeric reports whether r is an alpha-numeric character.
+func isAlphaNumeric(r rune) bool {
+	return isAlpha(r) || isDigit(r)
+}
+
+// isText reports whether r is valid in a continuous string of text.
+func isText(r rune) bool {
+	return !unicode.IsSpace(r) && r != eof
 }
