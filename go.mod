@@ -4,6 +4,7 @@ go 1.25
 
 require (
 	go.followtheprocess.codes/test v0.23.0
+	go.followtheprocess.codes/txtar v0.8.0
 	go.uber.org/goleak v1.3.0
 )
 

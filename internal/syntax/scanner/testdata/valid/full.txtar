@@ -1,0 +1,47 @@
+-- src.http --
+###
+# @name Everything
+# @timeout 30s
+# @no-redirect
+PUT https://api.somewhere.com/items/1
+Content-Type: application/json
+Accept: application/json
+X-Something-Else: yes
+
+{
+  "here": [
+    "arbitrary",
+    "json"
+  ],
+  "is_allowed": {
+    "including": {
+      "nested": [
+        "lists"
+      ]
+    }
+  },
+  "some": "stuff"
+}
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::At start=6, end=7>
+<Token::Name start=7, end=11>
+<Token::Text start=12, end=22>
+<Token::At start=25, end=26>
+<Token::Timeout start=26, end=33>
+<Token::Text start=34, end=37>
+<Token::At start=40, end=41>
+<Token::NoRedirect start=41, end=52>
+<Token::MethodPut start=53, end=56>
+<Token::URL start=57, end=90>
+<Token::Header start=91, end=103>
+<Token::Colon start=103, end=104>
+<Token::Text start=105, end=121>
+<Token::Header start=122, end=128>
+<Token::Colon start=128, end=129>
+<Token::Text start=130, end=146>
+<Token::Header start=147, end=163>
+<Token::Colon start=163, end=164>
+<Token::Text start=165, end=168>
+<Token::Body start=170, end=327>
+<Token::EOF start=327, end=327>

@@ -1,0 +1,13 @@
+-- src.http --
+// I'm a comment
+# I'm another
+
+###
+GET https://api.somewhere.com/items/1
+-- tokens.txt --
+<Token::Comment start=3, end=16>
+<Token::Comment start=19, end=30>
+<Token::Separator start=32, end=35>
+<Token::MethodGet start=36, end=39>
+<Token::URL start=40, end=73>
+<Token::EOF start=74, end=74>
