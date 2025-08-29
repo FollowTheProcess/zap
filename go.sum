@@ -10,6 +10,8 @@ go.followtheprocess.codes/snapshot v0.6.0 h1:aq7WIc8hInqdpdrOzntk9lqHwxUqSw3YbgL
 go.followtheprocess.codes/snapshot v0.6.0/go.mod h1:0hskrLbmTgcv3h1YgVgX0CXiiOKq0UvhM4PewnOZOno=
 go.followtheprocess.codes/test v0.23.0 h1:XpKkEAzzm2/FmOAfR6GHRvgdY3XhragOWYCCvr9F6wg=
 go.followtheprocess.codes/test v0.23.0/go.mod h1:Bhx7T8XRQs6w7DuT06uG4EPbGeaVgj3HL4laIGLVV4w=
+go.followtheprocess.codes/txtar v0.8.0 h1:vQJbo/asKBpuzub+Wok6vKr9lPt+Q8qdY7mPEPYZbHg=
+go.followtheprocess.codes/txtar v0.8.0/go.mod h1:hi6y/ZExrTIZ7BzydWIIdsxrWd1WX0cY3a7c+ibLl5E=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 golang.org/x/sys v0.35.0 h1:vz1N37gP5bs89s7He8XuIYXpyY0+QlsKmzipCbUtyxI=

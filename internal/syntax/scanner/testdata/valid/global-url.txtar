@@ -1,0 +1,14 @@
+-- src.http --
+@base = https://api.somewhere.com
+
+###
+GET {{.Global.base}}/items/1
+-- tokens.txt --
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=5>
+<Token::Eq start=6, end=7>
+<Token::URL start=8, end=33>
+<Token::Separator start=35, end=38>
+<Token::MethodGet start=39, end=42>
+<Token::URL start=43, end=67>
+<Token::EOF start=68, end=68>

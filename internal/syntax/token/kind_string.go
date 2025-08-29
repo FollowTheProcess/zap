@@ -10,15 +10,38 @@ func _() {
 	var x [1]struct{}
 	_ = x[EOF-0]
 	_ = x[Error-1]
-	_ = x[Comment-2]
-	_ = x[Separator-3]
-	_ = x[At-4]
-	_ = x[Ident-5]
+	_ = x[Separator-2]
+	_ = x[Comment-3]
+	_ = x[Text-4]
+	_ = x[URL-5]
+	_ = x[Ident-6]
+	_ = x[At-7]
+	_ = x[Eq-8]
+	_ = x[Colon-9]
+	_ = x[LeftAngle-10]
+	_ = x[RightAngle-11]
+	_ = x[HTTPVersion-12]
+	_ = x[Header-13]
+	_ = x[Body-14]
+	_ = x[MethodGet-15]
+	_ = x[MethodHead-16]
+	_ = x[MethodPost-17]
+	_ = x[MethodPut-18]
+	_ = x[MethodDelete-19]
+	_ = x[MethodConnect-20]
+	_ = x[MethodPatch-21]
+	_ = x[MethodOptions-22]
+	_ = x[MethodTrace-23]
+	_ = x[Name-24]
+	_ = x[Prompt-25]
+	_ = x[Timeout-26]
+	_ = x[ConnectionTimeout-27]
+	_ = x[NoRedirect-28]
 }
 
-const _Kind_name = "EOFErrorCommentSeparatorAtIdent"
+const _Kind_name = "EOFErrorSeparatorCommentTextURLIdentAtEqColonLeftAngleRightAngleHTTPVersionHeaderBodyMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTraceNamePromptTimeoutConnectionTimeoutNoRedirect"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31}
+var _Kind_index = [...]uint8{0, 3, 8, 17, 24, 28, 31, 36, 38, 40, 45, 54, 64, 75, 81, 85, 94, 104, 114, 123, 135, 148, 159, 172, 183, 187, 193, 200, 217, 227}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {
