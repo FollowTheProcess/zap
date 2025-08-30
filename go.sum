@@ -6,8 +6,6 @@ github.com/charmbracelet/fang v0.4.0 h1:boBxmdcFghTeotqkD2itXi7SMBozdIlcslRqjboS
 github.com/charmbracelet/fang v0.4.0/go.mod h1:9gCUAHmVx5BwSafeyNr3GI0GgvlB1WYjL21SkPp1jyU=
 github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1 h1:SOylT6+BQzPHEjn15TIzawBPVD0QmhKXbcb3jY0ZIKU=
 github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1/go.mod h1:tRlx/Hu0lo/j9viunCN2H+Ze6JrmdjQlXUQvvArgaOc=
-github.com/charmbracelet/log/v2 v2.0.0-20250226163916-c379e29ff706 h1:WkwO6Ks3mSIGnGuSdKl9qDSyfbYK50z2wc2gGMggegE=
-github.com/charmbracelet/log/v2 v2.0.0-20250226163916-c379e29ff706/go.mod h1:mjJGp00cxcfvD5xdCa+bso251Jt4owrQvuimJtVmEmM=
 github.com/charmbracelet/x/ansi v0.10.1 h1:rL3Koar5XvX0pHGfovN03f5cxLbCF2YvLeyz7D2jVDQ=
 github.com/charmbracelet/x/ansi v0.10.1/go.mod h1:3RQDQ6lDnROptfpWuUVIUG64bD2g2BgntdxH0Ya5TeE=
 github.com/charmbracelet/x/cellbuf v0.0.13 h1:/KBBKHuVRbq1lYx5BzEHBAFBP8VcQzJejZ/IA3iR28k=
@@ -23,8 +21,6 @@ github.com/charmbracelet/x/term v0.2.1/go.mod h1:oQ4enTYFV7QN4m0i9mzHrViD7TQKvNE
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/go-logfmt/logfmt v0.6.0 h1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=
-github.com/go-logfmt/logfmt v0.6.0/go.mod h1:WYhtIu8zTZfxdn5+rREduYbwxfcBr/Vr6KEVveWlfTs=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
@@ -58,6 +54,8 @@ github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavM
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
 go.followtheprocess.codes/hue v0.6.0 h1:JDLnRrkauCCIyYRqKNBDM+X6X5o75j2CG3iddnzIuhc=
 go.followtheprocess.codes/hue v0.6.0/go.mod h1:tNCWKaywHqkFo20hYOVwG7CaoRajJeE2AueP5HStY7U=
+go.followtheprocess.codes/log v1.0.0 h1:wxwi80xFcmNmsaD5LFk4HdzmfBZlvkX2pLeGDXU+C+4=
+go.followtheprocess.codes/log v1.0.0/go.mod h1:9HxS5JQ0OHgffsQpzsqlWdlceF2LRCV35h9QX1JE1s0=
 go.followtheprocess.codes/snapshot v0.6.0 h1:aq7WIc8hInqdpdrOzntk9lqHwxUqSw3YbgLYaoy0laQ=
 go.followtheprocess.codes/snapshot v0.6.0/go.mod h1:0hskrLbmTgcv3h1YgVgX0CXiiOKq0UvhM4PewnOZOno=
 go.followtheprocess.codes/test v0.23.0 h1:XpKkEAzzm2/FmOAfR6GHRvgdY3XhragOWYCCvr9F6wg=

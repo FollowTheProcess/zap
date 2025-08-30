@@ -5,9 +5,8 @@ package zap
 import (
 	"fmt"
 	"io"
-	"time"
 
-	"github.com/charmbracelet/log/v2"
+	"go.followtheprocess.codes/log"
 )
 
 // Zap represents the zap program.
@@ -19,19 +18,16 @@ type Zap struct {
 
 // New returns a new [Zap].
 func New(debug bool, stdout, stderr io.Writer) Zap {
-	level := log.InfoLevel
+	level := log.LevelInfo
 	if debug {
-		level = log.DebugLevel
+		level = log.LevelDebug
 	}
 
-	logger := log.NewWithOptions(stderr, log.Options{
-		TimeFormat:      time.RFC3339Nano,
-		Level:           level,
-		Prefix:          "zap",
-		ReportTimestamp: true,
-	})
-
-	logger.SetStyles(defaultLogStyles())
+	logger := log.New(
+		stderr,
+		log.WithLevel(level),
+		log.Prefix("zap"),
+	)
 
 	return Zap{
 		stdout: stdout,
