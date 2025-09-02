@@ -109,7 +109,7 @@ func (s *Scanner) peek() rune {
 
 // rest returns the rest of the input from the current scanner position,
 // or nil if the scanner is at EOF.
-func (s *Scanner) rest() []byte {
+func (s *Scanner) rest() []byte { //nolint: unused // We will use this soon
 	if s.pos >= len(s.src) {
 		return nil
 	}
@@ -303,6 +303,8 @@ func scanComment(s *Scanner) scanFn {
 
 // scanSeparator scans the literal '###' used as a request separator.
 func scanSeparator(s *Scanner) scanFn {
+	// TODO(@FollowTheProcess): This logic is repeated in a few places
+
 	// Absorb no more than 3 '#'
 	count := 0
 
