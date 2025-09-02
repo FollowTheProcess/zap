@@ -77,6 +77,19 @@ func TestBasics(t *testing.T) {
 			},
 		},
 		{
+			name: "variable with interp",
+			src:  "@var = {{ base }}",
+			want: []token.Token{
+				{Kind: token.At, Start: 0, End: 1},
+				{Kind: token.Ident, Start: 1, End: 4},
+				{Kind: token.Eq, Start: 5, End: 6},
+				{Kind: token.OpenInterp, Start: 7, End: 9},
+				{Kind: token.Ident, Start: 10, End: 14},
+				{Kind: token.CloseInterp, Start: 15, End: 17},
+				{Kind: token.EOF, Start: 17, End: 17},
+			},
+		},
+		{
 			name: "variable no equals",
 			src:  "@var test",
 			want: []token.Token{
@@ -192,7 +205,16 @@ func TestBasics(t *testing.T) {
 			src := []byte(tt.src)
 			scanner := scanner.New(tt.name, src, testFailHandler(t))
 
-			tokens := slices.Collect(scanner.All())
+			var tokens []token.Token
+
+			for {
+				tok := scanner.Scan()
+
+				tokens = append(tokens, tok)
+				if tok.Is(token.EOF, token.Error) {
+					break
+				}
+			}
 
 			test.EqualFunc(t, tokens, tt.want, slices.Equal, test.Context("token stream mismatch"))
 		})

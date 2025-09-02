@@ -19,6 +19,8 @@ const (
 	Ident                         // Ident
 	Eq                            // Eq
 	Text                          // Text
+	OpenInterp                    // OpenInterp
+	CloseInterp                   // CloseInterp
 	Name                          // Name
 	Prompt                        // Prompt
 	Timeout                       // Timeout

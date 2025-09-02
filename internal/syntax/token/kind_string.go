@@ -16,16 +16,18 @@ func _() {
 	_ = x[Ident-5]
 	_ = x[Eq-6]
 	_ = x[Text-7]
-	_ = x[Name-8]
-	_ = x[Prompt-9]
-	_ = x[Timeout-10]
-	_ = x[ConnectionTimeout-11]
-	_ = x[NoRedirect-12]
+	_ = x[OpenInterp-8]
+	_ = x[CloseInterp-9]
+	_ = x[Name-10]
+	_ = x[Prompt-11]
+	_ = x[Timeout-12]
+	_ = x[ConnectionTimeout-13]
+	_ = x[NoRedirect-14]
 }
 
-const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqTextNamePromptTimeoutConnectionTimeoutNoRedirect"
+const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqTextOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirect"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 37, 41, 47, 54, 71, 81}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 37, 47, 58, 62, 68, 75, 92, 102}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {
