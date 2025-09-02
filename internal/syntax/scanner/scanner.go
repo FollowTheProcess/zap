@@ -131,6 +131,12 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 	s.start = s.pos
 }
 
+// restHasPrefix reports whether the remainder of the input begins with the
+// provided run of characters.
+func (s *Scanner) restHasPrefix(prefix string) bool {
+	return bytes.HasPrefix(s.src[s.pos:], []byte(prefix))
+}
+
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
@@ -406,7 +412,7 @@ func scanEq(s *Scanner) scanFn {
 		return scanText
 	}
 
-	if bytes.HasPrefix(s.src[s.pos:], []byte("{{")) {
+	if s.restHasPrefix("{{") {
 		return scanOpenInterp
 	}
 
@@ -443,7 +449,7 @@ func scanOpenInterp(s *Scanner) scanFn {
 		scanIdent(s)
 	}
 
-	if !bytes.HasPrefix(s.src[s.pos:], []byte("}}")) {
+	if !s.restHasPrefix("}}") {
 		s.error("unterminated interpolation")
 		return nil
 	}
