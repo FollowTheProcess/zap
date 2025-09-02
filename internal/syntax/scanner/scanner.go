@@ -21,8 +21,8 @@
 package scanner
 
 import (
+	"bytes"
 	"fmt"
-	"iter"
 	"slices"
 	"unicode"
 	"unicode/utf8"
@@ -74,20 +74,6 @@ func (s *Scanner) Scan() token.Token {
 	return <-s.tokens
 }
 
-// All returns an iterator over the tokens in the file, stopping at EOF or Error.
-//
-// The final token will still be yielded.
-func (s *Scanner) All() iter.Seq[token.Token] {
-	return func(yield func(token.Token) bool) {
-		for {
-			tok, ok := <-s.tokens
-			if !ok || !yield(tok) {
-				return
-			}
-		}
-	}
-}
-
 // next returns the next utf8 rune in the input, or [eof], and advances the scanner
 // over that rune such that successive calls to [Scanner.next] iterate through
 // src one rune at a time.
@@ -121,6 +107,16 @@ func (s *Scanner) peek() rune {
 	return char
 }
 
+// rest returns the rest of the input from the current scanner position,
+// or nil if the scanner is at EOF.
+func (s *Scanner) rest() []byte { //nolint: unused // We will use this soon
+	if s.pos >= len(s.src) {
+		return nil
+	}
+
+	return s.src[s.pos:]
+}
+
 // skip ignores any characters for which the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the
 // first 'false' char.
@@ -135,10 +131,14 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 	s.start = s.pos
 }
 
+// restHasPrefix reports whether the remainder of the input begins with the
+// provided run of characters.
+func (s *Scanner) restHasPrefix(prefix string) bool {
+	return bytes.HasPrefix(s.src[s.pos:], []byte(prefix))
+}
+
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
-//
-
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 	for predicate(s.peek()) {
 		s.next()
@@ -303,6 +303,8 @@ func scanComment(s *Scanner) scanFn {
 
 // scanSeparator scans the literal '###' used as a request separator.
 func scanSeparator(s *Scanner) scanFn {
+	// TODO(@FollowTheProcess): This logic is repeated in a few places
+
 	// Absorb no more than 3 '#'
 	count := 0
 
@@ -411,6 +413,73 @@ func scanEq(s *Scanner) scanFn {
 	if isAlphaNumeric(s.peek()) {
 		return scanText
 	}
+
+	if s.restHasPrefix("{{") {
+		return scanOpenInterp
+	}
+
+	return scanStart
+}
+
+// scanOpenInterp scans an opening '{{' token.
+func scanOpenInterp(s *Scanner) scanFn {
+	// Absorb no more than 2 '{'
+	count := 0
+
+	const n = 2 // len("{{")
+
+	for s.peek() == '{' {
+		count++
+
+		s.next()
+
+		if count == n {
+			break
+		}
+	}
+
+	s.emit(token.OpenInterp)
+
+	// TODO(@FollowTheProcess): More can go here but for now let's assume
+	// it's always an ident
+	s.skip(isLineSpace)
+
+	if isAlpha(s.peek()) {
+		// We don't actually want to move to the next state yet
+		// after the ident, just scan it and remember where we should
+		// go next
+		scanIdent(s)
+	}
+
+	if !s.restHasPrefix("}}") {
+		s.error("unterminated interpolation")
+		return nil
+	}
+
+	return scanCloseInterp
+}
+
+// scanCloseInterp scans a closing '}}' token.
+//
+// The '}}' is known to be the next 2 characters in the input by
+// the time this is called.
+func scanCloseInterp(s *Scanner) scanFn {
+	// Absorb no more than 2 '}'
+	count := 0
+
+	const n = 2 // len("}}")
+
+	for s.peek() == '}' {
+		count++
+
+		s.next()
+
+		if count == n {
+			break
+		}
+	}
+
+	s.emit(token.CloseInterp)
 
 	return scanStart
 }
