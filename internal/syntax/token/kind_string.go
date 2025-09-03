@@ -16,18 +16,28 @@ func _() {
 	_ = x[Ident-5]
 	_ = x[Eq-6]
 	_ = x[Text-7]
-	_ = x[OpenInterp-8]
-	_ = x[CloseInterp-9]
-	_ = x[Name-10]
-	_ = x[Prompt-11]
-	_ = x[Timeout-12]
-	_ = x[ConnectionTimeout-13]
-	_ = x[NoRedirect-14]
+	_ = x[URL-8]
+	_ = x[OpenInterp-9]
+	_ = x[CloseInterp-10]
+	_ = x[Name-11]
+	_ = x[Prompt-12]
+	_ = x[Timeout-13]
+	_ = x[ConnectionTimeout-14]
+	_ = x[NoRedirect-15]
+	_ = x[MethodGet-16]
+	_ = x[MethodHead-17]
+	_ = x[MethodPost-18]
+	_ = x[MethodPut-19]
+	_ = x[MethodDelete-20]
+	_ = x[MethodConnect-21]
+	_ = x[MethodPatch-22]
+	_ = x[MethodOptions-23]
+	_ = x[MethodTrace-24]
 }
 
-const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqTextOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirect"
+const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqTextURLOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 37, 47, 58, 62, 68, 75, 92, 102}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 37, 40, 50, 61, 65, 71, 78, 95, 105, 114, 124, 134, 143, 155, 168, 179, 192, 203}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {

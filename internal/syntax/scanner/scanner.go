@@ -248,7 +248,12 @@ func scanStart(s *Scanner) scanFn {
 	case '@':
 		return scanAt
 	default:
+		if isIdent(char) {
+			return scanText
+		}
+
 		s.errorf("unrecognised character: %q", char)
+
 		return nil
 	}
 }
@@ -490,8 +495,39 @@ func scanCloseInterp(s *Scanner) scanFn {
 func scanText(s *Scanner) scanFn {
 	s.takeWhile(isText)
 
-	s.emit(token.Text)
+	// Is it a HTTP Method? If so token.Method will return it's
+	// proper token type, else [token.Text].
+	text := string(s.src[s.start:s.pos])
+	kind, wasMethod := token.Method(text)
+	s.emit(kind)
+	s.skip(isLineSpace)
 
+	// If it was a HTTP method, we should now have a url following it
+	if wasMethod {
+		return scanURL
+	}
+
+	return scanStart
+}
+
+// scanURL scans a series of continuous characters (no whitespace), so long as they are
+// valid in a URL, and emits a URL token.
+func scanURL(s *Scanner) scanFn {
+	if s.restHasPrefix("{{") {
+		return scanOpenInterp
+	}
+
+	if !s.restHasPrefix("http") {
+		s.error("HTTP methods must be followed by a valid URL")
+		return nil
+	}
+
+	// TODO(@FollowTheProcess): Handle interpolation inside the URL
+	// e.g. https://api.somewhere.com/{{ something }}/123
+	s.takeWhile(isText)
+	s.emit(token.URL)
+
+	// TODO(@FollowTheProcess): Handle HTTP version, headers, body etc.
 	return scanStart
 }
 
