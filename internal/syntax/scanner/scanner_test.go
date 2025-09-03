@@ -1,15 +1,22 @@
 package scanner_test
 
 import (
+	"flag"
+	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"go.followtheprocess.codes/test"
+	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/scanner"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 	"go.uber.org/goleak"
 )
+
+var update = flag.Bool("update", false, "Update snapshots and testdata")
 
 func TestBasics(t *testing.T) {
 	tests := []struct {
@@ -303,6 +310,65 @@ func TestBasics(t *testing.T) {
 			}
 
 			test.EqualFunc(t, tokens, tt.want, slices.Equal, test.Context("token stream mismatch"))
+		})
+	}
+}
+
+func TestValid(t *testing.T) {
+	// Force colour for diffs but only locally
+	test.ColorEnabled(os.Getenv("CI") == "")
+
+	pattern := filepath.Join("testdata", "valid", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	for _, file := range files {
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
+			archive, err := txtar.ParseFile(file)
+			test.Ok(t, err)
+
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("archive missing src.http"))
+
+			want, ok := archive.Read("tokens.txt")
+			test.True(t, ok, test.Context("archive missing tokens.txt"))
+
+			scanner := scanner.New(name, []byte(src), testFailHandler(t))
+
+			var tokens []token.Token
+
+			for {
+				tok := scanner.Scan()
+
+				tokens = append(tokens, tok)
+				if tok.Is(token.EOF, token.Error) {
+					break
+				}
+			}
+
+			var formattedTokens strings.Builder
+			for _, tok := range tokens {
+				formattedTokens.WriteString(tok.String())
+				formattedTokens.WriteByte('\n')
+			}
+
+			got := formattedTokens.String()
+
+			if *update {
+				// Update the expected with what's actually been seen
+				err := archive.Write("tokens.txt", got)
+				test.Ok(t, err)
+
+				err = txtar.DumpFile(file, archive)
+				test.Ok(t, err)
+
+				return
+			}
+
+			test.Diff(t, got, want)
 		})
 	}
 }
