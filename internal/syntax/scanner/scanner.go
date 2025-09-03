@@ -376,6 +376,9 @@ func scanIdent(s *Scanner) scanFn {
 		// @var <value>
 		// Note: value could be a timeout, hence alpha numeric
 		return scanText
+	case s.restHasPrefix("{{"):
+		// @var {{ <value> }}
+		return scanOpenInterp
 	default:
 		return scanStart
 	}
@@ -446,8 +449,7 @@ func scanOpenInterp(s *Scanner) scanFn {
 
 	if isAlpha(s.peek()) {
 		// We don't actually want to move to the next state yet
-		// after the ident, just scan it and remember where we should
-		// go next
+		// after the ident, just scan it
 		scanIdent(s)
 	}
 
