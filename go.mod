@@ -7,6 +7,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	go.followtheprocess.codes/log v1.0.0
 	go.followtheprocess.codes/test v0.23.0
+	go.followtheprocess.codes/txtar v0.8.0
 	go.uber.org/goleak v1.3.0
 )
 
@@ -30,7 +31,6 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.followtheprocess.codes/hue v0.6.0 // indirect
-	go.followtheprocess.codes/txtar v0.8.0 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
