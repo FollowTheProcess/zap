@@ -458,6 +458,8 @@ func scanOpenInterp(s *Scanner) scanFn {
 		scanIdent(s)
 	}
 
+	s.skip(isLineSpace)
+
 	if !s.restHasPrefix("}}") {
 		s.error("unterminated interpolation")
 		return nil
