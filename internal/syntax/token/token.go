@@ -18,8 +18,10 @@ const (
 	At                            // At
 	Ident                         // Ident
 	Eq                            // Eq
+	Colon                         // Colon
 	Text                          // Text
 	URL                           // URL
+	Header                        // Header
 	OpenInterp                    // OpenInterp
 	CloseInterp                   // CloseInterp
 	Name                          // Name
