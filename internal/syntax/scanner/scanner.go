@@ -537,7 +537,59 @@ func scanURL(s *Scanner) scanFn {
 
 	s.emit(token.URL)
 
+	// Is the next thing headers?
+	s.skip(unicode.IsSpace)
+
+	if isAlpha(s.peek()) {
+		return scanHeaders
+	}
+
 	// TODO(@FollowTheProcess): Handle HTTP version, headers, body etc.
+	return scanStart
+}
+
+// scanHeaders scans a series of HTTP headers, one per line, emitting
+// tokens as it goes.
+//
+// It stops when it sees the next character is not a valid ident character
+// and so could not be another header.
+func scanHeaders(s *Scanner) scanFn {
+	s.takeWhile(isIdent)
+
+	// Header without a colon or value e.g. 'Content-Type'
+	// this is unfinished so is an error, like an unterminated interpolation.
+	if s.peek() == eof {
+		s.error("unexpected eof")
+		return nil
+	}
+
+	s.emit(token.Header)
+
+	if s.peek() != ':' {
+		s.errorf("expected ':', got %q", s.peek())
+		return nil
+	}
+
+	// Consume the ':' now we know it exists, and skip over any whitespace
+	// on the same line until we get to the header value
+	s.next()
+	s.emit(token.Colon)
+	s.skip(isLineSpace)
+
+	// The value is whatever comes after this on the same line, it could
+	// contain spaces so isText wouldn't work here
+	// TODO(@FollowTheProcess): Handle interpolation in the header value too like scanURL
+	s.takeUntil('\n', eof)
+	s.emit(token.Text)
+
+	// Now for the fun bit, call itself if there are more headers
+	s.skip(unicode.IsSpace)
+
+	if isAlpha(s.peek()) {
+		return scanHeaders
+	}
+
+	// TODO(@FollowTheProcess): Handle request body
 	return scanStart
 }
 
