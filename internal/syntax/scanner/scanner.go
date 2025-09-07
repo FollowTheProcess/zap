@@ -576,13 +576,29 @@ func scanHeaders(s *Scanner) scanFn {
 	s.emit(token.Colon)
 	s.skip(isLineSpace)
 
+	// for next := s.next(); next != '\n' && next != eof; next = s.next() {
+	// 	if s.restHasPrefix("{{") {
+	// 		// Emit whatever we've captured at this point as text (if there is anything)
+	// 		// and go scan the interpolation
+	// 		if s.start != s.pos {
+	// 			// We have absorbed stuff
+	// 			s.emit(token.Text)
+	// 		}
+	// 		scanInterp(s)
+	// 	}
+	// }
+
 	// Handle interpolation somewhere inside the header value
 	// e.g. Authorization: Bearer {{ token }}
 	for {
 		if s.restHasPrefix("{{") {
-			// Emit what we have captured up to this point as Text and then
+			// Emit what we have captured up to this point (if there is anything) as Text and then
 			// switch to scanning the interpolation
-			s.emit(token.Text)
+			if s.start != s.pos {
+				// We have absorbed stuff, emit it
+				s.emit(token.Text)
+			}
+
 			scanInterp(s)
 		}
 
@@ -595,9 +611,10 @@ func scanHeaders(s *Scanner) scanFn {
 		s.next()
 	}
 
-	// TODO(@FollowTheProcess): This is a little hacky? Basically without this the "next == '\n' or eof" branch
-	// consumes the trailing newline leftover if the interpolation ends the header line which means we
-	// get a Text token of zero width
+	// If we absorbed any text, emit it.
+	//
+	// This could be empty because the entire header value could have just been an interp
+	// e.g. X-Api-Key: {{ key }}
 	if s.start != s.pos {
 		s.emit(token.Text)
 	}
