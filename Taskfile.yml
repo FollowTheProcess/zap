@@ -69,6 +69,8 @@ tasks:
 
   lint:
     desc: Run linting
+    deps:
+      - fmt
     sources:
       - "**/*.go"
       - .golangci.yml
