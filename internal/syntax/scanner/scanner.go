@@ -429,7 +429,7 @@ func scanEq(s *Scanner) scanFn {
 	return scanStart
 }
 
-// scanInterp scans an opening '{{' token.
+// scanInterp scans an entire interpolation of {{ <contents> }}.
 func scanInterp(s *Scanner) scanFn {
 	// Absorb no more than 2 '{'
 	count := 0
@@ -576,11 +576,31 @@ func scanHeaders(s *Scanner) scanFn {
 	s.emit(token.Colon)
 	s.skip(isLineSpace)
 
-	// The value is whatever comes after this on the same line, it could
-	// contain spaces so isText wouldn't work here
-	// TODO(@FollowTheProcess): Handle interpolation in the header value too like scanURL
-	s.takeUntil('\n', eof)
-	s.emit(token.Text)
+	// Handle interpolation somewhere inside the header value
+	// e.g. Authorization: Bearer {{ token }}
+	for {
+		if s.restHasPrefix("{{") {
+			// Emit what we have captured up to this point as Text and then
+			// switch to scanning the interpolation
+			s.emit(token.Text)
+			scanInterp(s)
+		}
+
+		// Scan any text on the same line
+		next := s.peek()
+		if next == '\n' || next == eof {
+			break
+		}
+
+		s.next()
+	}
+
+	// TODO(@FollowTheProcess): This is a little hacky? Basically without this the "next == '\n' or eof" branch
+	// consumes the trailing newline leftover if the interpolation ends the header line which means we
+	// get a Text token of zero width
+	if s.start != s.pos {
+		s.emit(token.Text)
+	}
 
 	// Now for the fun bit, call itself if there are more headers
 	s.skip(unicode.IsSpace)
