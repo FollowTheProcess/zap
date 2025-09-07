@@ -383,7 +383,7 @@ func scanIdent(s *Scanner) scanFn {
 		return scanText
 	case s.restHasPrefix("{{"):
 		// @var {{ <value> }}
-		return scanOpenInterp
+		return scanInterp
 	default:
 		return scanStart
 	}
@@ -423,18 +423,18 @@ func scanEq(s *Scanner) scanFn {
 	}
 
 	if s.restHasPrefix("{{") {
-		return scanOpenInterp
+		return scanInterp
 	}
 
 	return scanStart
 }
 
-// scanOpenInterp scans an opening '{{' token.
-func scanOpenInterp(s *Scanner) scanFn {
+// scanInterp scans an opening '{{' token.
+func scanInterp(s *Scanner) scanFn {
 	// Absorb no more than 2 '{'
 	count := 0
 
-	const n = 2 // len("{{")
+	const n = 2 // len("{{") or len("}}")
 
 	for s.peek() == '{' {
 		count++
@@ -465,18 +465,8 @@ func scanOpenInterp(s *Scanner) scanFn {
 		return nil
 	}
 
-	return scanCloseInterp
-}
-
-// scanCloseInterp scans a closing '}}' token.
-//
-// The '}}' is known to be the next 2 characters in the input by
-// the time this is called.
-func scanCloseInterp(s *Scanner) scanFn {
 	// Absorb no more than 2 '}'
-	count := 0
-
-	const n = 2 // len("}}")
+	count = 0
 
 	for s.peek() == '}' {
 		count++
@@ -515,8 +505,9 @@ func scanText(s *Scanner) scanFn {
 // scanURL scans a series of continuous characters (no whitespace), so long as they are
 // valid in a URL, and emits a URL token.
 func scanURL(s *Scanner) scanFn {
+	// The first bit is templated e.g. `GET {{ base }}/v1/endpoint`
 	if s.restHasPrefix("{{") {
-		return scanOpenInterp
+		return scanInterp
 	}
 
 	if !s.restHasPrefix("http") {
@@ -524,9 +515,26 @@ func scanURL(s *Scanner) scanFn {
 		return nil
 	}
 
-	// TODO(@FollowTheProcess): Handle interpolation inside the URL
-	// e.g. https://api.somewhere.com/{{ something }}/123
-	s.takeWhile(isText)
+	// Handle interpolation somewhere inside the URL
+	// e.g. https://api.somewhere.com/{{ version }}/items/1
+	for {
+		if s.restHasPrefix("{{") {
+			// Emit what we have captured up to this point as a URL and then
+			// switch to scanning the interpolation
+			s.emit(token.URL)
+			scanInterp(s)
+		}
+
+		// Scan URL-like characters
+		next := s.peek()
+		if !isText(next) {
+			// This ain't a URL!
+			break
+		}
+
+		s.next()
+	}
+
 	s.emit(token.URL)
 
 	// TODO(@FollowTheProcess): Handle HTTP version, headers, body etc.
