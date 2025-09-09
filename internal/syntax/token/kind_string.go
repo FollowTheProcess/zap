@@ -18,28 +18,29 @@ func _() {
 	_ = x[Colon-7]
 	_ = x[Text-8]
 	_ = x[URL-9]
-	_ = x[Header-10]
-	_ = x[OpenInterp-11]
-	_ = x[CloseInterp-12]
-	_ = x[Name-13]
-	_ = x[Prompt-14]
-	_ = x[Timeout-15]
-	_ = x[ConnectionTimeout-16]
-	_ = x[NoRedirect-17]
-	_ = x[MethodGet-18]
-	_ = x[MethodHead-19]
-	_ = x[MethodPost-20]
-	_ = x[MethodPut-21]
-	_ = x[MethodDelete-22]
-	_ = x[MethodConnect-23]
-	_ = x[MethodPatch-24]
-	_ = x[MethodOptions-25]
-	_ = x[MethodTrace-26]
+	_ = x[HTTPVersion-10]
+	_ = x[Header-11]
+	_ = x[OpenInterp-12]
+	_ = x[CloseInterp-13]
+	_ = x[Name-14]
+	_ = x[Prompt-15]
+	_ = x[Timeout-16]
+	_ = x[ConnectionTimeout-17]
+	_ = x[NoRedirect-18]
+	_ = x[MethodGet-19]
+	_ = x[MethodHead-20]
+	_ = x[MethodPost-21]
+	_ = x[MethodPut-22]
+	_ = x[MethodDelete-23]
+	_ = x[MethodConnect-24]
+	_ = x[MethodPatch-25]
+	_ = x[MethodOptions-26]
+	_ = x[MethodTrace-27]
 }
 
-const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqColonTextURLHeaderOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
+const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqColonTextURLHTTPVersionHeaderOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 38, 42, 45, 51, 61, 72, 76, 82, 89, 106, 116, 125, 135, 145, 154, 166, 179, 190, 203, 214}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 38, 42, 45, 56, 62, 72, 83, 87, 93, 100, 117, 127, 136, 146, 156, 165, 177, 190, 201, 214, 225}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {
