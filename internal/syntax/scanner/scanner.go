@@ -519,9 +519,13 @@ func scanURL(s *Scanner) scanFn {
 	// e.g. https://api.somewhere.com/{{ version }}/items/1
 	for {
 		if s.restHasPrefix("{{") {
-			// Emit what we have captured up to this point as a URL and then
+			// Emit what we have captured up to this point (if there is anything) as URL and then
 			// switch to scanning the interpolation
-			s.emit(token.URL)
+			if s.start != s.pos {
+				// We have absorbed stuff, emit it
+				s.emit(token.URL)
+			}
+
 			scanInterp(s)
 		}
 
@@ -535,7 +539,13 @@ func scanURL(s *Scanner) scanFn {
 		s.next()
 	}
 
-	s.emit(token.URL)
+	// If we absorbed a URL, emit it.
+	//
+	// This could be empty because the entire URL could have just been an interp
+	// e.g. GET {{ url }} or the URL could end in an interp e.g. GET https://api.somewhere.com/v1/items/{{ id }}
+	if s.start != s.pos {
+		s.emit(token.URL)
+	}
 
 	// Is the next thing headers?
 	s.skip(unicode.IsSpace)
@@ -575,18 +585,6 @@ func scanHeaders(s *Scanner) scanFn {
 	s.next()
 	s.emit(token.Colon)
 	s.skip(isLineSpace)
-
-	// for next := s.next(); next != '\n' && next != eof; next = s.next() {
-	// 	if s.restHasPrefix("{{") {
-	// 		// Emit whatever we've captured at this point as text (if there is anything)
-	// 		// and go scan the interpolation
-	// 		if s.start != s.pos {
-	// 			// We have absorbed stuff
-	// 			s.emit(token.Text)
-	// 		}
-	// 		scanInterp(s)
-	// 	}
-	// }
 
 	// Handle interpolation somewhere inside the header value
 	// e.g. Authorization: Bearer {{ token }}
