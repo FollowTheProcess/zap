@@ -610,7 +610,7 @@ func scanHTTPVersion(s *Scanner) scanFn {
 	}
 
 	// TODO(@FollowTheProcess): Scan the request body
-	panic("TODO: Handle request body")
+	return scanStart
 }
 
 // scanHeaders scans a series of HTTP headers, one per line, emitting
