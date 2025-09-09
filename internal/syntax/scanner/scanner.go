@@ -547,6 +547,15 @@ func scanURL(s *Scanner) scanFn {
 		s.emit(token.URL)
 	}
 
+	// Does it have a HTTP version after it?
+	// e.g. GET https://api.somewhere/com/v1/items HTTP/1.2
+	s.skip(isLineSpace)
+
+	if s.restHasPrefix("HTTP/") {
+		// Yes!
+		return scanHTTPVersion
+	}
+
 	// Is the next thing headers?
 	s.skip(unicode.IsSpace)
 
@@ -555,6 +564,52 @@ func scanURL(s *Scanner) scanFn {
 	}
 
 	// TODO(@FollowTheProcess): Handle HTTP version, headers, body etc.
+	return scanStart
+}
+
+// scanHTTPVersion scans a HTTP/<version> literal.
+//
+// The next characters are known to be 'HTTP/', this function consumes the entire
+// thing e.g. 'HTTP/1.2' or 'HTTP/2'.
+func scanHTTPVersion(s *Scanner) scanFn {
+	const httpLen = 5 // len("HTTP/")
+	for range httpLen {
+		s.next()
+	}
+
+	// Now the version which could be an integer or a decimal
+	for isDigit(s.peek()) {
+		s.next()
+
+		if s.peek() == '.' {
+			s.next() // Consume the '.'
+			// Now what follows *must* be a digit or it's malformed
+			if !isDigit(s.peek()) {
+				s.errorf("bad number literal in HTTP version, illegal char %q, expected numeric digit", s.peek())
+				return nil
+			}
+			// Consume any remaining digits
+			s.takeWhile(isDigit)
+		}
+	}
+
+	s.emit(token.HTTPVersion)
+
+	// The only thing allowed to follow a HTTP version is a list of headers,
+	// a request body, or request separator (next request)
+	s.skip(unicode.IsSpace)
+
+	if isAlpha(s.peek()) {
+		// Headers
+		return scanHeaders
+	}
+
+	// Either another request or the end
+	if s.peek() == '#' || s.peek() == eof {
+		return scanStart
+	}
+
+	// TODO(@FollowTheProcess): Scan the request body
 	return scanStart
 }
 

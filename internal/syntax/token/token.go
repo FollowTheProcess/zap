@@ -21,6 +21,7 @@ const (
 	Colon                         // Colon
 	Text                          // Text
 	URL                           // URL
+	HTTPVersion                   // HTTPVersion
 	Header                        // Header
 	OpenInterp                    // OpenInterp
 	CloseInterp                   // CloseInterp
