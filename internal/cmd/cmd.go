@@ -8,6 +8,12 @@ import (
 	"go.followtheprocess.codes/zap/internal/zap"
 )
 
+var (
+	version = "dev"
+	commit  = ""
+	date    = ""
+)
+
 // Build builds and returns the zap CLI.
 func Build() (*cli.Command, error) {
 	var debug bool
@@ -15,6 +21,9 @@ func Build() (*cli.Command, error) {
 	return cli.New(
 		"zap",
 		cli.Short("A command line .http file toolkit"),
+		cli.Version(version),
+		cli.Commit(commit),
+		cli.BuildDate(date),
 		cli.Example("Pick .http files and requests interactively", "zap"),
 		cli.Example("Execute all the requests in a specific file", "zap do ./demo.http"),
 		cli.Example(

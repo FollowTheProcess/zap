@@ -15,6 +15,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
+      - -X go.followtheprocess.codes/zap/internal/cmd.version={{.Version}}
+      - -X go.followtheprocess.codes/zap/internal/cmd.commit={{.Commit}}
+      - -X go.followtheprocess.codes/zap/internal/cmd.date={{.Date}}
     env:
       - CGO_ENABLED=0
     goos:
