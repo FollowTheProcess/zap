@@ -1,20 +1,24 @@
 package main
 
 import (
-	"context"
 	"os"
 
-	"github.com/charmbracelet/fang"
+	"go.followtheprocess.codes/msg"
 	"go.followtheprocess.codes/zap/internal/cmd"
 )
 
 func main() {
-	if err := fang.Execute(
-		context.Background(),
-		cmd.Build(),
-		fang.WithNotifySignal(os.Interrupt, os.Kill),
-		fang.WithColorSchemeFunc(fang.AnsiColorScheme),
-	); err != nil {
+	if err := run(); err != nil {
+		msg.Err(err)
 		os.Exit(1)
 	}
+}
+
+func run() error {
+	cli, err := cmd.Build()
+	if err != nil {
+		return err
+	}
+
+	return cli.Execute()
 }
