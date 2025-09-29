@@ -563,8 +563,13 @@ func scanURL(s *Scanner) scanFn {
 		return scanHeaders
 	}
 
-	// TODO(@FollowTheProcess): Handle HTTP version, headers, body etc.
-	return scanStart
+	// Either another request or the end
+	if s.restHasPrefix("###") || s.peek() == eof {
+		return scanStart
+	}
+
+	// Must be a request body
+	return scanBody
 }
 
 // scanHTTPVersion scans a HTTP/<version> literal.
@@ -679,7 +684,82 @@ func scanHeaders(s *Scanner) scanFn {
 		return scanHeaders
 	}
 
-	// TODO(@FollowTheProcess): Handle request body
+	// After headers is either a body, another request separator, or eof
+	if s.peek() == '#' || s.peek() == eof {
+		return scanStart
+	}
+
+	// Must be a body
+	return scanBody
+}
+
+// scanBody scans a HTTP request body, either as:
+//
+//   - '< {filepath}' (Reading the request body from the file)
+//   - raw text body specified inline
+func scanBody(s *Scanner) scanFn {
+	if s.peek() == '<' {
+		return scanLeftAngle
+	}
+
+	// Are we redirecting the response, without specifying a body
+	// e.g. in a GET request, there is no body but we still might redirect
+	// the response
+	if s.peek() == '>' {
+		return scanRightAngle
+	}
+
+	// Scan body as a single token
+	s.takeUntil('#', '>', eof)
+	s.emit(token.Body)
+
+	s.skip(unicode.IsSpace)
+
+	// Are we redirecting the response *after* a body has been specified
+	// e.g. in a POST request, there may be a body *and* a redirect
+	if s.peek() == '>' {
+		return scanRightAngle
+	}
+
+	return scanStart
+}
+
+// scanLeftAngle scans a '<' literal in the context of a request body
+// read from file.
+func scanLeftAngle(s *Scanner) scanFn {
+	s.next() // Consume the '<'
+	s.emit(token.LeftAngle)
+
+	s.skip(isLineSpace)
+
+	if isFilePath(s.peek()) {
+		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
+	s.skip(unicode.IsSpace)
+
+	// Are we redirecting the response *after* a body has been specified by a file
+	if s.peek() == '>' {
+		return scanRightAngle
+	}
+
+	return scanStart
+}
+
+// scanRightAngle scans a '>' literal in the context of a response redirect
+// to a local file.
+func scanRightAngle(s *Scanner) scanFn {
+	s.next() // Consume the '>'
+	s.emit(token.RightAngle)
+
+	s.skip(isLineSpace)
+
+	if isFilePath(s.peek()) {
+		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
 	return scanStart
 }
 
@@ -706,4 +786,9 @@ func isAlphaNumeric(r rune) bool {
 // isText reports whether r is valid in a continuous string of text.
 func isText(r rune) bool {
 	return !unicode.IsSpace(r) && r != eof
+}
+
+// isFilePath reports whether r could be a valid first character in a filepath.
+func isFilePath(r rune) bool {
+	return isIdent(r) || r == '.' || r == '/' || r == '\\'
 }
