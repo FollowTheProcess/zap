@@ -614,8 +614,12 @@ func scanHTTPVersion(s *Scanner) scanFn {
 		return scanStart
 	}
 
-	// TODO(@FollowTheProcess): Scan the request body
-	return scanStart
+	// Either another request or the end
+	if s.peek() == '#' || s.peek() == eof {
+		return scanStart
+	}
+
+	return scanBody
 }
 
 // scanHeaders scans a series of HTTP headers, one per line, emitting
