@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	go.followtheprocess.codes/cli v0.14.1
-	go.followtheprocess.codes/log v1.1.0
+	go.followtheprocess.codes/log v1.1.1
 	go.followtheprocess.codes/msg v1.9.1
 	go.followtheprocess.codes/test v0.23.1
 	go.followtheprocess.codes/txtar v0.8.0

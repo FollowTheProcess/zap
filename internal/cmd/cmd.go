@@ -34,11 +34,48 @@ func Build() (*cli.Command, error) {
 		cli.Example("Check for syntax errors in multiple files (recursively)", "zap check ./examples"),
 		cli.Allow(cli.NoArgs()),
 		cli.Flag(&debug, "debug", 'd', false, "Enable debug logs"),
+		cli.SubCommands(do),
 		cli.Run(func(cmd *cli.Command, args []string) error {
 			app := zap.New(debug, os.Stdout, os.Stderr)
 			app.Hello()
 
 			return nil
+		}),
+	)
+}
+
+const doLong = `
+The request headers, body and other settings will be taken from the
+file but may be overridden by the use of command line flags like
+'--timeout' etc.
+
+Responses can be saved to a file with the '--output' flag.
+`
+
+// do returns the zap do subcommand.
+func do() (*cli.Command, error) {
+	var options zap.DoOptions
+
+	return cli.New(
+		"do",
+		cli.Short("Execute a http request from a file"),
+		cli.Long(doLong),
+		cli.RequiredArg("file", "Path to the .http file"),
+		cli.OptionalArg("request", "Name of a specific request", "all"),
+		cli.Flag(&options.Timeout, "timeout", cli.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
+		cli.Flag(
+			&options.ConnectionTimeout,
+			"connection-timeout",
+			cli.NoShortHand,
+			zap.DefaultConnectionTimeout,
+			"Connection timeout for the request",
+		),
+		cli.Flag(&options.NoRedirect, "no-redirect", cli.NoShortHand, false, "Disable following redirects"),
+		cli.Flag(&options.Output, "output", 'o', "", "Name of a file to save the response"),
+		cli.Flag(&options.Verbose, "verbose", 'v', false, "Enable debug logging"),
+		cli.Run(func(cmd *cli.Command, args []string) error {
+			app := zap.New(options.Verbose, cmd.Stdout(), cmd.Stderr())
+			return app.Do(cmd.Arg("file"), cmd.Arg("request"), options)
 		}),
 	)
 }
