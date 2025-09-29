@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/stretchr/testify v1.10.0 // indirect
-	go.followtheprocess.codes/hue v0.7.0 // indirect
+	go.followtheprocess.codes/hue v1.0.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/term v0.35.0 // indirect
 )

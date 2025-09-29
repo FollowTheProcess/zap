@@ -19,7 +19,10 @@ const (
 	Ident                         // Ident
 	Eq                            // Eq
 	Colon                         // Colon
+	LeftAngle                     // LeftAngle
+	RightAngle                    // RightAngle
 	Text                          // Text
+	Body                          // Body
 	URL                           // URL
 	HTTPVersion                   // HTTPVersion
 	Header                        // Header
