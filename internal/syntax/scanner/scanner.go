@@ -109,7 +109,7 @@ func (s *Scanner) peek() rune {
 
 // rest returns the rest of the input from the current scanner position,
 // or nil if the scanner is at EOF.
-func (s *Scanner) rest() []byte { //nolint: unused // We will use this soon
+func (s *Scanner) rest() []byte {
 	if s.pos >= len(s.src) {
 		return nil
 	}
@@ -134,7 +134,7 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 // restHasPrefix reports whether the remainder of the input begins with the
 // provided run of characters.
 func (s *Scanner) restHasPrefix(prefix string) bool {
-	return bytes.HasPrefix(s.src[s.pos:], []byte(prefix))
+	return bytes.HasPrefix(s.rest(), []byte(prefix))
 }
 
 // takeWhile consumes characters so long as the predicate returns true, stopping at the

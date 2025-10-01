@@ -9,6 +9,8 @@ before:
 gomod:
   proxy: true
 
+report_sizes: true
+
 builds:
   - id: zap
     dir: "."
@@ -66,9 +68,9 @@ homebrew_casks:
 dockers_v2:
   - images:
       - followtheprocess/zap
-      - ghcr.io/FollowTheProcess/zap
+      - ghcr.io/followtheprocess/zap
     tags:
-      - v{{ .Version }}
+      - "{{ .Version }}"
     labels:
       "org.opencontainers.image.description": "A command line .http file toolkit"
       "org.opencontainers.image.created": "{{.Date}}"
@@ -76,6 +78,10 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.version": "{{.Version}}"
       "org.opencontainers.image.source": "{{.GitURL}}"
+
+docker_digest:
+  name_template: digests.txt
+  disable: false
 
 archives:
   - id: zap
