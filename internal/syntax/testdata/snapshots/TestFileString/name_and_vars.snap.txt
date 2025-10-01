@@ -1,0 +1,5 @@
+@name = SomeVars
+
+@base = https://url.com/api/v1
+@hello = world
+

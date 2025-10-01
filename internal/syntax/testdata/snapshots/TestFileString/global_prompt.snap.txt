@@ -1,0 +1,8 @@
+@name = Requests
+
+@prompt colour The colour of something
+@base = https://api.com/v1
+
+### A simple request
+# @name = SimpleRequest
+GET https://api.com/v1/items/123
