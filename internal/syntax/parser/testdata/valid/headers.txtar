@@ -1,0 +1,23 @@
+-- src.http --
+### With Headers
+POST https://api.company.org/v1/token?cache=true
+Accept: application/json;charset=utf8
+Content-Type: application/json
+Content-Length: 69
+-- want.json --
+{
+  "name": "headers.txtar",
+  "requests": [
+    {
+      "headers": {
+        "Accept": "application/json;charset=utf8",
+        "Content-Length": "69",
+        "Content-Type": "application/json"
+      },
+      "name": "#1",
+      "comment": "With Headers",
+      "method": "POST",
+      "url": "https://api.company.org/v1/token?cache=true"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+-- src.http --
+###
+GET https://api.somewhere.com/items/1
+###
+POST https://api.somewhere.com/books/5
+###
+PUT https://api.somewhereelse.com/person/123
+-- want.json --
+{
+  "name": "multiple.txtar",
+  "requests": [
+    {
+      "name": "#1",
+      "method": "GET",
+      "url": "https://api.somewhere.com/items/1"
+    },
+    {
+      "name": "#2",
+      "method": "POST",
+      "url": "https://api.somewhere.com/books/5"
+    },
+    {
+      "name": "#3",
+      "method": "PUT",
+      "url": "https://api.somewhereelse.com/person/123"
+    }
+  ]
+}

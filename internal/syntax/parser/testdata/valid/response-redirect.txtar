@@ -1,0 +1,18 @@
+-- src.http --
+### Response redirect
+GET https://api.somewhere.com/items/1
+
+> ./response.json
+-- want.json --
+{
+  "name": "response-redirect.txtar",
+  "requests": [
+    {
+      "name": "#1",
+      "comment": "Response redirect",
+      "method": "GET",
+      "url": "https://api.somewhere.com/items/1",
+      "responseFile": "./response.json"
+    }
+  ]
+}
