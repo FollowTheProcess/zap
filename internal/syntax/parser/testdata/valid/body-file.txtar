@@ -1,0 +1,22 @@
+-- src.http --
+### Read the body from ./input.json
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+< ./input.json
+-- want.json --
+{
+  "name": "body-file.txtar",
+  "requests": [
+    {
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "name": "#1",
+      "comment": "Read the body from ./input.json",
+      "method": "POST",
+      "url": "https://api.somewhere.com/items/1",
+      "bodyFile": "./input.json"
+    }
+  ]
+}

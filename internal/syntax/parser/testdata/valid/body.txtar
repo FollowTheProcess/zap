@@ -1,0 +1,32 @@
+# The "ewogIC..." is the base64 encoded string representing the []byte that is our JSON body
+# see https://pkg.go.dev/encoding/json#Marshal
+# I've checked it and it actually is the right body, probably need to figure out a nicer
+# way of showing it in here.
+
+-- src.http --
+### Body
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+{
+  "body": "here"
+  "yes": {
+    "full": ["json", "syntax"]
+  }
+}
+-- want.json --
+{
+  "name": "body.txtar",
+  "requests": [
+    {
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "name": "#1",
+      "comment": "Body",
+      "method": "POST",
+      "url": "https://api.somewhere.com/items/1",
+      "body": "ewogICJib2R5IjogImhlcmUiCiAgInllcyI6IHsKICAgICJmdWxsIjogWyJqc29uIiwgInN5bnRheCJdCiAgfQp9"
+    }
+  ]
+}
