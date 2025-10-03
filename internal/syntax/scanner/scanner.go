@@ -162,6 +162,22 @@ func (s *Scanner) takeUntil(runes ...rune) {
 	}
 }
 
+// takeExact consumes exactly the provided text if it is the very next thing
+// the scanner encounters.
+//
+// If the next characters in src do not match, this is a no-op.
+func (s *Scanner) takeExact(match string) {
+	if !s.restHasPrefix(match) {
+		return
+	}
+
+	for _, char := range match {
+		if s.peek() == char {
+			s.next()
+		}
+	}
+}
+
 // emit passes a token over the tokens channel, using the scanner's internal
 // state to populate position information.
 func (s *Scanner) emit(kind token.Kind) {
@@ -308,23 +324,8 @@ func scanComment(s *Scanner) scanFn {
 
 // scanSeparator scans the literal '###' used as a request separator.
 func scanSeparator(s *Scanner) scanFn {
-	// TODO(@FollowTheProcess): This logic is repeated in a few places
-
-	// Absorb no more than 3 '#'
-	count := 0
-
-	const sepLength = 3 // len("###")
-
-	for s.peek() == '#' {
-		count++
-
-		s.next()
-
-		if count == sepLength {
-			break
-		}
-	}
-
+	// The first '#' has already been consumed by scanStart
+	s.takeExact("##")
 	s.emit(token.Separator)
 
 	// If there is text on the same line as the separator it is a request comment
@@ -431,21 +432,7 @@ func scanEq(s *Scanner) scanFn {
 
 // scanInterp scans an entire interpolation of {{ <contents> }}.
 func scanInterp(s *Scanner) scanFn {
-	// Absorb no more than 2 '{'
-	count := 0
-
-	const n = 2 // len("{{") or len("}}")
-
-	for s.peek() == '{' {
-		count++
-
-		s.next()
-
-		if count == n {
-			break
-		}
-	}
-
+	s.takeExact("{{")
 	s.emit(token.OpenInterp)
 
 	// TODO(@FollowTheProcess): More can go here but for now let's assume
@@ -465,19 +452,7 @@ func scanInterp(s *Scanner) scanFn {
 		return nil
 	}
 
-	// Absorb no more than 2 '}'
-	count = 0
-
-	for s.peek() == '}' {
-		count++
-
-		s.next()
-
-		if count == n {
-			break
-		}
-	}
-
+	s.takeExact("}}")
 	s.emit(token.CloseInterp)
 
 	return scanStart
@@ -577,10 +552,7 @@ func scanURL(s *Scanner) scanFn {
 // The next characters are known to be 'HTTP/', this function consumes the entire
 // thing e.g. 'HTTP/1.2' or 'HTTP/2'.
 func scanHTTPVersion(s *Scanner) scanFn {
-	const httpLen = 5 // len("HTTP/")
-	for range httpLen {
-		s.next()
-	}
+	s.takeExact("HTTP/")
 
 	// Now the version which could be an integer or a decimal
 	for isDigit(s.peek()) {
