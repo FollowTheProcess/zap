@@ -14,6 +14,11 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
+// TODO(@FollowTheProcess): This (and the scanner) currently bail out at the first parser
+// error which isn't great. I need to implement a synchronisation mechanism on a parser/scan error
+// that skips forward over anything we're not sure about after an error until we get to
+// some state where we can recover. For example, the next '###' would be a good choice
+
 // ErrParse is a generic parsing error, details on the error are passed
 // to the parser's [syntax.ErrorHandler] at the moment it occurs.
 var ErrParse = errors.New("parse error")
