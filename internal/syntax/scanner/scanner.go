@@ -378,6 +378,9 @@ func scanIdent(s *Scanner) scanFn {
 	case s.peek() == '=':
 		// @var = <value>
 		return scanEq
+	case s.restHasPrefix("http"):
+		// It's a URL
+		return scanURL
 	case isAlphaNumeric(s.peek()):
 		// @var <value>
 		// Note: value could be a timeout, hence alpha numeric
@@ -419,15 +422,16 @@ func scanEq(s *Scanner) scanFn {
 
 	s.skip(isLineSpace)
 
-	if isAlphaNumeric(s.peek()) {
+	switch {
+	case s.restHasPrefix("http"):
+		return scanURL
+	case isAlphaNumeric(s.peek()):
 		return scanText
-	}
-
-	if s.restHasPrefix("{{") {
+	case s.restHasPrefix("{{"):
 		return scanInterp
+	default:
+		return scanStart
 	}
-
-	return scanStart
 }
 
 // scanInterp scans an entire interpolation of {{ <contents> }}.
@@ -454,6 +458,11 @@ func scanInterp(s *Scanner) scanFn {
 
 	s.takeExact("}}")
 	s.emit(token.CloseInterp)
+
+	// If there is content on the same line, carry on
+	if isText(s.peek()) {
+		return scanText
+	}
 
 	return scanStart
 }
@@ -538,8 +547,10 @@ func scanURL(s *Scanner) scanFn {
 		return scanHeaders
 	}
 
-	// Either another request or the end
-	if s.restHasPrefix("###") || s.peek() == eof {
+	// Either this was a URL in a request and the next thing is another
+	// request or the end. Or it was a URL in a global or request variable
+	// so the next thing could be an '@' for another variable declaration
+	if s.restHasPrefix("###") || s.peek() == '@' || s.peek() == eof {
 		return scanStart
 	}
 
