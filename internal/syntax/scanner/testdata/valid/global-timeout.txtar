@@ -13,5 +13,5 @@ GET {{ base }}/v1/items/1
 <Token::OpenInterp start=24, end=26>
 <Token::Ident start=27, end=31>
 <Token::CloseInterp start=32, end=34>
-<Token::Text start=36, end=45>
+<Token::Text start=34, end=45>
 <Token::EOF start=46, end=46>

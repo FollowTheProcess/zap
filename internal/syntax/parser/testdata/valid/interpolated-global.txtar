@@ -1,0 +1,21 @@
+-- src.http --
+@base = https://api.somewhere.com
+@endpoint = {{ base }}/other
+
+###
+GET https://api.something.com/items/1
+-- want.json --
+{
+  "name": "interpolated-global.txtar",
+  "vars": {
+    "base": "https://api.somewhere.com",
+    "endpoint": "https://api.somewhere.com/other"
+  },
+  "requests": [
+    {
+      "name": "#1",
+      "method": "GET",
+      "url": "https://api.something.com/items/1"
+    }
+  ]
+}

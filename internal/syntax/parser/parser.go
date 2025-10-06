@@ -70,7 +70,7 @@ func (p *Parser) Parse() (syntax.File, error) {
 			return syntax.File{}, ErrParse
 		}
 
-		request := p.parseRequest()
+		request := p.parseRequest(file.Vars)
 
 		// If it's name is missing, name it after it's position in the file (1 indexed)
 		if request.Name == "" {
@@ -208,7 +208,7 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 		case token.ConnectionTimeout:
 			file.ConnectionTimeout = p.parseDuration()
 		case token.NoRedirect:
-			p.advance() // Advance because there's no value @no-redirect is enough
+			p.advance() // Advance because there's no value, @no-redirect is enough
 
 			file.NoRedirect = true
 		case token.Name:
@@ -216,9 +216,13 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 		case token.Prompt:
 			file.Prompts = append(file.Prompts, p.parsePrompt())
 		case token.Ident:
-			// TODO(@FollowTheProcess): Need to think about how to handle this now
-			// because interpolation
-			panic("TODO: Handle vars")
+			key, value := p.parseVar(nil, file.Vars)
+
+			if file.Vars == nil {
+				file.Vars = make(map[string]string)
+			}
+
+			file.Vars[key] = value
 		default:
 			p.expect(
 				token.Timeout,
@@ -237,7 +241,7 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 }
 
 // parseRequest parses a single request in a http file.
-func (p *Parser) parseRequest() syntax.Request {
+func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 	if !p.current.Is(token.Separator) {
 		p.errorf("expected %s, got %s", token.Separator, p.current.Kind)
 		return syntax.Request{}
@@ -252,7 +256,7 @@ func (p *Parser) parseRequest() syntax.Request {
 	}
 
 	p.advance()
-	request = p.parseRequestVars(request)
+	request = p.parseRequestVars(globals, request)
 
 	if !token.IsMethod(p.current.Kind) {
 		p.errorf("request separators must be followed by either a comment or a HTTP method, got %s: %q", p.current.Kind, p.text())
@@ -260,6 +264,8 @@ func (p *Parser) parseRequest() syntax.Request {
 	}
 
 	request.Method = p.text()
+
+	// TODO(@FollowTheProcess): Handle interp here e.g. GET {{ base }}/items/1
 
 	p.expect(token.URL)
 
@@ -360,11 +366,60 @@ func (p *Parser) parsePrompt() syntax.Prompt {
 	return prompt
 }
 
+// parseVar parses a generic '@ident = <value>' in either global or request scope.
+//
+// The local and global scopes are passed in as maps.
+func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
+	p.advance()
+	key = p.text()
+	// Can either be @ident = value or @ident value
+	if p.next.Is(token.Eq) {
+		p.advance()
+	}
+
+	// Can be one of:
+	// 1) Text/URL and have no interpolation inside it - easy
+	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
+	// 3) Start as OpenInterp but have one or more instances of Text/URL afterwards, or maybe even more interpolations
+	//
+	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
+	// as we go
+	result := &strings.Builder{}
+
+	for p.next.Is(token.Text, token.URL, token.OpenInterp) {
+		switch kind := p.next.Kind; kind {
+		case token.Text, token.URL:
+			p.advance()
+			result.WriteString(p.text())
+		case token.OpenInterp:
+			p.advance()
+			// TODO(@FollowTheProcess): Handle more than ident but for now this is
+			// all the scanner produces so we're fine
+			p.expect(token.Ident)
+			ident := p.text()
+			p.expect(token.CloseInterp)
+
+			// Look up the ident in local then global scope
+			if val, ok := local[ident]; ok {
+				result.WriteString(val)
+			} else if val, ok := global[ident]; ok {
+				result.WriteString(val)
+			} else {
+				p.errorf("use of undefined variable %q", ident)
+			}
+		default:
+			continue
+		}
+	}
+
+	return key, result.String()
+}
+
 // parseRequestVars parses a run of variable declarations in a request. Returning
 // the modified [syntax.Request].
 //
 // If p.current is anything other than '@', the request is returned as is.
-func (p *Parser) parseRequestVars(request syntax.Request) syntax.Request {
+func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Request) syntax.Request {
 	if !p.current.Is(token.At) {
 		return request
 	}
@@ -384,9 +439,13 @@ func (p *Parser) parseRequestVars(request syntax.Request) syntax.Request {
 		case token.Prompt:
 			request.Prompts = append(request.Prompts, p.parsePrompt())
 		case token.Ident:
-			// TODO(@FollowTheProcess): Need to think about how to handle this now
-			// because interpolation
-			panic("TODO: Handle vars")
+			key, value := p.parseVar(request.Vars, globals)
+
+			if request.Vars == nil {
+				request.Vars = make(map[string]string)
+			}
+
+			request.Vars[key] = value
 		default:
 			p.expect(
 				token.Timeout,
