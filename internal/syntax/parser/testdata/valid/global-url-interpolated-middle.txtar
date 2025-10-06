@@ -1,0 +1,19 @@
+-- src.http --
+@something = hello
+
+###
+GET https://api.something.com/{{ something }}/v1
+-- want.json --
+{
+  "name": "global-url-interpolated-middle.txtar",
+  "vars": {
+    "something": "hello"
+  },
+  "requests": [
+    {
+      "name": "#1",
+      "method": "GET",
+      "url": "https://api.something.com/hello/v1"
+    }
+  ]
+}

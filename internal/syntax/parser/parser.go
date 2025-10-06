@@ -267,9 +267,44 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 
 	// TODO(@FollowTheProcess): Handle interp here e.g. GET {{ base }}/items/1
 
-	p.expect(token.URL)
+	// p.expect(token.URL, token.OpenInterp)
 
-	request.URL = p.text()
+	// Can be one of:
+	// 1) Text/URL and have no interpolation inside it - easy
+	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
+	// 3) Start as OpenInterp but have one or more instances of Text/URL afterwards, or maybe even more interpolations
+	//
+	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
+	// as we go
+	result := &strings.Builder{}
+
+	for p.next.Is(token.URL, token.Text, token.OpenInterp) {
+		switch kind := p.next.Kind; kind {
+		case token.URL, token.Text:
+			p.advance()
+			result.WriteString(p.text())
+		case token.OpenInterp:
+			p.advance()
+			// TODO(@FollowTheProcess): Handle more than ident but for now this is
+			// all the scanner produces so we're fine
+			p.expect(token.Ident)
+			ident := p.text()
+			p.expect(token.CloseInterp)
+
+			// Look up the ident in local then global scope
+			if val, ok := request.Vars[ident]; ok {
+				result.WriteString(val)
+			} else if val, ok := globals[ident]; ok {
+				result.WriteString(val)
+			} else {
+				p.errorf("use of undefined variable %q", ident)
+			}
+		default:
+			continue
+		}
+	}
+
+	request.URL = result.String()
 
 	if p.next.Is(token.HTTPVersion) {
 		p.advance()
