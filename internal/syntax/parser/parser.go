@@ -270,42 +270,7 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 
 	request.Method = p.text()
 
-	// Can be one of:
-	// 1) Text/URL and have no interpolation inside it - easy
-	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
-	// 3) Start as OpenInterp but have one or more instances of Text/URL afterwards, or maybe even more interpolations
-	//
-	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
-	// as we go
-	url := &strings.Builder{}
-
-	for p.next.Is(token.URL, token.Text, token.OpenInterp) {
-		switch kind := p.next.Kind; kind {
-		case token.URL, token.Text:
-			p.advance()
-			url.WriteString(p.text())
-		case token.OpenInterp:
-			p.advance()
-			// TODO(@FollowTheProcess): Handle more than ident but for now this is
-			// all the scanner produces so we're fine
-			p.expect(token.Ident)
-			ident := p.text()
-			p.expect(token.CloseInterp)
-
-			// Look up the ident in local then global scope
-			if val, ok := request.Vars[ident]; ok {
-				url.WriteString(val)
-			} else if val, ok := globals[ident]; ok {
-				url.WriteString(val)
-			} else {
-				p.errorf("use of undefined variable %q", ident)
-			}
-		default:
-			continue
-		}
-	}
-
-	request.URL = url.String()
+	request = p.parseRequestURL(globals, request)
 
 	if p.next.Is(token.HTTPVersion) {
 		p.advance()
@@ -320,43 +285,7 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 		}
 	}
 
-	// Much the same process as Text/URL with interpolation
-	// // TODO(@FollowTheProcess): Factor this stuff out
-	for p.next.Is(token.Header) {
-		p.advance()
-		key := p.text()
-		p.expect(token.Colon)
-
-		value := &strings.Builder{}
-
-		for p.next.Is(token.Text, token.OpenInterp) {
-			switch kind := p.next.Kind; kind {
-			case token.Text:
-				p.advance()
-				value.WriteString(p.text())
-			case token.OpenInterp:
-				p.advance()
-				// TODO(@FollowTheProcess): Same comment about expecting more than Ident
-				p.expect(token.Ident)
-				ident := p.text()
-				p.expect(token.CloseInterp)
-
-				// Look up the ident in local then global scope
-				if val, ok := request.Vars[ident]; ok {
-					value.WriteString(val)
-				} else if val, ok := globals[ident]; ok {
-					value.WriteString(val)
-				} else {
-					p.errorf("use of undefined variable %q", ident)
-				}
-			default:
-				continue
-			}
-		}
-
-		request.Headers[key] = value.String()
-		value.Reset() // Reset for the next loop
-	}
+	request = p.parseRequestHeaders(globals, request)
 
 	// Do we have a request body inline?
 	if p.next.Is(token.Body) {
@@ -523,6 +452,95 @@ func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Requ
 		}
 
 		p.advance()
+	}
+
+	return request
+}
+
+// parseRequestURL parses a URL following a HTTP method in a single request, returning
+// the modified [syntax.Request].
+//
+// Interpolation is evaluated and replaced on the fly.
+func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Request) syntax.Request {
+	// Can be one of:
+	// 1) Text/URL and have no interpolation inside it - easy
+	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
+	// 3) Start as OpenInterp but have one or more instances of Text/URL afterwards, or maybe even more interpolations
+	//
+	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
+	// as we go
+	url := &strings.Builder{}
+
+	for p.next.Is(token.URL, token.Text, token.OpenInterp) {
+		switch kind := p.next.Kind; kind {
+		case token.URL, token.Text:
+			p.advance()
+			url.WriteString(p.text())
+		case token.OpenInterp:
+			p.advance()
+			// TODO(@FollowTheProcess): Handle more than ident but for now this is
+			// all the scanner produces so we're fine
+			p.expect(token.Ident)
+			ident := p.text()
+			p.expect(token.CloseInterp)
+
+			// Look up the ident in local then global scope
+			if val, ok := request.Vars[ident]; ok {
+				url.WriteString(val)
+			} else if val, ok := globals[ident]; ok {
+				url.WriteString(val)
+			} else {
+				p.errorf("use of undefined variable %q", ident)
+			}
+		default:
+			continue
+		}
+	}
+
+	request.URL = url.String()
+
+	return request
+}
+
+// parseRequestHeaders parses a run of request headers, returning the modified
+// request.
+//
+// Interpolation is evaluated and replaced on the fly.
+func (p *Parser) parseRequestHeaders(globals map[string]string, request syntax.Request) syntax.Request {
+	for p.next.Is(token.Header) {
+		p.advance()
+		key := p.text()
+		p.expect(token.Colon)
+
+		value := &strings.Builder{}
+
+		for p.next.Is(token.Text, token.OpenInterp) {
+			switch kind := p.next.Kind; kind {
+			case token.Text:
+				p.advance()
+				value.WriteString(p.text())
+			case token.OpenInterp:
+				p.advance()
+				// TODO(@FollowTheProcess): Same comment about expecting more than Ident
+				p.expect(token.Ident)
+				ident := p.text()
+				p.expect(token.CloseInterp)
+
+				// Look up the ident in local then global scope
+				if val, ok := request.Vars[ident]; ok {
+					value.WriteString(val)
+				} else if val, ok := globals[ident]; ok {
+					value.WriteString(val)
+				} else {
+					p.errorf("use of undefined variable %q", ident)
+				}
+			default:
+				continue
+			}
+		}
+
+		request.Headers[key] = value.String()
+		value.Reset() // Reset for the next (outer) loop
 	}
 
 	return request
