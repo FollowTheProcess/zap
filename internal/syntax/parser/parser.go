@@ -194,7 +194,13 @@ func (p *Parser) errorf(format string, a ...any) {
 
 // text returns the chunk of source text described by the p.current token.
 func (p *Parser) text() string {
-	return strings.TrimSpace(string(p.src[p.current.Start:p.current.End]))
+	return string(p.bytes())
+}
+
+// bytes returns the chunk of source text described by the p.current token
+// as a byte slice.
+func (p *Parser) bytes() []byte {
+	return bytes.TrimSpace(p.src[p.current.Start:p.current.End])
 }
 
 // parseGlobals parses a run of variable declarations at the top of the file, returning
@@ -287,11 +293,7 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 
 	request = p.parseRequestHeaders(globals, request)
 
-	// Do we have a request body inline?
-	if p.next.Is(token.Body) {
-		p.advance()
-		request.Body = bytes.TrimSpace(p.src[p.current.Start:p.current.End])
-	}
+	request = p.parseRequestBody(globals, request)
 
 	// Might be a '< ./body.json'
 	if p.next.Is(token.LeftAngle) {
@@ -542,6 +544,41 @@ func (p *Parser) parseRequestHeaders(globals map[string]string, request syntax.R
 		request.Headers[key] = value.String()
 		value.Reset() // Reset for the next (outer) loop
 	}
+
+	return request
+}
+
+// parseRequestBody parses a request body, returning the modified request.
+//
+// Interpolation is evaluated and replaced o the fly.
+func (p *Parser) parseRequestBody(globals map[string]string, request syntax.Request) syntax.Request {
+	body := &bytes.Buffer{}
+
+	for p.next.Is(token.Body, token.OpenInterp) {
+		switch kind := p.next.Kind; kind {
+		case token.Body:
+			p.advance()
+			body.Write(p.bytes())
+		case token.OpenInterp:
+			p.advance()
+			p.expect(token.Ident)
+			ident := p.text()
+			p.expect(token.CloseInterp)
+
+			// Look up the ident in local then global scope
+			if val, ok := request.Vars[ident]; ok {
+				body.WriteString(val)
+			} else if val, ok := globals[ident]; ok {
+				body.WriteString(val)
+			} else {
+				p.errorf("use of undefined variable %q", ident)
+			}
+		default:
+			continue
+		}
+	}
+
+	request.Body = body.Bytes()
 
 	return request
 }
