@@ -1,3 +1,4 @@
+// zap is a command line http file toolkit.
 package main
 
 import (

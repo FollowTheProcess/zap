@@ -9,6 +9,8 @@ import (
 // Kind is the kind of a token.
 type Kind int
 
+// Token definitions.
+//
 //go:generate stringer -type Kind -linecomment
 const (
 	EOF               Kind = iota // EOF
