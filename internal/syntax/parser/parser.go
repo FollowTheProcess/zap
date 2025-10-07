@@ -270,10 +270,6 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 
 	request.Method = p.text()
 
-	// TODO(@FollowTheProcess): Handle interp here e.g. GET {{ base }}/items/1
-
-	// p.expect(token.URL, token.OpenInterp)
-
 	// Can be one of:
 	// 1) Text/URL and have no interpolation inside it - easy
 	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
@@ -281,13 +277,13 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 	//
 	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
 	// as we go
-	result := &strings.Builder{}
+	url := &strings.Builder{}
 
 	for p.next.Is(token.URL, token.Text, token.OpenInterp) {
 		switch kind := p.next.Kind; kind {
 		case token.URL, token.Text:
 			p.advance()
-			result.WriteString(p.text())
+			url.WriteString(p.text())
 		case token.OpenInterp:
 			p.advance()
 			// TODO(@FollowTheProcess): Handle more than ident but for now this is
@@ -298,9 +294,9 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 
 			// Look up the ident in local then global scope
 			if val, ok := request.Vars[ident]; ok {
-				result.WriteString(val)
+				url.WriteString(val)
 			} else if val, ok := globals[ident]; ok {
-				result.WriteString(val)
+				url.WriteString(val)
 			} else {
 				p.errorf("use of undefined variable %q", ident)
 			}
@@ -309,7 +305,7 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 		}
 	}
 
-	request.URL = result.String()
+	request.URL = url.String()
 
 	if p.next.Is(token.HTTPVersion) {
 		p.advance()
@@ -324,13 +320,42 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 		}
 	}
 
+	// Much the same process as Text/URL with interpolation
+	// // TODO(@FollowTheProcess): Factor this stuff out
 	for p.next.Is(token.Header) {
 		p.advance()
 		key := p.text()
 		p.expect(token.Colon)
-		p.expect(token.Text)
-		value := p.text()
-		request.Headers[key] = value
+
+		value := &strings.Builder{}
+
+		for p.next.Is(token.Text, token.OpenInterp) {
+			switch kind := p.next.Kind; kind {
+			case token.Text:
+				p.advance()
+				value.WriteString(p.text())
+			case token.OpenInterp:
+				p.advance()
+				// TODO(@FollowTheProcess): Same comment about expecting more than Ident
+				p.expect(token.Ident)
+				ident := p.text()
+				p.expect(token.CloseInterp)
+
+				// Look up the ident in local then global scope
+				if val, ok := request.Vars[ident]; ok {
+					value.WriteString(val)
+				} else if val, ok := globals[ident]; ok {
+					value.WriteString(val)
+				} else {
+					p.errorf("use of undefined variable %q", ident)
+				}
+			default:
+				continue
+			}
+		}
+
+		request.Headers[key] = value.String()
+		value.Reset() // Reset for the next loop
 	}
 
 	// Do we have a request body inline?
