@@ -14,6 +14,12 @@ var (
 	date    = ""
 )
 
+// TODO(@FollowTheProcess): A transform subcommand that can take a valid file and turn each request
+// (or a specific one) into a curl snippet, postman request etc.
+
+// TODO(@FollowTheProcess): Also, the opposite! An import subcommand that can take curl snippets, postman
+// collections etc. and convert them to .http files
+
 // Build builds and returns the zap CLI.
 func Build() (*cli.Command, error) {
 	var debug bool
