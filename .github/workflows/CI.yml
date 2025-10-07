@@ -17,6 +17,6 @@ jobs:
     name: CI
     permissions:
       contents: read
-    uses: FollowTheProcess/ci/.github/workflows/Go.yml@main
+    uses: FollowTheProcess/ci/.github/workflows/Go.yml@v3
     with:
       linter: golangci-lint
