@@ -200,7 +200,7 @@ func (p *Parser) text() string {
 // bytes returns the chunk of source text described by the p.current token
 // as a byte slice.
 func (p *Parser) bytes() []byte {
-	return bytes.TrimSpace(p.src[p.current.Start:p.current.End])
+	return p.src[p.current.Start:p.current.End]
 }
 
 // parseGlobals parses a run of variable declarations at the top of the file, returning
