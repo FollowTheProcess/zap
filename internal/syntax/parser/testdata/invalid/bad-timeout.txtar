@@ -1,0 +1,6 @@
+-- src.http --
+### BadTimeout
+# @timeout = amillionyears
+GET https://github.com/api
+-- want.txt --
+bad-timeout.txtar:2:14-27: bad timeout value: time: invalid duration "amillionyears"

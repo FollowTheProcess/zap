@@ -1,0 +1,5 @@
+-- src.http --
+### NoMethod
+https://api.something.com/v1
+-- want.txt --
+missing-method.txtar:2:29: request separators must be followed by either a comment or a HTTP method, got Text: "https://api.something.com/v1"

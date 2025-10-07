@@ -1,0 +1,6 @@
+-- src.http --
+### MyRequest
+@something !@£$%^&*()
+-- want.txt --
+unexpected-request-vars.txtar:2:13: request separators must be followed by either a comment or a HTTP method, got Error: "!"
+unexpected-request-vars.txtar:2:13: unrecognised character: '!'
