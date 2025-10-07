@@ -696,9 +696,35 @@ func scanBody(s *Scanner) scanFn {
 		return scanRightAngle
 	}
 
-	// Scan body as a single token
-	s.takeUntil('#', '>', eof)
-	s.emit(token.Body)
+	// Handle interpolation somewhere inside the body
+	for {
+		if s.restHasPrefix("{{") {
+			// Emit what we have captured up to this point (if there is anything) as Body and then
+			// switch to scanning the interpolation
+			if s.start != s.pos {
+				// We have absorbed stuff, emit it
+				s.emit(token.Body)
+			}
+
+			scanInterp(s)
+		}
+
+		// Scan any text
+		next := s.peek()
+		if next == '#' || next == '>' || next == eof {
+			break
+		}
+
+		s.next()
+	}
+
+	// If we absorbed any text, emit it.
+	//
+	// This could in theory be empty because the entire header body could have just been an interp, which
+	// seems incredibly unlikely but we support that for headers etc. so might as well do it here
+	if s.start != s.pos {
+		s.emit(token.Body)
+	}
 
 	s.skip(unicode.IsSpace)
 
