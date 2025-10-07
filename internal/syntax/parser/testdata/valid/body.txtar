@@ -26,7 +26,7 @@ Content-Type: application/json
       "comment": "Body",
       "method": "POST",
       "url": "https://api.somewhere.com/items/1",
-      "body": "ewogICJib2R5IjogImhlcmUiCiAgInllcyI6IHsKICAgICJmdWxsIjogWyJqc29uIiwgInN5bnRheCJdCiAgfQp9"
+      "body": "ewogICJib2R5IjogImhlcmUiCiAgInllcyI6IHsKICAgICJmdWxsIjogWyJqc29uIiwgInN5bnRheCJdCiAgfQp9Cg=="
     }
   ]
 }
