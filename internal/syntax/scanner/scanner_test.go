@@ -500,10 +500,10 @@ func BenchmarkScanner(b *testing.B) {
 	test.True(b, ok, test.Context("src.http not in %s", file))
 
 	for b.Loop() {
-		scanner := scanner.New("bench", []byte(src), testFailHandler(b))
+		s := scanner.New("bench", []byte(src), testFailHandler(b))
 
 		for {
-			tok := scanner.Scan()
+			tok := s.Scan()
 			if tok.Is(token.EOF, token.Error) {
 				break
 			}

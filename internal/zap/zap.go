@@ -12,10 +12,15 @@ import (
 
 // HTTP config.
 const (
-	// DefaultTimeout is the default amount of time allowed for the entire request cycle.
+	// DefaultOverallTimeout is the default amount of time allowed for the entire
+	// execution. Typically only used when executing multiple requests as a collection.
+	DefaultOverallTimeout = 1 * time.Minute
+	// DefaultTimeout is the default amount of time allowed for the entire request/response
+	// cycle for a single request.
 	DefaultTimeout = 30 * time.Second
 
-	// DefaultConnectionTimeout is the default amount of time allowed for the HTTP connection/TLS handshake.
+	// DefaultConnectionTimeout is the default amount of time allowed for the HTTP connection/TLS handshake
+	// for a single request.
 	DefaultConnectionTimeout = 10 * time.Second
 )
 
@@ -64,11 +69,14 @@ type DoOptions struct {
 	// ConnectionTimeout is the per-request connection timeout.
 	ConnectionTimeout time.Duration
 
+	// OverallTimeout is the overall timeout, used when running multiple requests.
+	OverallTimeout time.Duration
+
 	// NoRedirect, if true, disables following http redirects.
 	NoRedirect bool
 
-	// Verbose enables debug logging.
-	Verbose bool
+	// Debug enables debug logging.
+	Debug bool
 }
 
 // Do implements the do subcommand.
@@ -79,6 +87,54 @@ func (z Zap) Do(file, request string, options DoOptions) error {
 		fmt.Fprintf(z.stdout, "Executing specific request %q in file: %s\n", request, file)
 	}
 
+	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
+
+	return nil
+}
+
+// CheckOptions are the options passed to the check subcommand.
+type CheckOptions struct {
+	// Debug enables debug logging.
+	Debug bool
+}
+
+// Check implements the check subcommand.
+func (z Zap) Check(path string, options CheckOptions) error {
+	fmt.Fprintf(z.stdout, "Checking %s for syntax errors\n", path)
+	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
+
+	return nil
+}
+
+// ExportOptions are the options passed to the export subcommand.
+type ExportOptions struct {
+	// Format specifies the format for the export
+	Format string
+
+	// Debug enables debug logging.
+	Debug bool
+}
+
+// Export implements the export subcommand.
+func (z Zap) Export(file, request string, options ExportOptions) error {
+	fmt.Fprintf(z.stdout, "Exporting request %q from file %s\n", request, file)
+	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
+
+	return nil
+}
+
+// ImportOptions are the options passed to the import subcommand.
+type ImportOptions struct {
+	// Format specifies the format for the import
+	Format string
+
+	// Debug enables debug logging.
+	Debug bool
+}
+
+// Import implements the import subcommand.
+func (z Zap) Import(file string, options ImportOptions) error {
+	fmt.Fprintf(z.stdout, "Importing HTTP data from %s\n", file)
 	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
 
 	return nil
