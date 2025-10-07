@@ -131,10 +131,10 @@ func BenchmarkParser(b *testing.B) {
 	test.True(b, ok, test.Context("src.http not in %s", file))
 
 	for b.Loop() {
-		parser, err := parser.New("bench", strings.NewReader(src), testFailHandler(b))
+		p, err := parser.New("bench", strings.NewReader(src), testFailHandler(b))
 		test.Ok(b, err)
 
-		_, err = parser.Parse()
+		_, err = p.Parse()
 		test.Ok(b, err)
 	}
 }

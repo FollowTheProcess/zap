@@ -114,10 +114,6 @@ linters:
         - name: add-constant
           disabled: true # goconst does this
 
-        - name: argument-limit
-          arguments:
-            - 5
-
         - name: cognitive-complexity
           disabled: true # gocognit does this
 
@@ -139,9 +135,6 @@ linters:
         - name: function-result-limit
           arguments:
             - 3
-
-        - name: import-shadowing
-          disabled: true # predeclared does this
 
         - name: line-length-limit
           disabled: true # gofmt/golines handles this well enough
