@@ -1,0 +1,8 @@
+# Content-Type is missing a colon
+
+-- src.http --
+### Bad
+GET https://api.something.com/v1
+Content-Type application/json
+-- want.txt --
+bad-headers.txtar:3:13: expected ':', got ' '

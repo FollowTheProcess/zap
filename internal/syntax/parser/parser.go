@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"strings"
 	"time"
 
@@ -471,13 +472,13 @@ func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Reque
 	//
 	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
 	// as we go
-	url := &strings.Builder{}
+	builder := &strings.Builder{}
 
 	for p.next.Is(token.URL, token.Text, token.OpenInterp) {
 		switch kind := p.next.Kind; kind {
 		case token.URL, token.Text:
 			p.advance()
-			url.WriteString(p.text())
+			builder.WriteString(p.text())
 		case token.OpenInterp:
 			p.advance()
 			// TODO(@FollowTheProcess): Handle more than ident but for now this is
@@ -488,9 +489,9 @@ func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Reque
 
 			// Look up the ident in local then global scope
 			if val, ok := request.Vars[ident]; ok {
-				url.WriteString(val)
+				builder.WriteString(val)
 			} else if val, ok := globals[ident]; ok {
-				url.WriteString(val)
+				builder.WriteString(val)
 			} else {
 				p.errorf("use of undefined variable %q", ident)
 			}
@@ -499,7 +500,15 @@ func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Reque
 		}
 	}
 
-	request.URL = url.String()
+	result := builder.String()
+
+	_, err := url.ParseRequestURI(result)
+	if err != nil {
+		p.errorf("invalid URL: %v", err)
+		return syntax.Request{}
+	}
+
+	request.URL = result
 
 	return request
 }

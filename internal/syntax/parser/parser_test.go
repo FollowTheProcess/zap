@@ -3,10 +3,13 @@ package parser_test
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"go.followtheprocess.codes/test"
@@ -69,6 +72,73 @@ func TestValid(t *testing.T) {
 	}
 }
 
+// TestInvalid is the primary test for invalid syntax. It does much the same as TestParseValid
+// but instead of failing tests if a syntax error is encounter, it fails if there is not any syntax errors.
+//
+// Additionally, the errors are compared against a reference.
+func TestInvalid(t *testing.T) {
+	test.ColorEnabled(true) // Force colour in the diffs
+
+	pattern := filepath.Join("testdata", "invalid", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	for _, file := range files {
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
+			archive, err := txtar.ParseFile(file)
+			test.Ok(t, err)
+
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("archive %s missing src.http", name))
+
+			want, ok := archive.Read("want.txt")
+			test.True(t, ok, test.Context("archive %s missing want.txt", name))
+
+			collector := &errorCollector{}
+
+			parser, err := parser.New(name, strings.NewReader(src), collector.handler())
+			test.Ok(t, err)
+
+			_, err = parser.Parse()
+			test.Err(t, err, test.Context("Parse() failed to return an error given invalid syntax"))
+
+			got := collector.String()
+
+			if *update {
+				err := archive.Write("want.txt", got)
+				test.Ok(t, err)
+
+				err = txtar.DumpFile(file, archive)
+				test.Ok(t, err)
+
+				return
+			}
+
+			test.Diff(t, got, want)
+		})
+	}
+}
+
+func BenchmarkParser(b *testing.B) {
+	file := filepath.Join("testdata", "valid", "full.txtar")
+	archive, err := txtar.ParseFile(file)
+	test.Ok(b, err)
+
+	src, ok := archive.Read("src.http")
+	test.True(b, ok, test.Context("src.http not in %s", file))
+
+	for b.Loop() {
+		parser, err := parser.New("bench", strings.NewReader(src), testFailHandler(b))
+		test.Ok(b, err)
+
+		_, err = parser.Parse()
+		test.Ok(b, err)
+	}
+}
+
 func FuzzParser(f *testing.F) {
 	// Get all the .http source from testdata for the corpus
 	pattern := filepath.Join("testdata", "valid", "*.txtar")
@@ -114,5 +184,42 @@ func testFailHandler(tb testing.TB) syntax.ErrorHandler {
 
 	return func(pos syntax.Position, msg string) {
 		tb.Fatalf("%s: %s", pos, msg)
+	}
+}
+
+// errorCollector is a helper struct that implements a [syntax.ErrorHandler] which
+// simply collects the scanning errors internally to be inspected later.
+type errorCollector struct {
+	errs []string
+	mu   sync.RWMutex
+}
+
+func (e *errorCollector) String() string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	// Take a copy so as not to alter the original
+	errsCopy := slices.Clone(e.errs)
+
+	var s strings.Builder
+
+	slices.Sort(errsCopy) // Deterministic
+
+	for _, err := range errsCopy {
+		s.WriteString(err)
+	}
+
+	return s.String()
+}
+
+// handler returns the [syntax.ErrorHandler] to be plugged in to the scanning operation.
+func (e *errorCollector) handler() syntax.ErrorHandler {
+	return func(pos syntax.Position, msg string) {
+		// Because the scanner runs in it's own goroutine and also makes use of the
+		// handler
+		e.mu.Lock()
+		defer e.mu.Unlock()
+
+		e.errs = append(e.errs, fmt.Sprintf("%s: %s\n", pos, msg))
 	}
 }

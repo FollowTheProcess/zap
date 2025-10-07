@@ -1,0 +1,5 @@
+-- src.http --
+### Broke
+GET https://ASDFGHJ@£$%^&*( )
+-- want.txt --
+invalid-request-url.txtar:2:5-29: invalid URL: parse "https://ASDFGHJ@£$%^&*(": invalid URL escape "%^&"

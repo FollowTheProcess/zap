@@ -1,0 +1,6 @@
+-- src.http --
+### BadMethod
+DESTROY https://api.something.com/v1
+-- want.txt --
+bad-method.txtar:2:1-8: request separators must be followed by either a comment or a HTTP method, got Text: "DESTROY"
+bad-method.txtar:2:37: expected Separator, got Text
