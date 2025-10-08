@@ -57,8 +57,8 @@ func (z Zap) Hello() {
 	z.logger.Debug("This is a debug log", "cheese", "brie")
 }
 
-// DoOptions are the options passed to the do subcommand.
-type DoOptions struct {
+// RunOptions are the options passed to the run subcommand.
+type RunOptions struct {
 	// Output is the name of a file in which to save the response, if empty,
 	// the response is printed to stdout.
 	Output string
@@ -79,8 +79,8 @@ type DoOptions struct {
 	Debug bool
 }
 
-// Do implements the do subcommand.
-func (z Zap) Do(file, request string, options DoOptions) error {
+// Run implements the run subcommand.
+func (z Zap) Run(file, request string, options RunOptions) error {
 	if request == "all" {
 		fmt.Fprintf(z.stdout, "Executing all requests in file: %s\n", file)
 	} else {

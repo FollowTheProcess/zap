@@ -12,6 +12,8 @@ func export() (*cli.Command, error) {
 	// TODO(@FollowTheProcess): I think requests should just be a slice
 	// so you can specify 1 or more requests to export
 
+	// TODO(@FollowTheProcess): Support postman JSON, curl snippets etc.
+
 	return cli.New(
 		"export",
 		cli.Short("Export http request files to various other formats"),
