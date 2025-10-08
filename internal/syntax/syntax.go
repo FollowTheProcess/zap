@@ -82,8 +82,8 @@ func (p Position) String() string {
 
 // File represents a single .http file as parsed.
 //
-// It is *nearly* concrete but may have e.g. variable interpolation to perform, URLs
-// may not be valid etc. This is simply a structured version of the as-parsed raw text.
+// Interpolation has been performed on the fly during parsing so this
+// file is concrete with variables replaced.
 type File struct {
 	// Name of the file (or @name in global scope if given)
 	Name string `json:"name,omitempty"`
