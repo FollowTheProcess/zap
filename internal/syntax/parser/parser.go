@@ -381,13 +381,20 @@ func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
 	//
 	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
 	// as we go
-	result := &strings.Builder{}
+	builder := &strings.Builder{}
+
+	var isURL bool
 
 	for p.next.Is(token.Text, token.URL, token.OpenInterp) {
 		switch kind := p.next.Kind; kind {
-		case token.Text, token.URL:
+		case token.Text:
 			p.advance()
-			result.WriteString(p.text())
+			builder.WriteString(p.text())
+		case token.URL:
+			isURL = true
+
+			p.advance()
+			builder.WriteString(p.text())
 		case token.OpenInterp:
 			p.advance()
 			// TODO(@FollowTheProcess): Handle more than ident but for now this is
@@ -398,9 +405,9 @@ func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
 
 			// Look up the ident in local then global scope
 			if val, ok := local[ident]; ok {
-				result.WriteString(val)
+				builder.WriteString(val)
 			} else if val, ok := global[ident]; ok {
-				result.WriteString(val)
+				builder.WriteString(val)
 			} else {
 				p.errorf("use of undefined variable %q", ident)
 			}
@@ -409,7 +416,17 @@ func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
 		}
 	}
 
-	return key, result.String()
+	result := builder.String()
+
+	// If it's a URL, let's make a best effort at validating it
+	if isURL {
+		_, err := url.ParseRequestURI(result)
+		if err != nil {
+			p.errorf("invalid URL: %v", err)
+		}
+	}
+
+	return key, result
 }
 
 // parseRequestVars parses a run of variable declarations in a request. Returning
