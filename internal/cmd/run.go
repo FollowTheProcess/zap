@@ -23,15 +23,11 @@ used, the command line flag takes precedence.
 func run() (*cli.Command, error) {
 	var options zap.RunOptions
 
-	// TODO(@FollowTheProcess): I think requests should just be a slice
-	// so you can specify 1 or more requests to run
-
 	return cli.New(
 		"run",
-		cli.Short("Execute a http request from a file"),
+		cli.Short("Execute one or more http requests from a file"),
 		cli.Long(runLong),
 		cli.RequiredArg("file", "Path to the .http file"),
-		cli.OptionalArg("request", "Name of a specific request", "all"),
 		cli.Flag(&options.Timeout, "timeout", cli.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
 		cli.Flag(
 			&options.ConnectionTimeout,
@@ -52,7 +48,7 @@ func run() (*cli.Command, error) {
 		cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 		cli.Run(func(cmd *cli.Command, args []string) error {
 			app := zap.New(options.Debug, cmd.Stdout(), cmd.Stderr())
-			return app.Run(cmd.Arg("file"), cmd.Arg("request"), options)
+			return app.Run(cmd.Arg("file"), args[1:], options)
 		}),
 	)
 }

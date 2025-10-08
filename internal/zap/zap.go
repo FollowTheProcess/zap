@@ -80,11 +80,11 @@ type RunOptions struct {
 }
 
 // Run implements the run subcommand.
-func (z Zap) Run(file, request string, options RunOptions) error {
-	if request == "all" {
+func (z Zap) Run(file string, requests []string, options RunOptions) error {
+	if len(requests) == 0 {
 		fmt.Fprintf(z.stdout, "Executing all requests in file: %s\n", file)
 	} else {
-		fmt.Fprintf(z.stdout, "Executing specific request %q in file: %s\n", request, file)
+		fmt.Fprintf(z.stdout, "Executing specific request(s) %v in file: %s\n", requests, file)
 	}
 
 	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
@@ -100,41 +100,7 @@ type CheckOptions struct {
 
 // Check implements the check subcommand.
 func (z Zap) Check(path string, options CheckOptions) error {
-	fmt.Fprintf(z.stdout, "Checking %s for syntax errors\n", path)
-	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
-
-	return nil
-}
-
-// ExportOptions are the options passed to the export subcommand.
-type ExportOptions struct {
-	// Format specifies the format for the export
-	Format string
-
-	// Debug enables debug logging.
-	Debug bool
-}
-
-// Export implements the export subcommand.
-func (z Zap) Export(file, request string, options ExportOptions) error {
-	fmt.Fprintf(z.stdout, "Exporting request %q from file %s\n", request, file)
-	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
-
-	return nil
-}
-
-// ImportOptions are the options passed to the import subcommand.
-type ImportOptions struct {
-	// Format specifies the format for the import
-	Format string
-
-	// Debug enables debug logging.
-	Debug bool
-}
-
-// Import implements the import subcommand.
-func (z Zap) Import(file string, options ImportOptions) error {
-	fmt.Fprintf(z.stdout, "Importing HTTP data from %s\n", file)
+	fmt.Fprintf(z.stdout, "Checking %q for syntax errors\n", path)
 	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
 
 	return nil
