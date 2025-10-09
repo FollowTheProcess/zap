@@ -15,11 +15,6 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
-// TODO(@FollowTheProcess): This (and the scanner) currently bail out at the first parser
-// error which isn't great. I need to implement a synchronisation mechanism on a parser/scan error
-// that skips forward over anything we're not sure about after an error until we get to
-// some state where we can recover. For example, the next '###' would be a good choice
-
 // ErrParse is a generic parsing error, details on the error are passed
 // to the parser's [syntax.ErrorHandler] at the moment it occurs.
 var ErrParse = errors.New("parse error")
@@ -76,7 +71,20 @@ func (p *Parser) Parse() (syntax.File, error) {
 			return syntax.File{}, ErrParse
 		}
 
-		request := p.parseRequest(file.Vars)
+		// TODO(@FollowTheProcess): Descend down the call stack and make everything that can fail
+		// return an error, then pass it back up to be synchronised in this mechanism
+
+		request, err := p.parseRequest(file.Vars)
+		if err != nil {
+			// If we couldn't parse that request for whatever reason, let's try and
+			// recover the parser state by skipping through tokens until we see the next
+			// request and try again. This means the parser is somewhat resilient to localised
+			// syntax errors
+			p.synchronise()
+
+			// Next up should be '###' or EOF, either way we're back in sync
+			continue
+		}
 
 		// If it's name is missing, name it after it's position in the file (1 indexed)
 		if request.Name == "" {
@@ -204,6 +212,21 @@ func (p *Parser) bytes() []byte {
 	return p.src[p.current.Start:p.current.End]
 }
 
+// synchronise is called during error recovery, after a parse error we are unsure of
+// the local state as the syntax is invalid.
+//
+// synchronise discards tokens until it sees the next Separator, EOF after which
+// point the parser should be back in sync and can continue normally.
+func (p *Parser) synchronise() {
+	for {
+		p.advance()
+
+		if p.current.Is(token.Separator, token.EOF) {
+			break
+		}
+	}
+}
+
 // parseGlobals parses a run of variable declarations at the top of the file, returning
 // the modified [syntax.File].
 //
@@ -253,10 +276,10 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 }
 
 // parseRequest parses a single request in a http file.
-func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
+func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error) {
 	if !p.current.Is(token.Separator) {
 		p.errorf("expected %s, got %s", token.Separator, p.current.Kind)
-		return syntax.Request{}
+		return syntax.Request{}, ErrParse
 	}
 
 	request := syntax.Request{}
@@ -272,7 +295,7 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 
 	if !token.IsMethod(p.current.Kind) {
 		p.errorf("request separators must be followed by either a comment or a HTTP method, got %s: %q", p.current.Kind, p.text())
-		return syntax.Request{}
+		return syntax.Request{}, ErrParse
 	}
 
 	request.Method = p.text()
@@ -311,7 +334,7 @@ func (p *Parser) parseRequest(globals map[string]string) syntax.Request {
 		request.ResponseFile = p.text()
 	}
 
-	return request
+	return request, nil
 }
 
 // parseDuration parses a duration declaration e.g. in a global or request variable.
@@ -461,14 +484,7 @@ func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Requ
 
 			request.Vars[key] = value
 		default:
-			p.expect(
-				token.Timeout,
-				token.ConnectionTimeout,
-				token.NoRedirect,
-				token.Name,
-				token.Prompt,
-				token.Ident,
-			)
+			continue
 		}
 
 		p.advance()

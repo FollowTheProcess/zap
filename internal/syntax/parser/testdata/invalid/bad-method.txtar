@@ -1,6 +1,13 @@
+# This one tests our parser synchronisation method, the request after BadMethod
+# is fine but if the parser is cascading errors (not synchronising) then it will
+# report a bunch of errors in this one too as it will be confused and expecting
+# different tokens
+
 -- src.http --
 ### BadMethod
 DESTROY https://api.something.com/v1
+
+### Okay
+GET https://api.somethingelse.com/v1
 -- want.txt --
 bad-method.txtar:2:1-8: request separators must be followed by either a comment or a HTTP method, got Text: "DESTROY"
-bad-method.txtar:2:37: expected Separator, got Text
