@@ -484,6 +484,7 @@ func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Requ
 
 			request.Vars[key] = value
 		default:
+			// Always make progress
 			p.advance()
 		}
 
@@ -529,7 +530,8 @@ func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Reque
 				p.errorf("use of undefined variable %q", ident)
 			}
 		default:
-			continue
+			// Always make progress
+			p.advance()
 		}
 	}
 
@@ -579,7 +581,8 @@ func (p *Parser) parseRequestHeaders(globals map[string]string, request syntax.R
 					p.errorf("use of undefined variable %q", ident)
 				}
 			default:
-				continue
+				// Always make progress
+				p.advance()
 			}
 		}
 
@@ -616,7 +619,8 @@ func (p *Parser) parseRequestBody(globals map[string]string, request syntax.Requ
 				p.errorf("use of undefined variable %q", ident)
 			}
 		default:
-			continue
+			// Always make progress
+			p.advance()
 		}
 	}
 
