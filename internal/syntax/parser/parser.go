@@ -484,7 +484,7 @@ func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Requ
 
 			request.Vars[key] = value
 		default:
-			continue
+			p.advance()
 		}
 
 		p.advance()
