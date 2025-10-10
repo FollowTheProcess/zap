@@ -259,6 +259,7 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 
 			file.Vars[key] = value
 		default:
+			// TODO(@FollowTheProcess): Can this just be advance?
 			p.expect(
 				token.Timeout,
 				token.ConnectionTimeout,
@@ -332,6 +333,13 @@ func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error)
 		p.advance()
 		p.expect(token.Text)
 		request.ResponseFile = p.text()
+	}
+
+	// Or finally, a response ref '<> response.json'
+	if p.next.Is(token.ResponseRef) {
+		p.advance()
+		p.expect(token.Text)
+		request.ResponseRef = p.text()
 	}
 
 	return request, nil

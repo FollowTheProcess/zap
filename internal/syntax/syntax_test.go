@@ -241,6 +241,22 @@ func TestFileString(t *testing.T) {
 			},
 		},
 		{
+			name: "request with response ref",
+			file: syntax.File{
+				Name: "Requests",
+				Vars: map[string]string{
+					"base": "https://api.com/v1",
+				},
+				Requests: []syntax.Request{
+					{
+						Method:      http.MethodPost,
+						URL:         "https://api.com/v1/items/123",
+						ResponseRef: "./response.json",
+					},
+				},
+			},
+		},
+		{
 			name: "request with prompts",
 			file: syntax.File{
 				Vars: map[string]string{
