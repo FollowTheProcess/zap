@@ -283,7 +283,7 @@ func TestFileString(t *testing.T) {
 				Requests: []syntax.Request{
 					{
 						Method:       http.MethodPost,
-						URL:          "https://api.com/v1/items/{{.Local.id}}",
+						URL:          "https://api.com/v1/items/{{ id }}",
 						ResponseFile: "./response.json",
 						Prompts: []syntax.Prompt{
 							{Name: "id", Description: "The ID of the item"},

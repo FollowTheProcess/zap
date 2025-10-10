@@ -15,6 +15,9 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
+// TODO(@FollowTheProcess): Handle prompts. Might need to push evaluating their variables to later
+// as we won't know until that request has run
+
 // ErrParse is a generic parsing error, details on the error are passed
 // to the parser's [syntax.ErrorHandler] at the moment it occurs.
 var ErrParse = errors.New("parse error")
@@ -259,7 +262,6 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 
 			file.Vars[key] = value
 		default:
-			// TODO(@FollowTheProcess): Can this just be advance?
 			p.expect(
 				token.Timeout,
 				token.ConnectionTimeout,
