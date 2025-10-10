@@ -711,7 +711,7 @@ func scanBody(s *Scanner) scanFn {
 
 		// Scan any text
 		next := s.peek()
-		if next == '#' || next == '>' || next == eof {
+		if next == '#' || next == '>' || next == '<' || next == eof {
 			break
 		}
 
@@ -728,6 +728,11 @@ func scanBody(s *Scanner) scanFn {
 
 	s.skip(unicode.IsSpace)
 
+	// Are we doing the response reference pattern e.g. '<> response.json'
+	if s.peek() == '<' {
+		return scanLeftAngle
+	}
+
 	// Are we redirecting the response *after* a body has been specified
 	// e.g. in a POST request, there may be a body *and* a redirect
 	if s.peek() == '>' {
@@ -741,7 +746,14 @@ func scanBody(s *Scanner) scanFn {
 // read from file.
 func scanLeftAngle(s *Scanner) scanFn {
 	s.next() // Consume the '<'
-	s.emit(token.LeftAngle)
+
+	if s.peek() == '>' {
+		// It's a response ref i.e. '<>'
+		s.next()
+		s.emit(token.ResponseRef)
+	} else {
+		s.emit(token.LeftAngle)
+	}
 
 	s.skip(isLineSpace)
 
@@ -751,6 +763,12 @@ func scanLeftAngle(s *Scanner) scanFn {
 	}
 
 	s.skip(unicode.IsSpace)
+
+	// Is the next thing a response ref '<>', which would be the case
+	// if a request has a body file *and* a response ref
+	if s.peek() == '<' {
+		return scanLeftAngle
+	}
 
 	// Are we redirecting the response *after* a body has been specified by a file
 	if s.peek() == '>' {
