@@ -1,0 +1,7 @@
+-- src.http --
+### Bad
+GET https://blowup.com
+
+< £$%^&
+-- want.txt --
+bad-body-file.txtar:4:5: unrecognised character: '£'

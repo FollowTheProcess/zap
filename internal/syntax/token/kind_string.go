@@ -18,36 +18,38 @@ func _() {
 	_ = x[Colon-7]
 	_ = x[LeftAngle-8]
 	_ = x[RightAngle-9]
-	_ = x[Text-10]
-	_ = x[Body-11]
-	_ = x[URL-12]
-	_ = x[HTTPVersion-13]
-	_ = x[Header-14]
-	_ = x[OpenInterp-15]
-	_ = x[CloseInterp-16]
-	_ = x[Name-17]
-	_ = x[Prompt-18]
-	_ = x[Timeout-19]
-	_ = x[ConnectionTimeout-20]
-	_ = x[NoRedirect-21]
-	_ = x[MethodGet-22]
-	_ = x[MethodHead-23]
-	_ = x[MethodPost-24]
-	_ = x[MethodPut-25]
-	_ = x[MethodDelete-26]
-	_ = x[MethodConnect-27]
-	_ = x[MethodPatch-28]
-	_ = x[MethodOptions-29]
-	_ = x[MethodTrace-30]
+	_ = x[ResponseRef-10]
+	_ = x[Text-11]
+	_ = x[Body-12]
+	_ = x[URL-13]
+	_ = x[HTTPVersion-14]
+	_ = x[Header-15]
+	_ = x[OpenInterp-16]
+	_ = x[CloseInterp-17]
+	_ = x[Name-18]
+	_ = x[Prompt-19]
+	_ = x[Timeout-20]
+	_ = x[ConnectionTimeout-21]
+	_ = x[NoRedirect-22]
+	_ = x[MethodGet-23]
+	_ = x[MethodHead-24]
+	_ = x[MethodPost-25]
+	_ = x[MethodPut-26]
+	_ = x[MethodDelete-27]
+	_ = x[MethodConnect-28]
+	_ = x[MethodPatch-29]
+	_ = x[MethodOptions-30]
+	_ = x[MethodTrace-31]
 }
 
-const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqColonLeftAngleRightAngleTextBodyURLHTTPVersionHeaderOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
+const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqColonLeftAngleRightAngleResponseRefTextBodyURLHTTPVersionHeaderOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 24, 26, 31, 33, 38, 47, 57, 61, 65, 68, 79, 85, 95, 106, 110, 116, 123, 140, 150, 159, 169, 179, 188, 200, 213, 224, 237, 248}
+var _Kind_index = [...]uint16{0, 3, 8, 15, 24, 26, 31, 33, 38, 47, 57, 68, 72, 76, 79, 90, 96, 106, 117, 121, 127, 134, 151, 161, 170, 180, 190, 199, 211, 224, 235, 248, 259}
 
 func (i Kind) String() string {
-	if i < 0 || i >= Kind(len(_Kind_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Kind_index)-1 {
 		return "Kind(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Kind_name[_Kind_index[i]:_Kind_index[i+1]]
+	return _Kind_name[_Kind_index[idx]:_Kind_index[idx+1]]
 }

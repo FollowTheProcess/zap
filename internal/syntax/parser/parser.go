@@ -15,6 +15,9 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
+// TODO(@FollowTheProcess): Handle prompts. Might need to push evaluating their variables to later
+// as we won't know until that request has run
+
 // ErrParse is a generic parsing error, details on the error are passed
 // to the parser's [syntax.ErrorHandler] at the moment it occurs.
 var ErrParse = errors.New("parse error")
@@ -332,6 +335,13 @@ func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error)
 		p.advance()
 		p.expect(token.Text)
 		request.ResponseFile = p.text()
+	}
+
+	// Or finally, a response ref '<> response.json'
+	if p.next.Is(token.ResponseRef) {
+		p.advance()
+		p.expect(token.Text)
+		request.ResponseRef = p.text()
 	}
 
 	return request, nil

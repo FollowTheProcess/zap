@@ -23,6 +23,7 @@ const (
 	Colon                         // Colon
 	LeftAngle                     // LeftAngle
 	RightAngle                    // RightAngle
+	ResponseRef                   // ResponseRef
 	Text                          // Text
 	Body                          // Body
 	URL                           // URL

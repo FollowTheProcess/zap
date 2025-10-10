@@ -1,0 +1,11 @@
+-- src.http --
+### Bad
+GET https://blowup.com
+
+{
+  "hello": "body"
+}
+
+> )(*&^%
+-- want.txt --
+bad-response-file.txtar:8:4: unrecognised character: ')'

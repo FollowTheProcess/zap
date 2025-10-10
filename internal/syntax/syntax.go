@@ -191,6 +191,10 @@ type Request struct {
 	// which to write the response (relative to the .http file)
 	ResponseFile string `json:"responseFile,omitempty"`
 
+	// If a response reference was provided, this is the path to the local file
+	// with which to compare the current response (relative to the .http file)
+	ResponseRef string `json:"responseRef,omitempty"`
+
 	// Request body, if provided inline. Again, may have variable interpolation still to perform
 	Body []byte `json:"body,omitempty"`
 
@@ -265,6 +269,10 @@ func (r Request) String() string {
 
 	if r.ResponseFile != "" {
 		fmt.Fprintf(builder, "> %s\n", r.ResponseFile)
+	}
+
+	if r.ResponseRef != "" {
+		fmt.Fprintf(builder, "<> %s\n", r.ResponseRef)
 	}
 
 	return builder.String()
