@@ -74,9 +74,6 @@ func (p *Parser) Parse() (syntax.File, error) {
 			return syntax.File{}, ErrParse
 		}
 
-		// TODO(@FollowTheProcess): Descend down the call stack and make everything that can fail
-		// return an error, then pass it back up to be synchronised in this mechanism
-
 		request, err := p.parseRequest(file.Vars)
 		if err != nil {
 			// If we couldn't parse that request for whatever reason, let's try and
