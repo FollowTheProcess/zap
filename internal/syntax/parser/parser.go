@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -74,7 +75,7 @@ func (p *Parser) Parse() (syntax.File, error) {
 			return syntax.File{}, ErrParse
 		}
 
-		request, err := p.parseRequest(file.Vars)
+		request, err := p.parseRequest(file)
 		if err != nil {
 			// If we couldn't parse that request for whatever reason, let's try and
 			// recover the parser state by skipping through tokens until we see the next
@@ -251,7 +252,7 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 		case token.Prompt:
 			file.Prompts = append(file.Prompts, p.parsePrompt())
 		case token.Ident:
-			key, value := p.parseVar(nil, file.Vars)
+			key, value := p.parseVar(file, syntax.Request{})
 
 			if file.Vars == nil {
 				file.Vars = make(map[string]string)
@@ -276,7 +277,7 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 }
 
 // parseRequest parses a single request in a http file.
-func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error) {
+func (p *Parser) parseRequest(file syntax.File) (syntax.Request, error) {
 	if !p.current.Is(token.Separator) {
 		p.errorf("expected %s, got %s", token.Separator, p.current.Kind)
 		return syntax.Request{}, ErrParse
@@ -291,7 +292,7 @@ func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error)
 	}
 
 	p.advance()
-	request = p.parseRequestVars(globals, request)
+	request = p.parseRequestVars(file, request)
 
 	if !token.IsMethod(p.current.Kind) {
 		p.errorf("request separators must be followed by either a comment or a HTTP method, got %s: %q", p.current.Kind, p.text())
@@ -300,7 +301,7 @@ func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error)
 
 	request.Method = p.text()
 
-	request = p.parseRequestURL(globals, request)
+	request = p.parseRequestURL(file, request)
 
 	if p.next.Is(token.HTTPVersion) {
 		p.advance()
@@ -315,9 +316,9 @@ func (p *Parser) parseRequest(globals map[string]string) (syntax.Request, error)
 		}
 	}
 
-	request = p.parseRequestHeaders(globals, request)
+	request = p.parseRequestHeaders(file, request)
 
-	request = p.parseRequestBody(globals, request)
+	request = p.parseRequestBody(file, request)
 
 	// Might be a '< ./body.json'
 	if p.next.Is(token.LeftAngle) {
@@ -394,9 +395,7 @@ func (p *Parser) parsePrompt() syntax.Prompt {
 }
 
 // parseVar parses a generic '@ident = <value>' in either global or request scope.
-//
-// The local and global scopes are passed in as maps.
-func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
+func (p *Parser) parseVar(file syntax.File, request syntax.Request) (key, value string) {
 	p.advance()
 	key = p.text()
 	// Can either be @ident = value or @ident value
@@ -433,14 +432,32 @@ func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
 			ident := p.text()
 			p.expect(token.CloseInterp)
 
-			// Look up the ident in local then global scope
-			if val, ok := local[ident]; ok {
-				builder.WriteString(val)
-			} else if val, ok := global[ident]; ok {
-				builder.WriteString(val)
-			} else {
+			localVal, isLocal := request.Vars[ident]
+			globalVal, isGlobal := file.Vars[ident]
+			isPrompt := false
+
+			prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+
+			for _, prompt := range prompts {
+				if prompt.Name == ident {
+					isPrompt = true
+					break
+				}
+			}
+
+			switch {
+			case isLocal:
+				builder.WriteString(localVal)
+			case isGlobal:
+				builder.WriteString(globalVal)
+			case isPrompt:
+				// We resolve these later when we ask the user, they cannot be
+				// resolved at parse time
+				builder.WriteString("zap::prompt::" + ident)
+			default:
 				p.errorf("use of undefined variable %q", ident)
 			}
+
 		default:
 			continue
 		}
@@ -463,7 +480,7 @@ func (p *Parser) parseVar(local, global map[string]string) (key, value string) {
 // the modified [syntax.Request].
 //
 // If p.current is anything other than '@', the request is returned as is.
-func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Request) syntax.Request {
+func (p *Parser) parseRequestVars(file syntax.File, request syntax.Request) syntax.Request {
 	if !p.current.Is(token.At) {
 		return request
 	}
@@ -483,7 +500,7 @@ func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Requ
 		case token.Prompt:
 			request.Prompts = append(request.Prompts, p.parsePrompt())
 		case token.Ident:
-			key, value := p.parseVar(request.Vars, globals)
+			key, value := p.parseVar(file, request)
 
 			if request.Vars == nil {
 				request.Vars = make(map[string]string)
@@ -505,7 +522,7 @@ func (p *Parser) parseRequestVars(globals map[string]string, request syntax.Requ
 // the modified [syntax.Request].
 //
 // Interpolation is evaluated and replaced on the fly.
-func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Request) syntax.Request {
+func (p *Parser) parseRequestURL(file syntax.File, request syntax.Request) syntax.Request {
 	// Can be one of:
 	// 1) Text/URL and have no interpolation inside it - easy
 	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
@@ -528,12 +545,29 @@ func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Reque
 			ident := p.text()
 			p.expect(token.CloseInterp)
 
-			// Look up the ident in local then global scope
-			if val, ok := request.Vars[ident]; ok {
-				builder.WriteString(val)
-			} else if val, ok := globals[ident]; ok {
-				builder.WriteString(val)
-			} else {
+			localVal, isLocal := request.Vars[ident]
+			globalVal, isGlobal := file.Vars[ident]
+			isPrompt := false
+
+			prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+
+			for _, prompt := range prompts {
+				if prompt.Name == ident {
+					isPrompt = true
+					break
+				}
+			}
+
+			switch {
+			case isLocal:
+				builder.WriteString(localVal)
+			case isGlobal:
+				builder.WriteString(globalVal)
+			case isPrompt:
+				// We resolve these later when we ask the user, they cannot be
+				// resolved at parse time
+				builder.WriteString("zap::prompt::" + ident)
+			default:
 				p.errorf("use of undefined variable %q", ident)
 			}
 		default:
@@ -559,19 +593,19 @@ func (p *Parser) parseRequestURL(globals map[string]string, request syntax.Reque
 // request.
 //
 // Interpolation is evaluated and replaced on the fly.
-func (p *Parser) parseRequestHeaders(globals map[string]string, request syntax.Request) syntax.Request {
+func (p *Parser) parseRequestHeaders(file syntax.File, request syntax.Request) syntax.Request {
 	for p.next.Is(token.Header) {
 		p.advance()
 		key := p.text()
 		p.expect(token.Colon)
 
-		value := &strings.Builder{}
+		builder := &strings.Builder{}
 
 		for p.next.Is(token.Text, token.OpenInterp) {
 			switch kind := p.next.Kind; kind {
 			case token.Text:
 				p.advance()
-				value.WriteString(p.text())
+				builder.WriteString(p.text())
 			case token.OpenInterp:
 				p.advance()
 				// TODO(@FollowTheProcess): Same comment about expecting more than Ident
@@ -579,22 +613,40 @@ func (p *Parser) parseRequestHeaders(globals map[string]string, request syntax.R
 				ident := p.text()
 				p.expect(token.CloseInterp)
 
-				// Look up the ident in local then global scope
-				if val, ok := request.Vars[ident]; ok {
-					value.WriteString(val)
-				} else if val, ok := globals[ident]; ok {
-					value.WriteString(val)
-				} else {
+				localVal, isLocal := request.Vars[ident]
+				globalVal, isGlobal := file.Vars[ident]
+				isPrompt := false
+
+				prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+
+				for _, prompt := range prompts {
+					if prompt.Name == ident {
+						isPrompt = true
+						break
+					}
+				}
+
+				switch {
+				case isLocal:
+					builder.WriteString(localVal)
+				case isGlobal:
+					builder.WriteString(globalVal)
+				case isPrompt:
+					// We resolve these later when we ask the user, they cannot be
+					// resolved at parse time
+					builder.WriteString("zap::prompt::" + ident)
+				default:
 					p.errorf("use of undefined variable %q", ident)
 				}
+
 			default:
 				// Always make progress
 				p.advance()
 			}
 		}
 
-		request.Headers[key] = value.String()
-		value.Reset() // Reset for the next (outer) loop
+		request.Headers[key] = builder.String()
+		builder.Reset() // Reset for the next (outer) loop
 	}
 
 	return request
@@ -603,7 +655,7 @@ func (p *Parser) parseRequestHeaders(globals map[string]string, request syntax.R
 // parseRequestBody parses a request body, returning the modified request.
 //
 // Interpolation is evaluated and replaced o the fly.
-func (p *Parser) parseRequestBody(globals map[string]string, request syntax.Request) syntax.Request {
+func (p *Parser) parseRequestBody(file syntax.File, request syntax.Request) syntax.Request {
 	body := &bytes.Buffer{}
 
 	for p.next.Is(token.Body, token.OpenInterp) {
@@ -617,14 +669,32 @@ func (p *Parser) parseRequestBody(globals map[string]string, request syntax.Requ
 			ident := p.text()
 			p.expect(token.CloseInterp)
 
-			// Look up the ident in local then global scope
-			if val, ok := request.Vars[ident]; ok {
-				body.WriteString(val)
-			} else if val, ok := globals[ident]; ok {
-				body.WriteString(val)
-			} else {
+			localVal, isLocal := request.Vars[ident]
+			globalVal, isGlobal := file.Vars[ident]
+			isPrompt := false
+
+			prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+
+			for _, prompt := range prompts {
+				if prompt.Name == ident {
+					isPrompt = true
+					break
+				}
+			}
+
+			switch {
+			case isLocal:
+				body.WriteString(localVal)
+			case isGlobal:
+				body.WriteString(globalVal)
+			case isPrompt:
+				// We resolve these later when we ask the user, they cannot be
+				// resolved at parse time
+				body.WriteString("zap::prompt::" + ident)
+			default:
 				p.errorf("use of undefined variable %q", ident)
 			}
+
 		default:
 			// Always make progress
 			p.advance()
