@@ -1,0 +1,30 @@
+-- src.http --
+@prompt version The version of the API
+
+### Get a Thing
+@prompt id The ID of a thing to get
+GET https://api.something.com/{{ version }}/thing/{{ id }}
+-- want.json --
+{
+  "name": "prompts.txtar",
+  "prompts": [
+    {
+      "name": "version",
+      "description": "The version of the API"
+    }
+  ],
+  "requests": [
+    {
+      "prompts": [
+        {
+          "name": "id",
+          "description": "The ID of a thing to get"
+        }
+      ],
+      "name": "#1",
+      "comment": "Get a Thing",
+      "method": "GET",
+      "url": "https://api.something.com/zap::prompt::version/thing/zap::prompt::id"
+    }
+  ]
+}
