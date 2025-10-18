@@ -2,7 +2,6 @@
 package parser
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -425,39 +424,7 @@ func (p *Parser) parseVar(file syntax.File, request syntax.Request) (key, value 
 			p.advance()
 			builder.WriteString(p.text())
 		case token.OpenInterp:
-			p.advance()
-			// TODO(@FollowTheProcess): Handle more than ident but for now this is
-			// all the scanner produces so we're fine
-			p.expect(token.Ident)
-			ident := p.text()
-			p.expect(token.CloseInterp)
-
-			localVal, isLocal := request.Vars[ident]
-			globalVal, isGlobal := file.Vars[ident]
-			isPrompt := false
-
-			prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
-
-			for _, prompt := range prompts {
-				if prompt.Name == ident {
-					isPrompt = true
-					break
-				}
-			}
-
-			switch {
-			case isLocal:
-				builder.WriteString(localVal)
-			case isGlobal:
-				builder.WriteString(globalVal)
-			case isPrompt:
-				// We resolve these later when we ask the user, they cannot be
-				// resolved at parse time
-				builder.WriteString("zap::prompt::" + ident)
-			default:
-				p.errorf("use of undefined variable %q", ident)
-			}
-
+			p.parseInterp(builder, file, request)
 		default:
 			continue
 		}
@@ -538,9 +505,113 @@ func (p *Parser) parseRequestURL(file syntax.File, request syntax.Request) synta
 			p.advance()
 			builder.WriteString(p.text())
 		case token.OpenInterp:
+			p.parseInterp(builder, file, request)
+		default:
+			// Always make progress
 			p.advance()
-			// TODO(@FollowTheProcess): Handle more than ident but for now this is
-			// all the scanner produces so we're fine
+		}
+	}
+
+	result := builder.String()
+
+	_, err := url.ParseRequestURI(result)
+	if err != nil {
+		p.errorf("invalid URL: %v", err)
+		return syntax.Request{}
+	}
+
+	request.URL = result
+
+	return request
+}
+
+// parseInterp parses and evaluates a templated interpolation.
+//
+// Variables that exist in either global (file) or local (request) scope are substituted
+// at parse time. Prompts are replaced with a placeholder of `zap::prompt::<ident>` as we cannot know their value
+// until the file or request is run and the user provides an input.
+//
+// It takes a *strings.Builder as an input and write it's evaluated results to that builder. The caller
+// is responsible for creating the builder and using it's results.
+func (p *Parser) parseInterp(builder *strings.Builder, file syntax.File, request syntax.Request) {
+	p.advance()
+	// TODO(@FollowTheProcess): Same comment about expecting more than Ident
+	p.expect(token.Ident)
+	ident := p.text()
+	p.expect(token.CloseInterp)
+
+	localVal, isLocal := request.Vars[ident]
+	globalVal, isGlobal := file.Vars[ident]
+	isPrompt := false
+
+	prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+
+	for _, prompt := range prompts {
+		if prompt.Name == ident {
+			isPrompt = true
+			break
+		}
+	}
+
+	switch {
+	case isLocal:
+		builder.WriteString(localVal)
+	case isGlobal:
+		builder.WriteString(globalVal)
+	case isPrompt:
+		// We resolve these later when we ask the user, they cannot be
+		// resolved at parse time
+		builder.WriteString("zap::prompt::" + ident)
+	default:
+		p.errorf("use of undefined variable %q", ident)
+	}
+}
+
+// parseRequestHeaders parses a run of request headers, returning the modified
+// request.
+//
+// Interpolation is evaluated and replaced on the fly.
+func (p *Parser) parseRequestHeaders(file syntax.File, request syntax.Request) syntax.Request {
+	for p.next.Is(token.Header) {
+		p.advance()
+		key := p.text()
+		p.expect(token.Colon)
+
+		builder := &strings.Builder{}
+
+		for p.next.Is(token.Text, token.OpenInterp) {
+			switch kind := p.next.Kind; kind {
+			case token.Text:
+				p.advance()
+				builder.WriteString(p.text())
+			case token.OpenInterp:
+				p.parseInterp(builder, file, request)
+			default:
+				// Always make progress
+				p.advance()
+			}
+		}
+
+		request.Headers[key] = builder.String()
+		builder.Reset() // Reset for the next (outer) loop
+	}
+
+	return request
+}
+
+// parseRequestBody parses a request body, returning the modified request.
+//
+// Interpolation is evaluated and replaced o the fly.
+func (p *Parser) parseRequestBody(file syntax.File, request syntax.Request) syntax.Request {
+	builder := &strings.Builder{}
+
+	for p.next.Is(token.Body, token.OpenInterp) {
+		switch kind := p.next.Kind; kind {
+		case token.Body:
+			p.advance()
+			builder.Write(p.bytes())
+		case token.OpenInterp:
+			p.advance()
 			p.expect(token.Ident)
 			ident := p.text()
 			p.expect(token.CloseInterp)
@@ -570,130 +641,6 @@ func (p *Parser) parseRequestURL(file syntax.File, request syntax.Request) synta
 			default:
 				p.errorf("use of undefined variable %q", ident)
 			}
-		default:
-			// Always make progress
-			p.advance()
-		}
-	}
-
-	result := builder.String()
-
-	_, err := url.ParseRequestURI(result)
-	if err != nil {
-		p.errorf("invalid URL: %v", err)
-		return syntax.Request{}
-	}
-
-	request.URL = result
-
-	return request
-}
-
-// parseRequestHeaders parses a run of request headers, returning the modified
-// request.
-//
-// Interpolation is evaluated and replaced on the fly.
-func (p *Parser) parseRequestHeaders(file syntax.File, request syntax.Request) syntax.Request {
-	for p.next.Is(token.Header) {
-		p.advance()
-		key := p.text()
-		p.expect(token.Colon)
-
-		builder := &strings.Builder{}
-
-		for p.next.Is(token.Text, token.OpenInterp) {
-			switch kind := p.next.Kind; kind {
-			case token.Text:
-				p.advance()
-				builder.WriteString(p.text())
-			case token.OpenInterp:
-				p.advance()
-				// TODO(@FollowTheProcess): Same comment about expecting more than Ident
-				p.expect(token.Ident)
-				ident := p.text()
-				p.expect(token.CloseInterp)
-
-				localVal, isLocal := request.Vars[ident]
-				globalVal, isGlobal := file.Vars[ident]
-				isPrompt := false
-
-				prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
-
-				for _, prompt := range prompts {
-					if prompt.Name == ident {
-						isPrompt = true
-						break
-					}
-				}
-
-				switch {
-				case isLocal:
-					builder.WriteString(localVal)
-				case isGlobal:
-					builder.WriteString(globalVal)
-				case isPrompt:
-					// We resolve these later when we ask the user, they cannot be
-					// resolved at parse time
-					builder.WriteString("zap::prompt::" + ident)
-				default:
-					p.errorf("use of undefined variable %q", ident)
-				}
-
-			default:
-				// Always make progress
-				p.advance()
-			}
-		}
-
-		request.Headers[key] = builder.String()
-		builder.Reset() // Reset for the next (outer) loop
-	}
-
-	return request
-}
-
-// parseRequestBody parses a request body, returning the modified request.
-//
-// Interpolation is evaluated and replaced o the fly.
-func (p *Parser) parseRequestBody(file syntax.File, request syntax.Request) syntax.Request {
-	body := &bytes.Buffer{}
-
-	for p.next.Is(token.Body, token.OpenInterp) {
-		switch kind := p.next.Kind; kind {
-		case token.Body:
-			p.advance()
-			body.Write(p.bytes())
-		case token.OpenInterp:
-			p.advance()
-			p.expect(token.Ident)
-			ident := p.text()
-			p.expect(token.CloseInterp)
-
-			localVal, isLocal := request.Vars[ident]
-			globalVal, isGlobal := file.Vars[ident]
-			isPrompt := false
-
-			prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
-
-			for _, prompt := range prompts {
-				if prompt.Name == ident {
-					isPrompt = true
-					break
-				}
-			}
-
-			switch {
-			case isLocal:
-				body.WriteString(localVal)
-			case isGlobal:
-				body.WriteString(globalVal)
-			case isPrompt:
-				// We resolve these later when we ask the user, they cannot be
-				// resolved at parse time
-				body.WriteString("zap::prompt::" + ident)
-			default:
-				p.errorf("use of undefined variable %q", ident)
-			}
 
 		default:
 			// Always make progress
@@ -701,7 +648,7 @@ func (p *Parser) parseRequestBody(file syntax.File, request syntax.Request) synt
 		}
 	}
 
-	request.Body = body.Bytes()
+	request.Body = []byte(builder.String())
 
 	return request
 }
