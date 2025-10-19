@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -249,7 +249,13 @@ func (p *Parser) parseGlobals(file syntax.File) syntax.File {
 		case token.Name:
 			file.Name = p.parseName()
 		case token.Prompt:
-			file.Prompts = append(file.Prompts, p.parsePrompt())
+			prompt := p.parsePrompt()
+
+			if file.Prompts == nil {
+				file.Prompts = make(map[string]syntax.Prompt)
+			}
+
+			file.Prompts[prompt.Name] = prompt
 		case token.Ident:
 			key, value := p.parseVar(file, syntax.Request{})
 
@@ -465,7 +471,13 @@ func (p *Parser) parseRequestVars(file syntax.File, request syntax.Request) synt
 		case token.Name:
 			request.Name = p.parseName()
 		case token.Prompt:
-			request.Prompts = append(request.Prompts, p.parsePrompt())
+			prompt := p.parsePrompt()
+
+			if request.Prompts == nil {
+				request.Prompts = make(map[string]syntax.Prompt)
+			}
+
+			request.Prompts[prompt.Name] = prompt
 		case token.Ident:
 			key, value := p.parseVar(file, request)
 
@@ -542,16 +554,12 @@ func (p *Parser) parseInterp(builder *strings.Builder, file syntax.File, request
 
 	localVal, isLocal := request.Vars[ident]
 	globalVal, isGlobal := file.Vars[ident]
-	isPrompt := false
 
-	prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+	allPrompts := make(map[string]syntax.Prompt, len(request.Prompts)+len(file.Prompts))
+	maps.Copy(allPrompts, request.Prompts)
+	maps.Copy(allPrompts, file.Prompts)
 
-	for _, prompt := range prompts {
-		if prompt.Name == ident {
-			isPrompt = true
-			break
-		}
-	}
+	_, isPrompt := allPrompts[ident]
 
 	switch {
 	case isLocal:
@@ -618,16 +626,12 @@ func (p *Parser) parseRequestBody(file syntax.File, request syntax.Request) synt
 
 			localVal, isLocal := request.Vars[ident]
 			globalVal, isGlobal := file.Vars[ident]
-			isPrompt := false
 
-			prompts := slices.Compact(slices.Concat(file.Prompts, request.Prompts))
+			allPrompts := make(map[string]syntax.Prompt, len(request.Prompts)+len(file.Prompts))
+			maps.Copy(allPrompts, request.Prompts)
+			maps.Copy(allPrompts, file.Prompts)
 
-			for _, prompt := range prompts {
-				if prompt.Name == ident {
-					isPrompt = true
-					break
-				}
-			}
+			_, isPrompt := allPrompts[ident]
 
 			switch {
 			case isLocal:
