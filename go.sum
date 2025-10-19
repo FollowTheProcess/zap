@@ -8,8 +8,8 @@ go.followtheprocess.codes/cli v0.15.0 h1:YcL5DvUbl3689tNZi+lgrYlfUtHRNTAA1zxNVVn
 go.followtheprocess.codes/cli v0.15.0/go.mod h1:DFhcxAmqxy0acwXmNiqY34Vja1jMWKLvOQDUseCY6WM=
 go.followtheprocess.codes/hue v1.0.0 h1:0fYXAGR1o+w7Vja+Q+iVtqeEP3/CE6ET/pniyl8e9yo=
 go.followtheprocess.codes/hue v1.0.0/go.mod h1:gSn5xK6KJapih+eFgQk3woo1qg3/rx9XSrAanUIuDr8=
-go.followtheprocess.codes/log v1.1.1 h1:/Jaok+cEDSCY9oDGtu0It1Hz98dSzY+Y+HcZsSRl/Xg=
-go.followtheprocess.codes/log v1.1.1/go.mod h1:oZAZKYUP/OQu0UthNYnIBkCpTEVQoCX1u0pIcL2v3fw=
+go.followtheprocess.codes/log v1.2.0 h1:23MY3BRVe9fr+mFCofVixv//RcmaMVCk56MZY/aRWW8=
+go.followtheprocess.codes/log v1.2.0/go.mod h1:JhST0eluhO0X1z6tK9+ZgyNcNTL/UPNH2LBxcSJnNiw=
 go.followtheprocess.codes/msg v1.9.1 h1:Gm9lIG2S7Lt9OSrAGvLWe+i487MVz3KZNNi56LLHsuo=
 go.followtheprocess.codes/msg v1.9.1/go.mod h1:UcgJDy8xvI2QEuJBiQMvmyzkg6bIgch3KigICvvvZ3E=
 go.followtheprocess.codes/snapshot v0.6.1 h1:cZkQtEjL21BSrHn98Lm0S4yTzcOje/K60Iog/u/A5tM=
