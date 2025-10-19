@@ -4,7 +4,6 @@ package zap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -16,6 +15,7 @@ import (
 	"go.followtheprocess.codes/msg"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
+	"golang.org/x/sync/errgroup"
 )
 
 // HTTP config.
@@ -143,17 +143,23 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 
 	z.logger.Debug("Checking http files", "number", len(paths))
 
-	var errs []error
+	group := errgroup.Group{}
 
-	// TODO(@FollowTheProcess): Do this concurrently, each file is self contained
-	// this is embarrassingly parallel.
 	for _, path := range paths {
-		if err := z.checkFile(path, handler); err != nil {
-			errs = append(errs, err)
-		}
+		group.Go(func() error {
+			return z.checkFile(path, handler)
+		})
 	}
 
-	return errors.Join(errs...)
+	if err := group.Wait(); err != nil {
+		return err
+	}
+
+	for _, path := range paths {
+		msg.Fsuccess(z.stdout, "%s is valid", path)
+	}
+
+	return nil
 }
 
 // checkFile runs a parse check on a single file.
@@ -174,8 +180,6 @@ func (z Zap) checkFile(path string, handler syntax.ErrorHandler) error {
 	if err != nil {
 		return err
 	}
-
-	msg.Fsuccess(z.stdout, "%s is valid", path)
 
 	return nil
 }
