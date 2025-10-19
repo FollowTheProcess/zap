@@ -3,6 +3,7 @@
 package zap
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -15,6 +16,7 @@ const (
 	// DefaultOverallTimeout is the default amount of time allowed for the entire
 	// execution. Typically only used when executing multiple requests as a collection.
 	DefaultOverallTimeout = 1 * time.Minute
+
 	// DefaultTimeout is the default amount of time allowed for the entire request/response
 	// cycle for a single request.
 	DefaultTimeout = 30 * time.Second
@@ -52,7 +54,7 @@ func New(debug bool, stdout, stderr io.Writer) Zap {
 }
 
 // Hello is a placeholder method for wiring up the CLI.
-func (z Zap) Hello() {
+func (z Zap) Hello(ctx context.Context) {
 	fmt.Fprintln(z.stdout, "Hello from Zap!")
 	z.logger.Debug("This is a debug log", "cheese", "brie")
 }
@@ -80,7 +82,7 @@ type RunOptions struct {
 }
 
 // Run implements the run subcommand.
-func (z Zap) Run(file string, requests []string, options RunOptions) error {
+func (z Zap) Run(ctx context.Context, file string, requests []string, options RunOptions) error {
 	if len(requests) == 0 {
 		fmt.Fprintf(z.stdout, "Executing all requests in file: %s\n", file)
 	} else {
@@ -99,7 +101,7 @@ type CheckOptions struct {
 }
 
 // Check implements the check subcommand.
-func (z Zap) Check(path string, options CheckOptions) error {
+func (z Zap) Check(ctx context.Context, path string, options CheckOptions) error {
 	fmt.Fprintf(z.stdout, "Checking %q for syntax errors\n", path)
 	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
 

@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"go.followtheprocess.codes/cli"
@@ -21,7 +22,7 @@ var (
 // collections etc. and convert them to .http files
 
 // Build builds and returns the zap CLI.
-func Build() (*cli.Command, error) {
+func Build(ctx context.Context) (*cli.Command, error) {
 	var debug bool
 
 	return cli.New(
@@ -40,10 +41,10 @@ func Build() (*cli.Command, error) {
 		cli.Example("Check for syntax errors in multiple files (recursively)", "zap check ./examples"),
 		cli.Allow(cli.NoArgs()),
 		cli.Flag(&debug, "debug", 'd', false, "Enable debug logs"),
-		cli.SubCommands(run, check),
+		cli.SubCommands(run(ctx), check(ctx)),
 		cli.Run(func(cmd *cli.Command, args []string) error {
 			app := zap.New(debug, os.Stdout, os.Stderr)
-			app.Hello()
+			app.Hello(ctx)
 
 			return nil
 		}),
