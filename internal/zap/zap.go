@@ -109,6 +109,8 @@ type CheckOptions struct {
 
 // Check implements the check subcommand.
 func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler, options CheckOptions) error {
+	z.logger.Debug("Checking path", "path", path)
+
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("could not get path info: %w", err)
@@ -117,6 +119,8 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 	var paths []string
 
 	if info.IsDir() {
+		z.logger.Debug("Path is a directory", "path", path)
+
 		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -132,8 +136,12 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 			return fmt.Errorf("could not walk %s: %w", path, err)
 		}
 	} else {
+		z.logger.Debug("Path is a file", "path", path)
+
 		paths = []string{path}
 	}
+
+	z.logger.Debug("Checking http files", "number", len(paths))
 
 	var errs []error
 
