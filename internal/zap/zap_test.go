@@ -32,10 +32,36 @@ func TestCheckValid(t *testing.T) {
 			err := app.Check(t.Context(), file, simpleErrorHandler(stderr), zap.CheckOptions{})
 			test.Ok(t, err)
 
-			test.Equal(t, stdout.String(), fmt.Sprintf("Success: %s is valid\n", file))
-			test.Equal(t, stderr.String(), "")
+			test.Diff(t, stdout.String(), fmt.Sprintf("Success: %s is valid\n", file))
+			test.Diff(t, stderr.String(), "")
 		})
 	}
+}
+
+func TestCheckValidDir(t *testing.T) {
+	path := filepath.Join("testdata", "check", "valid")
+	pattern := filepath.Join(path, "*.http")
+
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	app := zap.New(false, stdout, stderr)
+
+	err = app.Check(t.Context(), path, simpleErrorHandler(stderr), zap.CheckOptions{})
+	test.Ok(t, err)
+
+	s := &strings.Builder{}
+
+	// Write a success line for every file in the dir
+	for _, file := range files {
+		fmt.Fprintf(s, "Success: %s is valid\n", file)
+	}
+
+	test.Diff(t, stdout.String(), s.String())
+	test.Diff(t, stderr.String(), "")
 }
 
 func TestCheckInvalid(t *testing.T) {

@@ -4,9 +4,12 @@ package zap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"time"
 
 	"go.followtheprocess.codes/log"
@@ -111,13 +114,42 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 		return fmt.Errorf("could not get path info: %w", err)
 	}
 
+	var paths []string
+
 	if info.IsDir() {
-		// TODO(@FollowTheProcess): Recursively scan the dir looking for .http files
-		// and check them all
-		fmt.Fprintln(z.stdout, "TODO: Implement directory recursive search")
-		return nil
+		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if filepath.Ext(path) == ".http" {
+				paths = append(paths, path)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("could not walk %s: %w", path, err)
+		}
+	} else {
+		paths = []string{path}
 	}
 
+	var errs []error
+
+	// TODO(@FollowTheProcess): Do this concurrently, each file is self contained
+	// this is embarrassingly parallel.
+	for _, path := range paths {
+		if err := z.checkFile(path, handler); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// checkFile runs a parse check on a single file.
+func (z Zap) checkFile(path string, handler syntax.ErrorHandler) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("could not open file: %w", err)
