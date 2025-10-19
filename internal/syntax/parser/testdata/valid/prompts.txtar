@@ -7,20 +7,20 @@ GET https://api.something.com/{{ version }}/thing/{{ id }}
 -- want.json --
 {
   "name": "prompts.txtar",
-  "prompts": [
-    {
+  "prompts": {
+    "version": {
       "name": "version",
       "description": "The version of the API"
     }
-  ],
+  },
   "requests": [
     {
-      "prompts": [
-        {
+      "prompts": {
+        "id": {
           "name": "id",
           "description": "The ID of a thing to get"
         }
-      ],
+      },
       "name": "#1",
       "comment": "Get a Thing",
       "method": "GET",
