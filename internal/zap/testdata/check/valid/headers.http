@@ -1,0 +1,5 @@
+### With Headers
+GET https://api.company.org/v1/token?cache=true
+Accept: application/json;charset=utf8
+Content-Type: application/json
+Content-Length: 69

@@ -77,7 +77,8 @@ func TestValid(t *testing.T) {
 //
 // Additionally, the errors are compared against a reference.
 func TestInvalid(t *testing.T) {
-	test.ColorEnabled(true) // Force colour in the diffs
+	// Force colour for diffs but only locally
+	test.ColorEnabled(os.Getenv("CI") == "")
 
 	pattern := filepath.Join("testdata", "invalid", "*.txtar")
 	files, err := filepath.Glob(pattern)

@@ -1,0 +1,10 @@
+### Body
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+{
+  "body": "here"
+  "yes": {
+    "full": ["json", "syntax"]
+  }
+}

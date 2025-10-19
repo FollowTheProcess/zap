@@ -3,11 +3,19 @@
 package zap
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"time"
 
 	"go.followtheprocess.codes/log"
+	"go.followtheprocess.codes/msg"
+	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/zap/internal/syntax/parser"
 )
 
 // HTTP config.
@@ -15,6 +23,7 @@ const (
 	// DefaultOverallTimeout is the default amount of time allowed for the entire
 	// execution. Typically only used when executing multiple requests as a collection.
 	DefaultOverallTimeout = 1 * time.Minute
+
 	// DefaultTimeout is the default amount of time allowed for the entire request/response
 	// cycle for a single request.
 	DefaultTimeout = 30 * time.Second
@@ -52,7 +61,7 @@ func New(debug bool, stdout, stderr io.Writer) Zap {
 }
 
 // Hello is a placeholder method for wiring up the CLI.
-func (z Zap) Hello() {
+func (z Zap) Hello(ctx context.Context) {
 	fmt.Fprintln(z.stdout, "Hello from Zap!")
 	z.logger.Debug("This is a debug log", "cheese", "brie")
 }
@@ -80,7 +89,7 @@ type RunOptions struct {
 }
 
 // Run implements the run subcommand.
-func (z Zap) Run(file string, requests []string, options RunOptions) error {
+func (z Zap) Run(ctx context.Context, file string, requests []string, options RunOptions) error {
 	if len(requests) == 0 {
 		fmt.Fprintf(z.stdout, "Executing all requests in file: %s\n", file)
 	} else {
@@ -99,9 +108,74 @@ type CheckOptions struct {
 }
 
 // Check implements the check subcommand.
-func (z Zap) Check(path string, options CheckOptions) error {
-	fmt.Fprintf(z.stdout, "Checking %q for syntax errors\n", path)
-	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
+func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler, options CheckOptions) error {
+	z.logger.Debug("Checking path", "path", path)
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("could not get path info: %w", err)
+	}
+
+	var paths []string
+
+	if info.IsDir() {
+		z.logger.Debug("Path is a directory", "path", path)
+
+		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if filepath.Ext(path) == ".http" {
+				paths = append(paths, path)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("could not walk %s: %w", path, err)
+		}
+	} else {
+		z.logger.Debug("Path is a file", "path", path)
+
+		paths = []string{path}
+	}
+
+	z.logger.Debug("Checking http files", "number", len(paths))
+
+	var errs []error
+
+	// TODO(@FollowTheProcess): Do this concurrently, each file is self contained
+	// this is embarrassingly parallel.
+	for _, path := range paths {
+		if err := z.checkFile(path, handler); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// checkFile runs a parse check on a single file.
+func (z Zap) checkFile(path string, handler syntax.ErrorHandler) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("could not open file: %w", err)
+	}
+	defer file.Close()
+
+	p, err := parser.New(path, file, handler)
+	if err != nil {
+		return fmt.Errorf("could not initialise the parser: %w", err)
+	}
+
+	// We don't actually care about the result, just that it parses
+	_, err = p.Parse()
+	if err != nil {
+		return err
+	}
+
+	msg.Fsuccess(z.stdout, "%s is valid", path)
 
 	return nil
 }
