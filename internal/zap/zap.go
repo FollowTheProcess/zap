@@ -6,9 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"go.followtheprocess.codes/log"
+	"go.followtheprocess.codes/msg"
+	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/zap/internal/syntax/parser"
 )
 
 // HTTP config.
@@ -101,9 +105,37 @@ type CheckOptions struct {
 }
 
 // Check implements the check subcommand.
-func (z Zap) Check(ctx context.Context, path string, options CheckOptions) error {
-	fmt.Fprintf(z.stdout, "Checking %q for syntax errors\n", path)
-	fmt.Fprintf(z.stdout, "Options: %+v\n", options)
+func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler, options CheckOptions) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("could not get path info: %w", err)
+	}
+
+	if info.IsDir() {
+		// TODO(@FollowTheProcess): Recursively scan the dir looking for .http files
+		// and check them all
+		fmt.Fprintln(z.stdout, "TODO: Implement directory recursive search")
+		return nil
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("could not open file: %w", err)
+	}
+	defer file.Close()
+
+	p, err := parser.New(path, file, handler)
+	if err != nil {
+		return fmt.Errorf("could not initialise the parser: %w", err)
+	}
+
+	// We don't actually care about the result, just that it parses
+	_, err = p.Parse()
+	if err != nil {
+		return err
+	}
+
+	msg.Fsuccess(z.stdout, "%s is valid", path)
 
 	return nil
 }
