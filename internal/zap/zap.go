@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -63,7 +64,7 @@ func New(debug bool, stdout, stderr io.Writer) Zap {
 // Hello is a placeholder method for wiring up the CLI.
 func (z Zap) Hello(ctx context.Context) {
 	fmt.Fprintln(z.stdout, "Hello from Zap!")
-	z.logger.Debug("This is a debug log", "cheese", "brie")
+	z.logger.Debug("This is a debug log", slog.String("cheese", "brie"))
 }
 
 // RunOptions are the options passed to the run subcommand.
@@ -109,7 +110,7 @@ type CheckOptions struct {
 
 // Check implements the check subcommand.
 func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler, options CheckOptions) error {
-	z.logger.Debug("Checking path", "path", path)
+	z.logger.Debug("Checking path", slog.String("path", path))
 
 	info, err := os.Stat(path)
 	if err != nil {
@@ -119,7 +120,7 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 	var paths []string
 
 	if info.IsDir() {
-		z.logger.Debug("Path is a directory", "path", path)
+		z.logger.Debug("Path is a directory", slog.String("path", path))
 
 		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
@@ -136,12 +137,12 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 			return fmt.Errorf("could not walk %s: %w", path, err)
 		}
 	} else {
-		z.logger.Debug("Path is a file", "path", path)
+		z.logger.Debug("Path is a file", slog.String("path", path))
 
 		paths = []string{path}
 	}
 
-	z.logger.Debug("Checking http files", "number", len(paths))
+	z.logger.Debug("Checking http files", slog.Int("number", len(paths)))
 
 	group := errgroup.Group{}
 

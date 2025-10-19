@@ -5,7 +5,7 @@ go 1.25
 require (
 	go.followtheprocess.codes/cli v0.15.0
 	go.followtheprocess.codes/hue v1.0.0
-	go.followtheprocess.codes/log v1.1.1
+	go.followtheprocess.codes/log v1.2.0
 	go.followtheprocess.codes/msg v1.9.1
 	go.followtheprocess.codes/snapshot v0.6.1
 	go.followtheprocess.codes/test v1.0.0
