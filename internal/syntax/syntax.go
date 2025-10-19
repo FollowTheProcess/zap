@@ -100,7 +100,7 @@ type File struct {
 	// file is parsed.
 	//
 	// The provided values will then be stored in Vars.
-	Prompts []Prompt `json:"prompts,omitempty"`
+	Prompts map[string]Prompt `json:"prompts,omitempty"`
 
 	// The HTTP requests described in the file
 	Requests []Request `json:"requests,omitempty"`
@@ -123,8 +123,8 @@ func (f File) String() string {
 		fmt.Fprintf(builder, "@name = %s\n\n", f.Name)
 	}
 
-	for _, prompt := range f.Prompts {
-		builder.WriteString(prompt.String())
+	for _, name := range slices.Sorted(maps.Keys(f.Prompts)) {
+		builder.WriteString(f.Prompts[name].String())
 	}
 
 	for _, key := range slices.Sorted(maps.Keys(f.Vars)) {
@@ -171,7 +171,7 @@ type Request struct {
 	//
 	// The provided values will then be stored in Vars for future use e.g. as interpolation
 	// in the request body.
-	Prompts []Prompt `json:"prompts,omitempty"`
+	Prompts map[string]Prompt `json:"prompts,omitempty"`
 
 	// Optional name, if empty request should be named after it's index e.g. "#1"
 	Name string `json:"name,omitempty"`
@@ -227,8 +227,8 @@ func (r Request) String() string {
 		fmt.Fprintf(builder, "# @name = %s\n", r.Name)
 	}
 
-	for _, prompt := range r.Prompts {
-		builder.WriteString(prompt.String())
+	for _, name := range slices.Sorted(maps.Keys(r.Prompts)) {
+		builder.WriteString(r.Prompts[name].String())
 	}
 
 	for _, key := range slices.Sorted(maps.Keys(r.Vars)) {
@@ -290,6 +290,10 @@ type Prompt struct {
 
 	// Description of the prompt, optional
 	Description string `json:"description,omitempty"`
+
+	// Value is the current value for the prompt variable, empty if
+	// not yet provided
+	Value string `json:"value,omitempty"`
 }
 
 // String implements [fmt.Stringer] for a [Prompt].
@@ -319,12 +323,13 @@ func PrettyConsoleHandler(w io.Writer) ErrorHandler {
 		const contextLines = 3
 
 		startLine := max(pos.Line-contextLines, 0)
-		endLine := max(pos.Line+contextLines, len(lines))
+		endLine := min(pos.Line+contextLines, len(lines))
 
 		for i, line := range lines {
 			i++ // Lines are 1 indexed
 			if i >= startLine && i <= endLine {
-				margin := fmt.Sprintf("%d | ", i)
+				// Note: This is U+2502/"Box Drawings Light Vertical" NOT standard vertical pipe '|'
+				margin := fmt.Sprintf("%d │ ", i)
 				fmt.Fprintf(w, "%s%s\n", margin, line)
 
 				if i == pos.Line {

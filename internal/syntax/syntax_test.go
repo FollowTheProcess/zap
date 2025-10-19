@@ -136,8 +136,11 @@ func TestFileString(t *testing.T) {
 				Vars: map[string]string{
 					"base": "https://api.com/v1",
 				},
-				Prompts: []syntax.Prompt{
-					{Name: "colour", Description: "The colour of something"},
+				Prompts: map[string]syntax.Prompt{
+					"colour": {
+						Name:        "colour",
+						Description: "The colour of something",
+					},
 				},
 				Requests: []syntax.Request{
 					{
@@ -285,8 +288,11 @@ func TestFileString(t *testing.T) {
 						Method:       http.MethodPost,
 						URL:          "https://api.com/v1/items/{{ id }}",
 						ResponseFile: "./response.json",
-						Prompts: []syntax.Prompt{
-							{Name: "id", Description: "The ID of the item"},
+						Prompts: map[string]syntax.Prompt{
+							"id": {
+								Name:        "id",
+								Description: "The ID of the item",
+							},
 						},
 					},
 				},

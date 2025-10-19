@@ -10,12 +10,12 @@ GET https://users.com/api/v1/items/123
 -- want.json --
 {
   "name": "Testy",
-  "prompts": [
-    {
+  "prompts": {
+    "answer": {
       "name": "answer",
       "description": "The answer to everything"
     }
-  ],
+  },
   "requests": [
     {
       "name": "#1",
