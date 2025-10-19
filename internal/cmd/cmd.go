@@ -41,7 +41,10 @@ func Build(ctx context.Context) (*cli.Command, error) {
 		cli.Example("Check for syntax errors in multiple files (recursively)", "zap check ./examples"),
 		cli.Allow(cli.NoArgs()),
 		cli.Flag(&debug, "debug", 'd', false, "Enable debug logs"),
-		cli.SubCommands(run(ctx), check(ctx)),
+		cli.SubCommands(
+			run(ctx),
+			check(ctx),
+		),
 		cli.Run(func(cmd *cli.Command, args []string) error {
 			app := zap.New(debug, os.Stdout, os.Stderr)
 			app.Hello(ctx)
