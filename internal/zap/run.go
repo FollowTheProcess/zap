@@ -42,6 +42,9 @@ const (
 
 // RunOptions are the options passed to the run subcommand.
 type RunOptions struct {
+	// TODO(@FollowTheProcess): Change output to be like k8s -o
+	// i.e. it takes e.g. json, yaml etc.
+
 	// Output is the name of a file in which to save the response, if empty,
 	// the response is printed to stdout.
 	Output string
