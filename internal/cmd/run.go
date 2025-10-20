@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.followtheprocess.codes/cli"
+	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/zap"
 )
 
@@ -25,6 +26,16 @@ used, the command line flag takes precedence.
 func run(ctx context.Context) func() (*cli.Command, error) {
 	return func() (*cli.Command, error) {
 		var options zap.RunOptions
+
+		// TODO(@FollowTheProcess): A way of filtering/selecting requests within the file, options are:
+		// 1) A --request flag to specify a single request, can be repeated
+		// 2) A --filter flag that takes like a glob pattern e.g. --filter 'get*' would do every request who's name starts with 'get'
+		// 3) A --pattern (or --filter) flag that takes a full regex pattern, only matches get run
+		//
+		// Maybe we do all?
+
+		// TODO(@FollowTheProcess): A --verbose flag that shows the request headers and body in a similar way to
+		// how the response is shown. Maybe don't show the request headers by default?
 
 		return cli.New(
 			"run",
@@ -50,8 +61,8 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 			cli.Flag(&options.Output, "output", 'o', "", "Name of a file to save the response"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 			cli.Run(func(cmd *cli.Command, args []string) error {
-				app := zap.New(options.Debug, cmd.Stdout(), cmd.Stderr())
-				return app.Run(ctx, cmd.Arg("file"), args[1:], options)
+				app := zap.New(options.Debug, version, cmd.Stdout(), cmd.Stderr())
+				return app.Run(ctx, cmd.Arg("file"), args[1:], syntax.PrettyConsoleHandler(cmd.Stderr()), options)
 			}),
 		)
 	}

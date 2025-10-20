@@ -27,7 +27,7 @@ func TestCheckValid(t *testing.T) {
 			stdout := &bytes.Buffer{}
 			stderr := &bytes.Buffer{}
 
-			app := zap.New(false, stdout, stderr)
+			app := zap.New(false, "test", stdout, stderr)
 
 			err := app.Check(t.Context(), file, simpleErrorHandler(stderr), zap.CheckOptions{})
 			test.Ok(t, err)
@@ -48,7 +48,7 @@ func TestCheckValidDir(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 
-	app := zap.New(false, stdout, stderr)
+	app := zap.New(false, "test", stdout, stderr)
 
 	err = app.Check(t.Context(), path, simpleErrorHandler(stderr), zap.CheckOptions{})
 	test.Ok(t, err)
@@ -77,7 +77,7 @@ func TestCheckInvalid(t *testing.T) {
 			stdout := &bytes.Buffer{}
 			stderr := &bytes.Buffer{}
 
-			app := zap.New(false, stdout, stderr)
+			app := zap.New(false, "test", stdout, stderr)
 
 			err := app.Check(t.Context(), file, simpleErrorHandler(stderr), zap.CheckOptions{})
 			test.Err(t, err)
