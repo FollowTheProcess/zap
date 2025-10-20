@@ -46,7 +46,7 @@ func Build(ctx context.Context) (*cli.Command, error) {
 			check(ctx),
 		),
 		cli.Run(func(cmd *cli.Command, args []string) error {
-			app := zap.New(debug, os.Stdout, os.Stderr)
+			app := zap.New(debug, version, os.Stdout, os.Stderr)
 			app.Hello(ctx)
 
 			return nil
