@@ -66,7 +66,13 @@ type RunOptions struct {
 }
 
 // Run implements the run subcommand.
-func (z Zap) Run(ctx context.Context, file string, requests []string, handler syntax.ErrorHandler, options RunOptions) error {
+func (z Zap) Run(
+	ctx context.Context,
+	file string,
+	requests []string,
+	handler syntax.ErrorHandler,
+	options RunOptions,
+) error {
 	logger := z.logger.Prefixed("run")
 
 	ctx, cancel := context.WithTimeout(ctx, DefaultOverallTimeout)
@@ -160,7 +166,12 @@ type Response struct {
 }
 
 // doRequest executes a single HTTP request.
-func (z Zap) doRequest(ctx context.Context, logger *log.Logger, client http.Client, request syntax.Request) (Response, error) {
+func (z Zap) doRequest(
+	ctx context.Context,
+	logger *log.Logger,
+	client http.Client,
+	request syntax.Request,
+) (Response, error) {
 	// TODO(@FollowTheProcess): Use request timeout once it's been resolved
 	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
 	defer cancel()
