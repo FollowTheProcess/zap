@@ -1,8 +1,8 @@
 # Replace the $ZAP_TEST_URL with our test HTTP server
 expand src.http
 
-# Run the equivalent of zap run src.http
-exec run src.http
+# Run the equivalent of zap run src.http naming a specific request
+exec run src.http getItem
 
 # Replace anything that looks like a small time duration with a placeholder
 # 30s
@@ -19,7 +19,7 @@ cmp stdout expected
 -- src.http --
 ###
 # @name = getItem
-GET $ZAP_TEST_URL/success
+GET $ZAP_TEST_URL/ok
 -- expected --
 
 src.http: getItem

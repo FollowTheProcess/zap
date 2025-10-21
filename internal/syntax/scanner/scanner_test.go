@@ -332,7 +332,12 @@ func TestValid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(t, len(archive.Files), 2, test.Context("%s should contain 2 files, got %d", file, len(archive.Files)))
+			test.Equal(
+				t,
+				len(archive.Files),
+				2,
+				test.Context("%s should contain 2 files, got %d", file, len(archive.Files)),
+			)
 			test.Equal(
 				t,
 				archive.Files[0].Name,
@@ -401,7 +406,12 @@ func TestInvalid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(t, len(archive.Files), 3, test.Context("%s should contain 3 files, got %d", file, len(archive.Files)))
+			test.Equal(
+				t,
+				len(archive.Files),
+				3,
+				test.Context("%s should contain 3 files, got %d", file, len(archive.Files)),
+			)
 			test.Equal(
 				t,
 				archive.Files[0].Name,
@@ -478,7 +488,11 @@ func FuzzScanner(f *testing.F) {
 		archive, err := txtar.ParseFile(file)
 		test.Ok(f, err)
 
-		test.True(f, len(archive.Files) > 1, test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)))
+		test.True(
+			f,
+			len(archive.Files) > 1,
+			test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)),
+		)
 		test.Equal(
 			f,
 			archive.Files[0].Name,
@@ -527,8 +541,17 @@ func BenchmarkScanner(b *testing.B) {
 	archive, err := txtar.ParseFile(file)
 	test.Ok(b, err)
 
-	test.True(b, len(archive.Files) > 1, test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)))
-	test.Equal(b, archive.Files[0].Name, "src.http", test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name))
+	test.True(
+		b,
+		len(archive.Files) > 1,
+		test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)),
+	)
+	test.Equal(
+		b,
+		archive.Files[0].Name,
+		"src.http",
+		test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
+	)
 
 	src := archive.Files[0].Data
 

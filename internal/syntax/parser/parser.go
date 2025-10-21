@@ -300,7 +300,12 @@ func (p *Parser) parseRequest(file syntax.File) (syntax.Request, error) {
 	request = p.parseRequestVars(file, request)
 
 	if !token.IsMethod(p.current.Kind) {
-		p.errorf("request separators must be followed by either a comment or a HTTP method, got %s: %q", p.current.Kind, p.text())
+		p.errorf(
+			"request separators must be followed by either a comment or a HTTP method, got %s: %q",
+			p.current.Kind,
+			p.text(),
+		)
+
 		return syntax.Request{}, ErrParse
 	}
 
