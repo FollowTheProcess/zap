@@ -42,12 +42,16 @@ const (
 
 // RunOptions are the options passed to the run subcommand.
 type RunOptions struct {
-	// TODO(@FollowTheProcess): Change output to be like k8s -o
-	// i.e. it takes e.g. json, yaml etc.
-
-	// Output is the name of a file in which to save the response, if empty,
-	// the response is printed to stdout.
+	// Output is the output format in which to display the HTTP response.
+	//
+	// Allowed values: 'stdout', 'json', 'yaml'.
 	Output string
+
+	// Requests are the names of specific requests to be run.
+	//
+	// Empty or nil means run all requests in the file.
+	// Mutually exclusive with Filter and Pattern.
+	Requests []string
 
 	// Timeout is the overall per-request timeout.
 	Timeout time.Duration
@@ -63,6 +67,28 @@ type RunOptions struct {
 
 	// Debug enables debug logging.
 	Debug bool
+
+	// Verbose shows additional details about the request, by default
+	// only the status and the body are shown.
+	Verbose bool
+}
+
+// Validate reports whether the RunOptions is valid, returning an error
+// if it's not.
+//
+// nil means the options are valid.
+func (r RunOptions) Validate() error {
+	switch output := r.Output; output {
+	case "stdout", "json", "yaml":
+		// Nothing, these are fine
+	default:
+		return fmt.Errorf("invalid option for --output %q, allowed values are 'stdout', 'json', 'yaml'", output)
+	}
+
+	// TODO(@FollowTheProcess): Validate the timeouts, none should be 0, connection Timeout
+	// can't be higher than timeout or overall timeout etc.
+
+	return nil
 }
 
 // Run implements the run subcommand.
@@ -73,6 +99,10 @@ func (z Zap) Run(
 	handler syntax.ErrorHandler,
 	options RunOptions,
 ) error {
+	if err := options.Validate(); err != nil {
+		return err
+	}
+
 	logger := z.logger.Prefixed("run")
 
 	ctx, cancel := context.WithTimeout(ctx, DefaultOverallTimeout)

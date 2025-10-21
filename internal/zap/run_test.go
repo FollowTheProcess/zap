@@ -25,6 +25,7 @@ func TestMain(m *testing.M) {
 				Timeout:           zap.DefaultTimeout,
 				ConnectionTimeout: zap.DefaultConnectionTimeout,
 				OverallTimeout:    zap.DefaultOverallTimeout,
+				Output:            "stdout",
 			}
 
 			// Just asked for the file i.e. run the whole thing

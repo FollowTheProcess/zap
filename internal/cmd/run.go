@@ -10,16 +10,16 @@ import (
 
 const runLong = `
 The request headers, body and other settings will be taken from the
-file but may be overridden by the use of command line flags like
+file but some things may be overridden by the use of command line flags like
 '--timeout' etc.
 
 The '--connection-timeout' and '--timeout' flags apply to individual requests,
 if you're executing multiple requests and want an overall timeout for
 the entire collection, pass '--overall--timeout'.
 
-Responses can be saved to a file with the '--output' flag. This may
-also be specified in the file with '> ./response.json'. If both are
-used, the command line flag takes precedence.
+Responses can be displayed in different formats with the '--output' flag. By default
+responses a printed to stdout, but may also be serialized as json or yaml by passing
+'--output json'.
 `
 
 // run returns the zap run subcommand.
@@ -33,9 +33,6 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 		// 3) A --pattern (or --filter) flag that takes a full regex pattern, only matches get run
 		//
 		// Maybe we do all?
-
-		// TODO(@FollowTheProcess): A --verbose flag that shows the request headers and body in a similar way to
-		// how the response is shown. Maybe don't show the request headers by default?
 
 		// TODO(@FollowTheProcess): Can we syntax highlight the body based on Content-Type?
 
@@ -60,7 +57,9 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 				"Overall timeout for the execution",
 			),
 			cli.Flag(&options.NoRedirect, "no-redirect", cli.NoShortHand, false, "Disable following redirects"),
-			cli.Flag(&options.Output, "output", 'o', "", "Name of a file to save the response"),
+			cli.Flag(&options.Output, "output", 'o', "default", "Output format, one of 'stdout', 'json' or 'yaml'"),
+			cli.Flag(&options.Requests, "request", 'r', nil, "Name(s) of requests to execute"),
+			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional response data"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 			cli.Run(func(cmd *cli.Command, args []string) error {
 				app := zap.New(options.Debug, version, cmd.Stdout(), cmd.Stderr())
