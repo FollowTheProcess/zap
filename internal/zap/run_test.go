@@ -27,10 +27,22 @@ func TestMain(m *testing.M) {
 				OverallTimeout:    zap.DefaultOverallTimeout,
 			}
 
-			err := app.Run(context.Background(), os.Args[1], nil, simpleErrorHandler(os.Stderr), options)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+			// Just asked for the file i.e. run the whole thing
+			if len(os.Args) == 1 {
+				err := app.Run(context.Background(), os.Args[1], nil, simpleErrorHandler(os.Stderr), options)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+				}
+			}
+
+			// Asked for the file but also provided requests to execute
+			if len(os.Args) > 1 {
+				err := app.Run(context.Background(), os.Args[1], os.Args[2:], simpleErrorHandler(os.Stderr), options)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+				}
 			}
 		},
 	})

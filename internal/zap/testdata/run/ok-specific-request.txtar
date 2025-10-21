@@ -1,8 +1,8 @@
 # Replace the $ZAP_TEST_URL with our test HTTP server
 expand src.http
 
-# Run the equivalent of zap run src.http
-exec run src.http
+# Run the equivalent of zap run src.http naming a specific request
+exec run src.http getItem
 
 # Replace anything that looks like a small time duration with a placeholder
 # 30s
@@ -18,19 +18,16 @@ cmp stdout expected
 
 -- src.http --
 ###
-# @name = uhOh
-# @no-redirect
-POST $ZAP_TEST_URL/bad-request
-
-{"a": "body"}
+# @name = getItem
+GET $ZAP_TEST_URL/ok
 -- expected --
 
-src.http: uhOh
+src.http: getItem
 ────────────────────────────────────────────────────────────────────────────────
 
-HTTP/1.1 400 Bad Request ([DURATION])
+HTTP/1.1 200 OK ([DURATION])
 
-Content-Length: 14
+Content-Length: 17
 Content-Type: application/json
 
-{"bad": "yes"}
+{"stuff": "here"}
