@@ -37,6 +37,8 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 		// TODO(@FollowTheProcess): A --verbose flag that shows the request headers and body in a similar way to
 		// how the response is shown. Maybe don't show the request headers by default?
 
+		// TODO(@FollowTheProcess): Can we syntax highlight the body based on Content-Type?
+
 		return cli.New(
 			"run",
 			cli.Short("Execute one or more http requests from a file"),

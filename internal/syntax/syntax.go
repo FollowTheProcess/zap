@@ -91,11 +91,6 @@ type File struct {
 	// Global variables
 	Vars map[string]string `json:"vars,omitempty"`
 
-	// TODO(@FollowTheProcess): I think prompts might need to be a map?
-	// A map of a prompt's ident to a struct containing it's description and current value
-	// which can either be empty (a signal to the CLI to prompt for it) or have it's
-	// real value there
-
 	// Global prompts, the user will be asked to provide values for each of these each time the
 	// file is parsed.
 	//
