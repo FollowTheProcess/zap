@@ -10,16 +10,16 @@ import (
 
 const runLong = `
 The request headers, body and other settings will be taken from the
-file but may be overridden by the use of command line flags like
+file but some things may be overridden by the use of command line flags like
 '--timeout' etc.
 
 The '--connection-timeout' and '--timeout' flags apply to individual requests,
 if you're executing multiple requests and want an overall timeout for
 the entire collection, pass '--overall--timeout'.
 
-Responses can be saved to a file with the '--output' flag. This may
-also be specified in the file with '> ./response.json'. If both are
-used, the command line flag takes precedence.
+Responses can be displayed in different formats with the '--output' flag. By default
+responses a printed to stdout, but may also be serialized as json or yaml by passing
+'--output json'.
 `
 
 // run returns the zap run subcommand.
