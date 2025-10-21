@@ -34,9 +34,6 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 		//
 		// Maybe we do all?
 
-		// TODO(@FollowTheProcess): A --verbose flag that shows the request headers and body in a similar way to
-		// how the response is shown. Maybe don't show the request headers by default?
-
 		// TODO(@FollowTheProcess): Can we syntax highlight the body based on Content-Type?
 
 		return cli.New(
@@ -60,7 +57,9 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 				"Overall timeout for the execution",
 			),
 			cli.Flag(&options.NoRedirect, "no-redirect", cli.NoShortHand, false, "Disable following redirects"),
-			cli.Flag(&options.Output, "output", 'o', "", "Name of a file to save the response"),
+			cli.Flag(&options.Output, "output", 'o', "default", "Output format, one of 'stdout', 'json' or 'yaml'"),
+			cli.Flag(&options.Requests, "request", 'r', nil, "Name(s) of requests to execute"),
+			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional response data"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 			cli.Run(func(cmd *cli.Command, args []string) error {
 				app := zap.New(options.Debug, version, cmd.Stdout(), cmd.Stderr())
