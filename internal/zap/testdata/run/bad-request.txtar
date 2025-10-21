@@ -1,0 +1,35 @@
+# Replace the $ZAP_TEST_URL with our test HTTP server
+expand src.http
+
+# Run the equivalent of zap run src.http
+exec run src.http
+
+# Replace anything that looks like a small time duration with a placeholder
+# 30s
+# 15.32s
+# 103.5656ms
+replace stdout '\d+(?:\.\d+)?(?:s|ms|µs)' '[DURATION]'
+
+# Fail if stdout != expected and show a diff
+cmp stdout expected
+
+# There should be nothing printed to stderr
+! stderr .
+
+-- src.http --
+###
+# @name = uhOh
+POST $ZAP_TEST_URL/bad-request
+
+{"a": "body"}
+-- expected --
+
+src.http: uhOh
+────────────────────────────────────────────────────────────────────────────────
+
+HTTP/1.1 400 Bad Request ([DURATION])
+
+Content-Length: 14
+Content-Type: application/json
+
+{"bad": "yes"}

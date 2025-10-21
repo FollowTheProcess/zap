@@ -37,17 +37,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRun(t *testing.T) {
-	// Just always returns a 200
-	successHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		w.Header()["Date"] = nil
-		fmt.Fprint(w, `{"stuff": "here"}`)
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /success", successHandler)
-
-	server := httptest.NewServer(mux)
+	server := NewTestServer(t)
 	t.Cleanup(server.Close)
 
 	testscript.Run(t, testscript.Params{
@@ -128,4 +118,41 @@ func Expand(ts *testscript.TestScript, neg bool, args []string) {
 		err := os.WriteFile(file, []byte(str), 0o644)
 		ts.Check(err)
 	}
+}
+
+// NewTestServer spins up a new httptest server with a few endpoints defined for use in
+// zap integration tests.
+//
+// All routes return static JSON content with the Content-Type of application/json.
+//
+// The routes defined are:
+//
+//   - GET /ok: returns a 200 OK
+//   - POST /bad-request: returns a 400 Bad Request
+//
+// The caller is responsible for calling server.Close via t.Cleanup.
+func NewTestServer(tb testing.TB) *httptest.Server {
+	tb.Helper()
+
+	// Just always returns a 200
+	successHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.Header()["Date"] = nil
+		fmt.Fprint(w, `{"stuff": "here"}`)
+	}
+
+	// Bad!
+	badRequestHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.Header()["Date"] = nil
+		w.WriteHeader(http.StatusBadRequest)
+
+		fmt.Fprint(w, `{"bad": "yes"}`)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ok", successHandler)
+	mux.HandleFunc("POST /bad-request", badRequestHandler)
+
+	return httptest.NewServer(mux)
 }

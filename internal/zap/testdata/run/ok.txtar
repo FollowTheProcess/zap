@@ -19,7 +19,7 @@ cmp stdout expected
 -- src.http --
 ###
 # @name = getItem
-GET $ZAP_TEST_URL/success
+GET $ZAP_TEST_URL/ok
 -- expected --
 
 src.http: getItem
