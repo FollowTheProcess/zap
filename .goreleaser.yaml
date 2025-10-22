@@ -47,7 +47,8 @@ builds:
 
 homebrew_casks:
   - name: zap
-    binary: zap
+    binaries:
+      - zap
     directory: Casks
     description: A command line .http file toolkit
     homepage: https://github.com/FollowTheProcess/zap

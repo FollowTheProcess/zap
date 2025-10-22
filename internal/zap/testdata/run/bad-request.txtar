@@ -30,7 +30,4 @@ src.http: uhOh
 
 HTTP/1.1 400 Bad Request ([DURATION])
 
-Content-Length: 14
-Content-Type: application/json
-
 {"bad": "yes"}

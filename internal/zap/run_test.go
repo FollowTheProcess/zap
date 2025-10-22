@@ -19,33 +19,26 @@ var update = flag.Bool("update", false, "Update testscript snapshots")
 
 func TestMain(m *testing.M) {
 	testscript.Main(m, map[string]func(){
-		"run": func() {
-			app := zap.New(false, "test", os.Stdout, os.Stderr)
-			options := zap.RunOptions{
-				Timeout:           zap.DefaultTimeout,
-				ConnectionTimeout: zap.DefaultConnectionTimeout,
-				OverallTimeout:    zap.DefaultOverallTimeout,
-				Output:            "stdout",
-			}
-
-			// Just asked for the file i.e. run the whole thing
-			if len(os.Args) == 1 {
-				err := app.Run(context.Background(), os.Args[1], nil, simpleErrorHandler(os.Stderr), options)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
-				}
-			}
-
-			// Asked for the file but also provided requests to execute
-			if len(os.Args) > 1 {
-				err := app.Run(context.Background(), os.Args[1], os.Args[2:], simpleErrorHandler(os.Stderr), options)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
-				}
-			}
-		},
+		"run": run(zap.RunOptions{
+			Timeout:           zap.DefaultTimeout,
+			ConnectionTimeout: zap.DefaultConnectionTimeout,
+			OverallTimeout:    zap.DefaultOverallTimeout,
+			Output:            "stdout",
+		}),
+		"run-verbose": run(zap.RunOptions{
+			Timeout:           zap.DefaultTimeout,
+			ConnectionTimeout: zap.DefaultConnectionTimeout,
+			OverallTimeout:    zap.DefaultOverallTimeout,
+			Output:            "stdout",
+			Verbose:           true,
+		}),
+		"run-request": run(zap.RunOptions{
+			Timeout:           zap.DefaultTimeout,
+			ConnectionTimeout: zap.DefaultConnectionTimeout,
+			OverallTimeout:    zap.DefaultOverallTimeout,
+			Output:            "stdout",
+			Requests:          []string{"getItem"},
+		}),
 	})
 }
 
@@ -168,4 +161,18 @@ func NewTestServer(tb testing.TB) *httptest.Server {
 	mux.HandleFunc("POST /bad-request", badRequestHandler)
 
 	return httptest.NewServer(mux)
+}
+
+// run returns a testscript function that invokes the [zap.Zap.Run] method
+// with the options passed in.
+func run(options zap.RunOptions) func() {
+	return func() {
+		app := zap.New(false, "test", os.Stdout, os.Stderr)
+
+		err := app.Run(context.Background(), os.Args[1], options.Requests, simpleErrorHandler(os.Stderr), options)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+		}
+	}
 }
