@@ -1,8 +1,8 @@
 # Replace the $ZAP_TEST_URL with our test HTTP server
 expand src.http
 
-# Run the equivalent of zap run src.http naming a specific request
-exec run src.http getItem
+# Run the equivalent of zap run src.http --verbose
+exec run-verbose src.http
 
 # Replace anything that looks like a small time duration with a placeholder
 # 30s

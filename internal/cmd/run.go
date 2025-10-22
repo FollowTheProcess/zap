@@ -57,7 +57,7 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 				"Overall timeout for the execution",
 			),
 			cli.Flag(&options.NoRedirect, "no-redirect", cli.NoShortHand, false, "Disable following redirects"),
-			cli.Flag(&options.Output, "output", 'o', "default", "Output format, one of 'stdout', 'json' or 'yaml'"),
+			cli.Flag(&options.Output, "output", 'o', "stdout", "Output format, one of 'stdout', 'json' or 'yaml'"),
 			cli.Flag(&options.Requests, "request", 'r', nil, "Name(s) of requests to execute"),
 			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional response data"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),

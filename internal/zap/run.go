@@ -177,7 +177,7 @@ func (z Zap) Run(
 			return err
 		}
 
-		z.showResponse(file, request, response)
+		z.showResponse(file, request, response, options.Verbose)
 	}
 
 	return nil
@@ -263,7 +263,7 @@ func (z Zap) doRequest(
 }
 
 // showResponse prints the response in a user friendly way to z.stdout.
-func (z Zap) showResponse(file string, request syntax.Request, response Response) {
+func (z Zap) showResponse(file string, request syntax.Request, response Response, verbose bool) {
 	fmt.Fprintln(z.stdout)
 
 	fmt.Fprintf(z.stdout, "%s: %s\n", hue.Bold.Text(file), dimmed.Text(request.Name))
@@ -284,11 +284,14 @@ func (z Zap) showResponse(file string, request syntax.Request, response Response
 
 	fmt.Fprintln(z.stdout) // Line space
 
-	for _, key := range slices.Sorted(maps.Keys(response.Header)) {
-		fmt.Fprintf(z.stdout, "%s: %s\n", headerKeyStyle.Text(key), response.Header.Get(key))
-	}
+	// Only print the headers in verbose mode
+	if verbose {
+		for _, key := range slices.Sorted(maps.Keys(response.Header)) {
+			fmt.Fprintf(z.stdout, "%s: %s\n", headerKeyStyle.Text(key), response.Header.Get(key))
+		}
 
-	fmt.Fprintln(z.stdout) // Line space
+		fmt.Fprintln(z.stdout) // Line space
+	}
 
 	fmt.Fprintln(z.stdout, string(response.Body))
 }
