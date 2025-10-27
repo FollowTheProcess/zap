@@ -27,13 +27,6 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 	return func() (*cli.Command, error) {
 		var options zap.RunOptions
 
-		// TODO(@FollowTheProcess): A way of filtering/selecting requests within the file, options are:
-		// 1) A --request flag to specify a single request, can be repeated
-		// 2) A --filter flag that takes like a glob pattern e.g. --filter 'get*' would do every request who's name starts with 'get'
-		// 3) A --pattern (or --filter) flag that takes a full regex pattern, only matches get run
-		//
-		// Maybe we do all?
-
 		// TODO(@FollowTheProcess): Can we syntax highlight the body based on Content-Type?
 
 		return cli.New(

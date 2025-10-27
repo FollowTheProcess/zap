@@ -26,21 +26,20 @@ const (
 )
 
 // NewHTTPClient returns a new HTTP client configured with default values.
-func NewHTTPClient() http.Client {
+func NewHTTPClient(connectionTimeout, requestTimeout time.Duration) http.Client {
 	return http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
-				Timeout:   DefaultConnectionTimeout,
-				KeepAlive: DefaultTimeout,
+				Timeout: connectionTimeout,
 			}).DialContext,
 			MaxIdleConns:          maxIdleConns,
 			IdleConnTimeout:       idleConnTimeout,
-			TLSHandshakeTimeout:   DefaultConnectionTimeout,
+			TLSHandshakeTimeout:   connectionTimeout,
 			ExpectContinueTimeout: expectContinueTimeout,
 			ForceAttemptHTTP2:     true,
 			MaxIdleConnsPerHost:   http.DefaultMaxIdleConnsPerHost,
 		},
-		Timeout: DefaultTimeout,
+		Timeout: requestTimeout,
 	}
 }

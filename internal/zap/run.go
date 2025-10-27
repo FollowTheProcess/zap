@@ -3,6 +3,7 @@ package zap
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -85,10 +86,26 @@ func (r RunOptions) Validate() error {
 		return fmt.Errorf("invalid option for --output %q, allowed values are 'stdout', 'json', 'yaml'", output)
 	}
 
-	// TODO(@FollowTheProcess): Validate the timeouts, none should be 0, connection Timeout
-	// can't be higher than timeout or overall timeout etc.
-
-	return nil
+	switch {
+	case r.Timeout == 0:
+		return errors.New("timeout cannot be 0")
+	case r.ConnectionTimeout == 0:
+		return errors.New("connection-timeout cannot be 0")
+	case r.OverallTimeout == 0:
+		return errors.New("overall-timeout cannot be 0")
+	case r.ConnectionTimeout >= r.OverallTimeout:
+		return fmt.Errorf(
+			"connection-timeout (%s) cannot be larger than overall-timeout (%s)",
+			r.ConnectionTimeout,
+			r.OverallTimeout,
+		)
+	case r.ConnectionTimeout >= r.Timeout:
+		return fmt.Errorf("connection-timeout (%s) cannot be larger than timeout (%s)", r.ConnectionTimeout, r.Timeout)
+	case r.Timeout >= r.OverallTimeout:
+		return fmt.Errorf("timeout (%s) cannot be larger than overall-timeout (%s)", r.Timeout, r.OverallTimeout)
+	default:
+		return nil
+	}
 }
 
 // Run implements the run subcommand.
@@ -137,10 +154,17 @@ func (z Zap) Run(
 
 	logger.Debug("Parsed file successfully", slog.String("file", file), slog.Duration("took", time.Since(start)))
 
-	// TODO(@FollowTheProcess): Resolve the timeouts and other stuff
-	// If it's in the file, use that. If not fall back to defaults
+	connectionTimeout := DefaultConnectionTimeout
+	if parsed.ConnectionTimeout != 0 {
+		connectionTimeout = parsed.ConnectionTimeout
+	}
 
-	client := NewHTTPClient()
+	requestTimeout := DefaultTimeout
+	if parsed.Timeout != 0 {
+		requestTimeout = parsed.Timeout
+	}
+
+	client := NewHTTPClient(connectionTimeout, requestTimeout)
 
 	// TODO(@FollowTheProcess): Evaluate prompts here and fill in the values
 
@@ -202,8 +226,12 @@ func (z Zap) doRequest(
 	client http.Client,
 	request syntax.Request,
 ) (Response, error) {
-	// TODO(@FollowTheProcess): Use request timeout once it's been resolved
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	timeout := DefaultTimeout
+	if request.Timeout != 0 {
+		timeout = request.Timeout
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if request.NoRedirect {
@@ -243,7 +271,6 @@ func (z Zap) doRequest(
 		slog.Duration("duration", duration),
 	)
 
-	// TODO(@FollowTheProcess): Do we really want to ReadAll?
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return Response{}, fmt.Errorf("could not read HTTP response body: %w", err)
