@@ -20,3 +20,33 @@ jobs:
     uses: FollowTheProcess/ci/.github/workflows/Go.yml@v3
     with:
       linter: golangci-lint
+
+  bats:
+    name: Bats Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Bats
+        id: bats
+        uses: bats-core/bats-action@3.0.1
+
+      - name: Build Test Binary
+        run: mkdir -p ./bin && go build -o ./bin/zap -ldflags='-s -w -X go.followtheprocess.codes/zap/internal/cmd.version=test' ./cmd/zap
+
+      - name: Bats Tests
+        env:
+          BATS_LIB_PATH: ${{ steps.bats.outputs.lib-path }}
+          TERM: xterm
+        run: bats tests

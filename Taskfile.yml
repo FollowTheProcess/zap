@@ -48,6 +48,24 @@ tasks:
       CGO_ENABLED: 1
     cmds:
       - go test -race ./... {{ .CLI_ARGS }}
+      - task: bats
+
+  bats:
+    desc: Run the bats integration tests
+    preconditions:
+      - sh: command -v docker
+        msg: Requires docker installed and running
+
+      - sh: docker stats --no-stream
+        msg: The docker daemon must be running
+    env:
+      # Because we're executing it in docker
+      GOOS: linux
+    cmds:
+      - mkdir -p ./bin
+      - go build -o ./bin/zap -ldflags='-s -w -X go.followtheprocess.codes/zap/internal/cmd.version=test' ./cmd/zap
+      - docker run --rm --interactive --tty --volume "$PWD:/code" bats/bats:latest /code/tests
+      - defer: rm -rf ./bin ./dist
 
   build:
     desc: Compile the project binary
@@ -118,7 +136,7 @@ tasks:
     desc: Remove build artifacts and other clutter
     cmds:
       - go clean ./...
-      - rm -rf {{ .COV_DATA }}
+      - rm -rf {{ .COV_DATA }} ./bin ./dist
 
   update:
     desc: Updates dependencies in go.mod and go.sum
