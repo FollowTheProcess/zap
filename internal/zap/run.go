@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/huh"
 	"go.followtheprocess.codes/hue"
 	"go.followtheprocess.codes/log"
 	"go.followtheprocess.codes/zap/internal/syntax"
@@ -131,7 +132,6 @@ func (z Zap) Run(
 		logger.Debug("Executing specific request(s) in file", slog.String("file", file), slog.Any("requests", requests))
 	}
 
-	// TODO(@FollowTheProcess): Is it worth making the options all implement slog.LogValuer?
 	logger.Debug("Run configuration", slog.String("options", fmt.Sprintf("%+v", options)))
 
 	start := time.Now()
@@ -166,7 +166,10 @@ func (z Zap) Run(
 
 	client := NewHTTPClient(connectionTimeout, requestTimeout)
 
-	// TODO(@FollowTheProcess): Evaluate prompts here and fill in the values
+	parsed, err = z.evaluateGlobalPrompts(logger, parsed)
+	if err != nil {
+		return fmt.Errorf("could not evaluate global prompts: %w", err)
+	}
 
 	var toExecute []syntax.Request
 
@@ -187,6 +190,11 @@ func (z Zap) Run(
 	}
 
 	logger.Debug("Filtered requests to execute", slog.Int("count", len(toExecute)))
+
+	toExecute, err = z.evaluateRequestPrompts(logger, toExecute, parsed.Prompts)
+	if err != nil {
+		return fmt.Errorf("could not evaluate request prompts: %w", err)
+	}
 
 	for _, request := range toExecute {
 		logger.Debug(
@@ -321,4 +329,127 @@ func (z Zap) showResponse(file string, request syntax.Request, response Response
 	}
 
 	fmt.Fprintln(z.stdout, string(response.Body))
+}
+
+// evaluateGlobalPrompts asks the user to provide values for prompts defined in the top level
+// of the parsed file and replaces the zap::prompt::<id> placeholders inserted by the parser
+// with the user-provided values.
+func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file syntax.File) (syntax.File, error) {
+	logger.Debug("Evaluating global prompts")
+
+	for id, prompt := range file.Prompts {
+		var value string
+
+		err := huh.NewInput().Title(prompt.Name).Description(prompt.Description).Value(&value).Run()
+		if err != nil {
+			return syntax.File{}, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
+		}
+
+		file.Prompts[id] = syntax.Prompt{
+			Name:        prompt.Name,
+			Description: prompt.Description,
+			Value:       value, // The now answered value
+		}
+	}
+
+	// Go through everywhere that could hold a zap::prompt::<id> placeholder and replace it
+	// this is just the global vars in this case
+	for id, prompt := range file.Prompts {
+		replacer := strings.NewReplacer("zap::prompt::"+id, prompt.Value)
+
+		// Global variables
+		for name, variable := range file.Vars {
+			replaced := replacer.Replace(variable)
+			logger.Debug(
+				"Replacing prompted global variable",
+				slog.String("name", name),
+				slog.String("from", "zap::prompt::"+id),
+				slog.String("to", replaced),
+			)
+			file.Vars[name] = replaced
+		}
+	}
+
+	return file, nil
+}
+
+// evaluateRequestPrompts asks the user to provide values for prompts defined in the particular requests
+// and replaces the zap::prompt::<id> placeholders inserted by the parser with the user-provided values.
+//
+// This method differs from it's global counterpart in that request variables could reference either
+// prompts defined locally or those in the global scope. To this end, the global prompts are passed in
+// as an argument to this method.
+func (z Zap) evaluateRequestPrompts(
+	logger *log.Logger,
+	requests []syntax.Request,
+	globals map[string]syntax.Prompt,
+) ([]syntax.Request, error) {
+	evaluated := make([]syntax.Request, 0, len(requests))
+
+	for _, request := range requests {
+		logger.Debug("Evaluating request prompts", slog.String("request", request.Name))
+
+		allPrompts := make(map[string]syntax.Prompt, len(globals)+len(request.Prompts))
+		maps.Copy(allPrompts, globals) // Copy in the global prompts
+
+		for id, prompt := range request.Prompts {
+			var value string
+
+			err := huh.NewInput().
+				Title(fmt.Sprintf("(%s) %s", request.Name, id)).
+				Description(prompt.Description).
+				Value(&value).
+				Run()
+			if err != nil {
+				return nil, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
+			}
+
+			allPrompts[id] = syntax.Prompt{
+				Name:        prompt.Name,
+				Description: prompt.Description,
+				Value:       value, // The now answered value
+			}
+		}
+
+		// Go through everywhere that could hold a zap::prompt::<id> placeholder and replace it
+		for id, prompt := range allPrompts {
+			replacer := strings.NewReplacer("zap::prompt::"+id, prompt.Value)
+
+			// Request variables
+			for name, variable := range request.Vars {
+				replaced := replacer.Replace(variable)
+				logger.Debug(
+					"Replacing prompted global variable",
+					slog.String("name", name),
+					slog.String("from", "zap::prompt::"+id),
+					slog.String("to", replaced),
+				)
+				request.Vars[name] = replaced
+			}
+
+			// The request URL
+			replaced := replacer.Replace(request.URL)
+			logger.Debug(
+				"Replacing prompted request URL",
+				slog.String("from", request.URL),
+				slog.String("to", replaced),
+			)
+			request.URL = replacer.Replace(request.URL)
+
+			// Headers
+			for name, header := range request.Headers {
+				replaced := replacer.Replace(header)
+				logger.Debug(
+					"Replacing prompted request Header",
+					slog.String("from", header),
+					slog.String("to", replaced),
+				)
+				request.Headers[name] = replaced
+			}
+		}
+
+		evaluated = append(evaluated, request)
+	}
+
+	return evaluated, nil
 }

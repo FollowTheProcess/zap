@@ -167,7 +167,7 @@ func NewTestServer(tb testing.TB) *httptest.Server {
 // with the options passed in.
 func run(options zap.RunOptions) func() {
 	return func() {
-		app := zap.New(false, "test", os.Stdout, os.Stderr)
+		app := zap.New(false, "test", os.Stdin, os.Stdout, os.Stderr)
 
 		err := app.Run(context.Background(), os.Args[1], options.Requests, simpleErrorHandler(os.Stderr), options)
 		if err != nil {
