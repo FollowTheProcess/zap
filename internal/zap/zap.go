@@ -13,6 +13,7 @@ import (
 
 // Zap represents the zap program.
 type Zap struct {
+	stdin   io.Reader   // Program input (prompts) come from here
 	stdout  io.Writer   // Normal program output is written here
 	stderr  io.Writer   // Logs and errors are written here
 	logger  *log.Logger // The logger for the application
@@ -20,7 +21,7 @@ type Zap struct {
 }
 
 // New returns a new [Zap].
-func New(debug bool, version string, stdout, stderr io.Writer) Zap {
+func New(debug bool, version string, stdin io.Reader, stdout, stderr io.Writer) Zap {
 	level := log.LevelInfo
 	if debug {
 		level = log.LevelDebug
@@ -33,6 +34,7 @@ func New(debug bool, version string, stdout, stderr io.Writer) Zap {
 	)
 
 	return Zap{
+		stdin:   stdin,
 		stdout:  stdout,
 		stderr:  stderr,
 		logger:  logger,

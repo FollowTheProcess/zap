@@ -1,0 +1,5 @@
+
+###
+# @name = getItem
+# @prompt id The id of the todo item
+GET https://jsonplaceholder.typicode.com/todos/{{ id }}

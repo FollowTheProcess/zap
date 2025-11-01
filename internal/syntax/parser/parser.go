@@ -545,8 +545,8 @@ func (p *Parser) parseRequestURL(file syntax.File, request syntax.Request) synta
 // at parse time. Prompts are replaced with a placeholder of `zap::prompt::<ident>` as we cannot know their value
 // until the file or request is run and the user provides an input.
 //
-// It takes a *strings.Builder as an input and write it's evaluated results to that builder. The caller
-// is responsible for creating the builder and using it's results.
+// It takes a *strings.Builder as an input and write its evaluated results to that builder. The caller
+// is responsible for creating the builder and using its results.
 func (p *Parser) parseInterp(builder *strings.Builder, file syntax.File, request syntax.Request) {
 	p.advance()
 	// TODO(@FollowTheProcess): Same comment about expecting more than Ident

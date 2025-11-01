@@ -55,7 +55,7 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional response data"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 			cli.Run(func(cmd *cli.Command, args []string) error {
-				app := zap.New(options.Debug, version, cmd.Stdout(), cmd.Stderr())
+				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
 				return app.Run(ctx, cmd.Arg("file"), args[1:], syntax.PrettyConsoleHandler(cmd.Stderr()), options)
 			}),
 		)

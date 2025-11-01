@@ -30,7 +30,7 @@ func check(ctx context.Context) func() (*cli.Command, error) {
 			cli.OptionalArg("path", "Path to check, may be directory or file", "."),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 			cli.Run(func(cmd *cli.Command, args []string) error {
-				app := zap.New(options.Debug, version, cmd.Stdout(), cmd.Stderr())
+				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
 				return app.Check(ctx, cmd.Arg("path"), syntax.PrettyConsoleHandler(cmd.Stderr()), options)
 			}),
 		)
