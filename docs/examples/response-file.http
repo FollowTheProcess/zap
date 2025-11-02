@@ -1,0 +1,5 @@
+###
+# @name = getItem
+GET https://jsonplaceholder.typicode.com/todos/1
+
+> response-file.200.json

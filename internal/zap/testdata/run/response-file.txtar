@@ -1,0 +1,37 @@
+# Replace the $ZAP_TEST_URL with our test HTTP server
+expand src.http
+
+# Run the equivalent of zap run src.http
+exec run src.http
+
+# Replace anything that looks like a small time duration with a placeholder
+# 30s
+# 15.32s
+# 103.5656ms
+replace stdout '\d+(?:\.\d+)?(?:s|ms|µs)' '[DURATION]'
+
+# Fail if stdout != expected and show a diff
+cmp stdout expected
+
+# Fail if the response file is not expected
+cmp getItem.200.json getItem.200.expected.json
+
+# There should be nothing printed to stderr
+! stderr .
+
+-- src.http --
+###
+# @name = getItem
+GET $ZAP_TEST_URL/ok
+
+> getItem.200.json
+-- expected --
+
+src.http: getItem
+────────────────────────────────────────────────────────────────────────────────
+
+HTTP/1.1 200 OK ([DURATION])
+
+{"stuff": "here"}
+-- getItem.200.expected.json --
+{"stuff": "here"}

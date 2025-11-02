@@ -10,6 +10,7 @@ import (
 	"maps"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -29,7 +30,7 @@ const (
 
 	// dimmed is the style used for printing informational content like
 	// response duration or request name.
-	dimmed = hue.BrightBlack | hue.Italic
+	dimmed = hue.BrightBlack
 
 	// success is the style used to render successful HTTP response status lines.
 	success = hue.Green | hue.Bold
@@ -40,6 +41,11 @@ const (
 	// sepWidth is the width in characters of the horizontal line separator
 	// between HTTP responses.
 	sepWidth = 80
+)
+
+const (
+	defaultFilePermissions = 0o644 // Default permissions for writing files, same as unix touch
+	defaultDirPermissions  = 0o755 // Default permissions for creating directories, same as unix mkdir
 )
 
 // RunOptions are the options passed to the run subcommand.
@@ -207,6 +213,26 @@ func (z Zap) Run(
 		response, err := z.doRequest(ctx, logger, client, request)
 		if err != nil {
 			return err
+		}
+
+		base := filepath.Dir(file)
+
+		if request.ResponseFile != "" {
+			path := filepath.Join(base, request.ResponseFile)
+
+			// The path might have arbitrary directories, so we should create
+			// whatever needs creating
+			dir := filepath.Dir(path)
+			if err := os.MkdirAll(dir, defaultDirPermissions); err != nil {
+				return fmt.Errorf("could not create response file directory: %w", err)
+			}
+
+			// For writing to files, append a trailing newline if one is not already present
+			body := fixNL(response.Body)
+
+			if err := os.WriteFile(path, body, defaultFilePermissions); err != nil {
+				return fmt.Errorf("could not create response file: %w", err)
+			}
 		}
 
 		z.showResponse(file, request, response, options.Verbose)
@@ -452,4 +478,18 @@ func (z Zap) evaluateRequestPrompts(
 	}
 
 	return evaluated, nil
+}
+
+// If data is empty or ends in \n, fixNL returns data.
+// Otherwise fixNL returns a new slice consisting of data with a final \n added.
+func fixNL(data []byte) []byte {
+	if len(data) == 0 || data[len(data)-1] == '\n' {
+		return data
+	}
+
+	d := make([]byte, len(data)+1)
+	copy(d, data)
+	d[len(data)] = '\n'
+
+	return d
 }
