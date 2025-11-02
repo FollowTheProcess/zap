@@ -218,20 +218,9 @@ func (z Zap) Run(
 		base := filepath.Dir(file)
 
 		if request.ResponseFile != "" {
-			path := filepath.Join(base, request.ResponseFile)
-
-			// The path might have arbitrary directories, so we should create
-			// whatever needs creating
-			dir := filepath.Dir(path)
-			if err := os.MkdirAll(dir, defaultDirPermissions); err != nil {
-				return fmt.Errorf("could not create response file directory: %w", err)
-			}
-
-			// For writing to files, append a trailing newline if one is not already present
-			body := fixNL(response.Body)
-
-			if err := os.WriteFile(path, body, defaultFilePermissions); err != nil {
-				return fmt.Errorf("could not create response file: %w", err)
+			err := z.writeResponseFile(logger, base, request.ResponseFile, response.Body)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -478,6 +467,28 @@ func (z Zap) evaluateRequestPrompts(
 	}
 
 	return evaluated, nil
+}
+
+// writeResponseFile writes the response body to the file specified in the request.
+func (z Zap) writeResponseFile(logger *log.Logger, base, file string, body []byte) error {
+	path := filepath.Join(base, file)
+	logger.Debug("Writing response body to file", slog.String("file", path))
+
+	// The path might have arbitrary directories, so we should create
+	// whatever needs creating
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, defaultDirPermissions); err != nil {
+		return fmt.Errorf("could not create response file directory: %w", err)
+	}
+
+	// For writing to files, append a trailing newline if one is not already present
+	body = fixNL(body)
+
+	if err := os.WriteFile(path, body, defaultFilePermissions); err != nil {
+		return fmt.Errorf("could not create response file: %w", err)
+	}
+
+	return nil
 }
 
 // If data is empty or ends in \n, fixNL returns data.
