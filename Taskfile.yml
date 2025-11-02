@@ -48,7 +48,6 @@ tasks:
       CGO_ENABLED: 1
     cmds:
       - go test -race ./... {{ .CLI_ARGS }}
-      - task: bats
 
   bats:
     desc: Run the bats integration tests
