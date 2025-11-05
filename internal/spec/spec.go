@@ -16,6 +16,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"go.followtheprocess.codes/zap/internal/syntax"
 )
 
 // TODO(@FollowTheProcess): When parsing, we build up the half-baked version of File and Request
@@ -109,4 +111,67 @@ func (f File) ContainsRequest(name string) bool {
 	}
 
 	return false
+}
+
+// ResolveFile resolves a [syntax.File], returning a [File].
+//
+// Currently this is a straight copy but I want to have this resolve
+// the templating etc. see the TODO at the top of this file.
+func ResolveFile(in syntax.File) (File, error) {
+	requests, err := resolveRequests(in.Requests)
+	if err != nil {
+		return File{}, fmt.Errorf("could not resolve request: %w", err)
+	}
+
+	out := File{
+		Name:              in.Name,
+		Vars:              in.Vars,
+		Prompts:           resolvePrompts(in.Prompts),
+		Requests:          requests,
+		Timeout:           in.Timeout,
+		ConnectionTimeout: in.ConnectionTimeout,
+		NoRedirect:        in.NoRedirect,
+	}
+
+	return out, nil
+}
+
+// resolvePrompts resolves the syntax prompts into spec prompts.
+func resolvePrompts(in map[string]syntax.Prompt) map[string]Prompt {
+	prompts := make(map[string]Prompt, len(in))
+	for name, prompt := range in {
+		prompts[name] = Prompt{
+			Name:        prompt.Name,
+			Description: prompt.Description,
+			Value:       prompt.Value,
+		}
+	}
+
+	return prompts
+}
+
+// resolveRequests resolves the syntax requests into spec requests.
+func resolveRequests(in []syntax.Request) ([]Request, error) {
+	requests := make([]Request, 0, len(in))
+	for _, request := range in {
+		requests = append(requests, Request{
+			Vars:              request.Vars,
+			Headers:           request.Headers,
+			Prompts:           resolvePrompts(request.Prompts),
+			Name:              request.Name,
+			Comment:           request.Comment,
+			Method:            request.Method,
+			URL:               request.URL,
+			HTTPVersion:       request.HTTPVersion,
+			BodyFile:          request.BodyFile,
+			ResponseFile:      request.ResponseFile,
+			ResponseRef:       request.ResponseRef,
+			Body:              request.Body,
+			Timeout:           request.Timeout,
+			ConnectionTimeout: request.ConnectionTimeout,
+			NoRedirect:        request.NoRedirect,
+		})
+	}
+
+	return requests, nil
 }

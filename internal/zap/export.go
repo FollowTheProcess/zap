@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"time"
 
+	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
-	"go.followtheprocess.codes/zap/internal/syntax/parser"
 )
 
 const (
@@ -51,37 +50,26 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 
 	start := time.Now()
 
-	f, err := os.Open(file)
-	if err != nil {
-		return fmt.Errorf("could not open file: %w", err)
-	}
-	defer f.Close()
-
-	p, err := parser.New(file, f, handler)
-	if err != nil {
-		return fmt.Errorf("could not initialise the parser: %w", err)
-	}
-
-	parsed, err := p.Parse()
+	httpFile, err := z.parseFile(file, handler)
 	if err != nil {
 		return err
 	}
 
-	parsed, err = z.evaluateGlobalPrompts(logger, parsed)
+	httpFile, err = z.evaluateGlobalPrompts(logger, httpFile)
 	if err != nil {
 		return fmt.Errorf("could not evaluate global prompts: %w", err)
 	}
 
 	logger.Debug("Parsed file successfully", slog.String("file", file), slog.Duration("took", time.Since(start)))
 
-	var toExport []syntax.Request
+	var toExport []spec.Request
 
 	if len(options.Requests) == 0 {
 		// No filter, so execute all the requests
-		toExport = parsed.Requests
+		toExport = httpFile.Requests
 	} else {
 		// Only execute the ones asked for (if they exist)
-		for _, actualRequest := range parsed.Requests {
+		for _, actualRequest := range httpFile.Requests {
 			if slices.Contains(options.Requests, actualRequest.Name) {
 				toExport = append(toExport, actualRequest)
 			}
@@ -94,7 +82,7 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 
 	logger.Debug("Filtered requests to execute", slog.Int("count", len(toExport)))
 
-	toExport, err = z.evaluateRequestPrompts(logger, toExport, parsed.Prompts)
+	toExport, err = z.evaluateRequestPrompts(logger, toExport, httpFile.Prompts)
 	if err != nil {
 		return fmt.Errorf("could not evaluate request prompts: %w", err)
 	}
@@ -118,7 +106,7 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 }
 
 // exportRequest performs the export operation on a single request.
-func (z Zap) exportRequest(request syntax.Request, options ExportOptions) (string, error) {
+func (z Zap) exportRequest(request spec.Request, options ExportOptions) (string, error) {
 	switch options.Format {
 	case formatJSON:
 		out, err := json.MarshalIndent(request, "", "  ")
@@ -127,6 +115,8 @@ func (z Zap) exportRequest(request syntax.Request, options ExportOptions) (strin
 		}
 
 		return string(out), nil
+	case formatCurl:
+		return request.AsCurl()
 	default:
 		fmt.Printf("TODO: Handle %s\n", options.Format)
 		return "", nil

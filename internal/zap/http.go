@@ -4,6 +4,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"go.followtheprocess.codes/zap/internal/spec"
 )
 
 // HTTP config.
@@ -26,20 +28,20 @@ const (
 )
 
 // NewHTTPClient returns a new HTTP client configured with default values.
-func NewHTTPClient(connectionTimeout, requestTimeout time.Duration) http.Client {
+func NewHTTPClient(file spec.File) http.Client {
 	return http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
-				Timeout: connectionTimeout,
+				Timeout: file.Timeout,
 			}).DialContext,
 			MaxIdleConns:          maxIdleConns,
 			IdleConnTimeout:       idleConnTimeout,
-			TLSHandshakeTimeout:   connectionTimeout,
+			TLSHandshakeTimeout:   file.ConnectionTimeout,
 			ExpectContinueTimeout: expectContinueTimeout,
 			ForceAttemptHTTP2:     true,
 			MaxIdleConnsPerHost:   http.DefaultMaxIdleConnsPerHost,
 		},
-		Timeout: requestTimeout,
+		Timeout: file.Timeout,
 	}
 }
