@@ -1,0 +1,25 @@
+curl \
+    --request {{ or .Method "GET" }} \
+    {{- if not .NoRedirect }}
+    --location \
+    {{- end }}
+    {{- if .ConnectionTimeout }}
+    --connect-timeout {{ .ConnectionTimeout.Seconds }} \
+    {{- end }}
+    {{- if .Timeout }}
+    --max-time {{ .Timeout.Seconds }} \
+    {{- end }}
+    {{- if .Body }}
+    --data '{{ printf "%s" .Body | trim }}' \
+    {{- end }}
+    {{- if .BodyFile }}
+    --data @{{ .BodyFile }} \
+    {{- end }}
+    {{- if .ResponseFile }}
+    --output {{ .ResponseFile }} \
+    --create-dirs \
+    {{- end }}
+    {{- range $key, $value := .Headers }}
+    --header '{{ $key }}: {{ $value }}' \
+    {{- end }}
+    {{ .URL }}

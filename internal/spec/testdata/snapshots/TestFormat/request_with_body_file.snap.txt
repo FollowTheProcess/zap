@@ -1,0 +1,9 @@
+@name = Requests
+
+@base = https://api.com/v1
+
+###
+# @name = Another Request
+POST https://api.com/v1/items/123
+
+< ./body.json

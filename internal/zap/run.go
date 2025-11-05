@@ -18,8 +18,8 @@ import (
 	"github.com/charmbracelet/huh"
 	"go.followtheprocess.codes/hue"
 	"go.followtheprocess.codes/log"
+	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
-	"go.followtheprocess.codes/zap/internal/syntax/parser"
 )
 
 // Styles.
@@ -142,49 +142,30 @@ func (z Zap) Run(
 
 	start := time.Now()
 
-	f, err := os.Open(file)
-	if err != nil {
-		return fmt.Errorf("could not open file: %w", err)
-	}
-	defer f.Close()
-
-	p, err := parser.New(file, f, handler)
-	if err != nil {
-		return fmt.Errorf("could not initialise the parser: %w", err)
-	}
-
-	parsed, err := p.Parse()
+	httpFile, err := z.parseFile(file, handler)
 	if err != nil {
 		return err
 	}
 
 	logger.Debug("Parsed file successfully", slog.String("file", file), slog.Duration("took", time.Since(start)))
 
-	connectionTimeout := DefaultConnectionTimeout
-	if parsed.ConnectionTimeout != 0 {
-		connectionTimeout = parsed.ConnectionTimeout
-	}
+	// TODO(@FollowTheProcess): The below steps should happen in the resolving
 
-	requestTimeout := DefaultTimeout
-	if parsed.Timeout != 0 {
-		requestTimeout = parsed.Timeout
-	}
+	client := NewHTTPClient(httpFile)
 
-	client := NewHTTPClient(connectionTimeout, requestTimeout)
-
-	parsed, err = z.evaluateGlobalPrompts(logger, parsed)
+	httpFile, err = z.evaluateGlobalPrompts(logger, httpFile)
 	if err != nil {
 		return fmt.Errorf("could not evaluate global prompts: %w", err)
 	}
 
-	var toExecute []syntax.Request
+	var toExecute []spec.Request
 
 	if len(requests) == 0 {
 		// No filter, so execute all the requests
-		toExecute = parsed.Requests
+		toExecute = httpFile.Requests
 	} else {
 		// Only execute the ones asked for (if they exist)
-		for _, actualRequest := range parsed.Requests {
+		for _, actualRequest := range httpFile.Requests {
 			if slices.Contains(requests, actualRequest.Name) {
 				toExecute = append(toExecute, actualRequest)
 			}
@@ -197,7 +178,7 @@ func (z Zap) Run(
 
 	logger.Debug("Filtered requests to execute", slog.Int("count", len(toExecute)))
 
-	toExecute, err = z.evaluateRequestPrompts(logger, toExecute, parsed.Prompts)
+	toExecute, err = z.evaluateRequestPrompts(logger, toExecute, httpFile.Prompts)
 	if err != nil {
 		return fmt.Errorf("could not evaluate request prompts: %w", err)
 	}
@@ -247,7 +228,7 @@ func (z Zap) doRequest(
 	ctx context.Context,
 	logger *log.Logger,
 	client http.Client,
-	request syntax.Request,
+	request spec.Request,
 ) (Response, error) {
 	timeout := DefaultTimeout
 	if request.Timeout != 0 {
@@ -313,7 +294,7 @@ func (z Zap) doRequest(
 }
 
 // showResponse prints the response in a user friendly way to z.stdout.
-func (z Zap) showResponse(file string, request syntax.Request, response Response, verbose bool) {
+func (z Zap) showResponse(file string, request spec.Request, response Response, verbose bool) {
 	fmt.Fprintln(z.stdout)
 
 	fmt.Fprintf(z.stdout, "%s: %s\n", hue.Bold.Text(file), dimmed.Text(request.Name))
@@ -349,7 +330,7 @@ func (z Zap) showResponse(file string, request syntax.Request, response Response
 // evaluateGlobalPrompts asks the user to provide values for prompts defined in the top level
 // of the parsed file and replaces the zap::prompt::<id> placeholders inserted by the parser
 // with the user-provided values.
-func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file syntax.File) (syntax.File, error) {
+func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file spec.File) (spec.File, error) {
 	logger.Debug("Evaluating global prompts")
 
 	for id, prompt := range file.Prompts {
@@ -357,10 +338,10 @@ func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file syntax.File) (syntax
 
 		err := huh.NewInput().Title(prompt.Name).Description(prompt.Description).Value(&value).Run()
 		if err != nil {
-			return syntax.File{}, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
+			return spec.File{}, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
 		}
 
-		file.Prompts[id] = syntax.Prompt{
+		file.Prompts[id] = spec.Prompt{
 			Name:        prompt.Name,
 			Description: prompt.Description,
 			Value:       value, // The now answered value
@@ -396,15 +377,15 @@ func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file syntax.File) (syntax
 // as an argument to this method.
 func (z Zap) evaluateRequestPrompts(
 	logger *log.Logger,
-	requests []syntax.Request,
-	globals map[string]syntax.Prompt,
-) ([]syntax.Request, error) {
-	evaluated := make([]syntax.Request, 0, len(requests))
+	requests []spec.Request,
+	globals map[string]spec.Prompt,
+) ([]spec.Request, error) {
+	evaluated := make([]spec.Request, 0, len(requests))
 
 	for _, request := range requests {
 		logger.Debug("Evaluating request prompts", slog.String("request", request.Name))
 
-		allPrompts := make(map[string]syntax.Prompt, len(globals)+len(request.Prompts))
+		allPrompts := make(map[string]spec.Prompt, len(globals)+len(request.Prompts))
 		maps.Copy(allPrompts, globals) // Copy in the global prompts
 
 		for id, prompt := range request.Prompts {
@@ -419,7 +400,7 @@ func (z Zap) evaluateRequestPrompts(
 				return nil, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
 			}
 
-			allPrompts[id] = syntax.Prompt{
+			allPrompts[id] = spec.Prompt{
 				Name:        prompt.Name,
 				Description: prompt.Description,
 				Value:       value, // The now answered value
