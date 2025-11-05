@@ -1,0 +1,10 @@
+@name = Requests
+
+@base = https://api.com/v1
+
+###
+# @name = Another
+@prompt value Give me a value!
+POST https://api.com/v1/items/123
+
+> ./response.json

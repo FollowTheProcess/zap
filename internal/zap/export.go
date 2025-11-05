@@ -13,6 +13,12 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 )
 
+const (
+	formatJSON    = "json"
+	formatCurl    = "curl"
+	formatPostman = "postman"
+)
+
 // ExportOptions are the flags passed to the export subcommand.
 type ExportOptions struct {
 	// Format is the format of the export e.g. curl, postman etc.
@@ -30,7 +36,7 @@ type ExportOptions struct {
 // error if it's not.
 func (e ExportOptions) Validate() error {
 	switch format := e.Format; format {
-	case "json", "curl", "postman":
+	case formatJSON, formatCurl, formatPostman:
 		return nil
 	default:
 		return fmt.Errorf("invalid option for --format %q, allowed values are 'json', 'curl', 'postman'", format)
@@ -114,7 +120,7 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 // exportRequest performs the export operation on a single request.
 func (z Zap) exportRequest(request syntax.Request, options ExportOptions) (string, error) {
 	switch options.Format {
-	case "json":
+	case formatJSON:
 		out, err := json.MarshalIndent(request, "", "  ")
 		if err != nil {
 			return "", err

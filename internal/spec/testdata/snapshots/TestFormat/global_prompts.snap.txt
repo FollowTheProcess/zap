@@ -1,0 +1,4 @@
+@name = PromptMe
+
+@prompt value Give me a value!
+
