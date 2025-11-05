@@ -39,6 +39,9 @@ func TestMain(m *testing.M) {
 			Output:            "stdout",
 			Requests:          []string{"getItem"},
 		}),
+		"export-curl": export(zap.ExportOptions{
+			Format: "curl",
+		}),
 	})
 }
 
@@ -59,6 +62,15 @@ func TestRun(t *testing.T) {
 			"replace": Replace,
 			"expand":  Expand,
 		},
+	})
+}
+
+func TestExport(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir:                 filepath.Join("testdata", "export"),
+		UpdateScripts:       *update,
+		RequireExplicitExec: true,
+		RequireUniqueNames:  true,
 	})
 }
 
@@ -170,6 +182,19 @@ func run(options zap.RunOptions) func() {
 		app := zap.New(false, "test", os.Stdin, os.Stdout, os.Stderr)
 
 		err := app.Run(context.Background(), os.Args[1], options.Requests, simpleErrorHandler(os.Stderr), options)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+		}
+	}
+}
+
+// export returns a testscript function that invokes the [zap.Zap.Export] method.
+func export(options zap.ExportOptions) func() {
+	return func() {
+		app := zap.New(false, "test", os.Stdin, os.Stdout, os.Stderr)
+
+		err := app.Export(context.Background(), os.Args[1], simpleErrorHandler(os.Stderr), options)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main

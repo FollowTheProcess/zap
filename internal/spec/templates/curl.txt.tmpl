@@ -10,7 +10,7 @@ curl \
     --max-time {{ .Timeout.Seconds }} \
     {{- end }}
     {{- if .Body }}
-    --data '{{ printf "%s" .Body }}' \
+    --data '{{ printf "%s" .Body | trim }}' \
     {{- end }}
     {{- if .BodyFile }}
     --data @{{ .BodyFile }} \

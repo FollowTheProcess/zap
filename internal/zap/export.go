@@ -80,7 +80,7 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 		return fmt.Errorf("no matching requests for names %v in %s", options.Requests, file)
 	}
 
-	logger.Debug("Filtered requests to execute", slog.Int("count", len(toExport)))
+	logger.Debug("Filtered requests to export", slog.Int("count", len(toExport)))
 
 	toExport, err = z.evaluateRequestPrompts(logger, toExport, httpFile.Prompts)
 	if err != nil {

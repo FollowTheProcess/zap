@@ -1,0 +1,37 @@
+# Run the equivalent of zap export src.http --format curl
+exec export-curl src.http
+
+# Fail if stdout != expected and show a diff
+cmp stdout expected
+
+# There should be nothing printed to stderr
+! stderr .
+
+-- src.http --
+###
+// @name Everything
+# @timeout 30s
+# @connection-timeout 10s
+// @no-redirect
+# @token shhh
+PUT https://api.somewhere.com/items/1 HTTP/2
+Content-Type: application/json
+Accept: application/json
+X-Something-Else: yes
+Authorization: Bearer {{ token }}
+
+{"stuff": "here"}
+-- expected --
+curl \
+    --request PUT \
+    --connect-timeout 10 \
+    --max-time 30 \
+    --data '{"stuff": "here"}' \
+    --header 'Accept: application/json' \
+    --header 'Authorization: Bearer shhh' \
+    --header 'Content-Type: application/json' \
+    --header 'X-Something-Else: yes' \
+    https://api.somewhere.com/items/1
+
+-- end --
+# Here just to control space at the end of the curl command

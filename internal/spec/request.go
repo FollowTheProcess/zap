@@ -15,8 +15,13 @@ import (
 //go:embed templates/curl.txt.tmpl
 var curlTempl string
 
+// curlFunctions are custom template functions available in the curlTemplate.
+var curlFunctions = template.FuncMap{
+	"trim": strings.TrimSpace,
+}
+
 // curlTemplate is the parsed curl command line text/template.
-var curlTemplate = template.Must(template.New("curl").Parse(curlTempl))
+var curlTemplate = template.Must(template.New("curl").Funcs(curlFunctions).Parse(curlTempl))
 
 // Request is a single HTTP request from a .http file as parsed.
 //
