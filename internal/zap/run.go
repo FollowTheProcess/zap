@@ -335,7 +335,12 @@ func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file spec.File) (spec.Fil
 	for id, prompt := range file.Prompts {
 		var value string
 
-		err := huh.NewInput().Title(prompt.Name).Description(prompt.Description).Value(&value).Run()
+		err := huh.NewInput().
+			Title(prompt.Name).
+			Description(prompt.Description).
+			Value(&value).
+			WithTheme(huh.ThemeCatppuccin()).
+			Run()
 		if err != nil {
 			return spec.File{}, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
 		}
@@ -394,6 +399,7 @@ func (z Zap) evaluateRequestPrompts(
 				Title(fmt.Sprintf("(%s) %s", request.Name, id)).
 				Description(prompt.Description).
 				Value(&value).
+				WithTheme(huh.ThemeCatppuccin()).
 				Run()
 			if err != nil {
 				return nil, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
