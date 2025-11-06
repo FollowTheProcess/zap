@@ -1,2 +1,3 @@
 ignore:
   - internal/syntax/token/kind_string.go # Auto generated
+  - internal/cmd # Just the CLI definitions, nothing to test

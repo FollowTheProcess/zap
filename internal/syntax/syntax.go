@@ -150,18 +150,6 @@ func (f File) String() string {
 	return builder.String()
 }
 
-// ContainsRequest reports whether a request with the given name is present
-// in the file.
-func (f File) ContainsRequest(name string) bool {
-	for _, request := range f.Requests {
-		if request.Name == name {
-			return true
-		}
-	}
-
-	return false
-}
-
 // Request is a single HTTP request from a .http file as parsed.
 //
 // It is *nearly* concrete but may have e.g. variable interpolation to perform, URLs
