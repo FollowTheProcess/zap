@@ -22,6 +22,7 @@ Authorization: Bearer {{ token }}
 
 {"stuff": "here"}
 -- expected --
+
 curl \
     --request PUT \
     --connect-timeout 10 \

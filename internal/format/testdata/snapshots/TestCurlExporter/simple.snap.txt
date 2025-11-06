@@ -1,3 +1,5 @@
+
 curl \
     --request GET \
+    --location \
     https://api.nowhere.com/v1/items/1234

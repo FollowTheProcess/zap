@@ -1,3 +1,4 @@
+{{- range .Requests }}
 curl \
     --request {{ or .Method "GET" }} \
     {{- if not .NoRedirect }}
@@ -23,3 +24,4 @@ curl \
     --header '{{ $key }}: {{ $value }}' \
     {{- end }}
     {{ .URL }}
+{{ end -}}

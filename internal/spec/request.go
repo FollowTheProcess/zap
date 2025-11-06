@@ -1,27 +1,12 @@
 package spec
 
 import (
-	"bytes"
-	_ "embed"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
 	"strings"
-	"text/template"
 	"time"
 )
-
-//go:embed templates/curl.txt.tmpl
-var curlTempl string
-
-// curlFunctions are custom template functions available in the curlTemplate.
-var curlFunctions = template.FuncMap{
-	"trim": strings.TrimSpace,
-}
-
-// curlTemplate is the parsed curl command line text/template.
-var curlTemplate = template.Must(template.New("curl").Funcs(curlFunctions).Parse(curlTempl))
 
 // Request is a single HTTP request from a .http file as parsed.
 //
@@ -29,56 +14,56 @@ var curlTemplate = template.Must(template.New("curl").Funcs(curlFunctions).Parse
 // may not be valid etc. This is simply a structured version of the as-parsed raw text.
 type Request struct {
 	// Request scoped variables
-	Vars map[string]string `json:"vars,omitempty"`
+	Vars map[string]string `json:"vars,omitempty" toml:"vars,omitempty" yaml:"vars,omitempty"`
 
 	// Request headers, may have variable interpolation in the values but not the keys
-	Headers map[string]string `json:"headers,omitempty"`
+	Headers map[string]string `json:"headers,omitempty" toml:"headers,omitempty" yaml:"headers,omitempty"`
 
 	// Request scoped prompts, the user will be asked to provide values for each of these
 	// whenever this particular request is invoked.
 	//
 	// The provided values will then be stored in Vars for future use e.g. as interpolation
 	// in the request body.
-	Prompts map[string]Prompt `json:"prompts,omitempty"`
+	Prompts map[string]Prompt `json:"prompts,omitempty" toml:"prompts,omitempty" yaml:"prompts,omitempty"`
 
 	// Optional name, if empty request should be named after it's index e.g. "#1"
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
 
 	// Optional request comment
-	Comment string `json:"comment,omitempty"`
+	Comment string `json:"comment,omitempty" toml:"comment,omitempty" yaml:"comment,omitempty"`
 
 	// The HTTP method
-	Method string `json:"method,omitempty"`
+	Method string `json:"method,omitempty" toml:"method,omitempty" yaml:"method,omitempty"`
 
 	// The complete URL, may have variable interpolation and/or not be a valid URL
-	URL string `json:"url,omitempty"`
+	URL string `json:"url,omitempty" toml:"url,omitempty" yaml:"url,omitempty"`
 
 	// Version of the HTTP protocol to use e.g. "1.2"
-	HTTPVersion string `json:"httpVersion,omitempty"`
+	HTTPVersion string `json:"httpVersion,omitempty" toml:"httpVersion,omitempty" yaml:"httpVersion,omitempty"`
 
 	// If the body is to be populated by reading a local file, this is the path
 	// to that local file (relative to the .http file)
-	BodyFile string `json:"bodyFile,omitempty"`
+	BodyFile string `json:"bodyFile,omitempty" toml:"bodyFile,omitempty" yaml:"bodyFile,omitempty"`
 
 	// If a response redirect was provided, this is the path to the local file into
 	// which to write the response (relative to the .http file)
-	ResponseFile string `json:"responseFile,omitempty"`
+	ResponseFile string `json:"responseFile,omitempty" toml:"responseFile,omitempty" yaml:"responseFile,omitempty"`
 
 	// If a response reference was provided, this is the path to the local file
 	// with which to compare the current response (relative to the .http file)
-	ResponseRef string `json:"responseRef,omitempty"`
+	ResponseRef string `json:"responseRef,omitempty" toml:"responseRef,omitempty" yaml:"responseRef,omitempty"`
 
 	// Request body, if provided inline. Again, may have variable interpolation still to perform
-	Body []byte `json:"body,omitempty"`
+	Body []byte `json:"body,omitempty" toml:"body,omitempty" yaml:"body,omitempty"`
 
 	// Request scoped timeout, overrides global if set
-	Timeout time.Duration `json:"timeout,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty" toml:"timeout,omitempty" yaml:"timeout,omitempty"`
 
 	// Request scoped connection timeout, overrides global if set
-	ConnectionTimeout time.Duration `json:"connectionTimeout,omitempty"`
+	ConnectionTimeout time.Duration `json:"connectionTimeout,omitempty" toml:"connectionTimeout,omitempty" yaml:"connectionTimeout,omitempty"`
 
 	// Disable following redirects for this request, overrides global if set
-	NoRedirect bool `json:"noRedirect,omitempty"`
+	NoRedirect bool `json:"noRedirect,omitempty" toml:"noRedirect,omitempty" yaml:"noRedirect,omitempty"`
 }
 
 // String implements [fmt.Stringer] for a [Request] and formats
@@ -151,19 +136,4 @@ func (r Request) String() string {
 	}
 
 	return builder.String()
-}
-
-// AsCurl returns the curl command line equivalent of the request.
-func (r Request) AsCurl() (string, error) {
-	// It needs at least a URL in order to be a valid curl command line
-	if r.URL == "" {
-		return "", errors.New("invalid request, must contain at least URL")
-	}
-
-	buf := &bytes.Buffer{}
-	if err := curlTemplate.Execute(buf, r); err != nil {
-		return "", fmt.Errorf("could not transform to curl: %w", err)
-	}
-
-	return buf.String(), nil
 }
