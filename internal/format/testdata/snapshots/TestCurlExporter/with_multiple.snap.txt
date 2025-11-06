@@ -1,0 +1,51 @@
+
+curl \
+    --request GET \
+    --location \
+    https://api.nowhere.com/v1/items/1234
+
+curl \
+    --request GET \
+    https://api.nowhere.com/v1/items/1234
+
+curl \
+    --request GET \
+    --location \
+    --output response.200.json \
+    --create-dirs \
+    https://api.elsehwere.new/users/1
+
+curl \
+    --request GET \
+    --location \
+    --header 'Accept: application/json' \
+    --header 'Content-Type: application/json' \
+    --header 'User-Agent: go.followtheprocess.codes/zap test' \
+    --header 'X-Custom-Header: yes' \
+    https://jsonplaceholder.typicode.com/todos/1
+
+curl \
+    --request DELETE \
+    --location \
+    --connect-timeout 1 \
+    --max-time 15 \
+    https://somewhere.org/api
+
+curl \
+    --request POST \
+    --location \
+    --data '{"stuff":"here"}' \
+    https://somewhere.org/api/items/1
+
+curl \
+    --request POST \
+    --location \
+    --data @a/file.txt \
+    https://somewhere.org/api/items/1
+
+curl \
+    --request GET \
+    --location \
+    --output response.200.json \
+    --create-dirs \
+    https://api.elsehwere.new/users/1

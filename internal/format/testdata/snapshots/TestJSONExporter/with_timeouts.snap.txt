@@ -1,0 +1,11 @@
+{
+  "name": "with timeouts",
+  "requests": [
+    {
+      "method": "DELETE",
+      "url": "https://somewhere.org/api",
+      "timeout": 15000000000,
+      "connectionTimeout": 1000000000
+    }
+  ]
+}

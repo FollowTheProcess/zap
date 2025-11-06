@@ -42,28 +42,28 @@ import (
 // file is concrete with variables replaced.
 type File struct {
 	// Name of the file (or @name in global scope if given)
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
 
 	// Global variables
-	Vars map[string]string `json:"vars,omitempty"`
+	Vars map[string]string `json:"vars,omitempty" toml:"vars,omitempty" yaml:"vars,omitempty"`
 
 	// Global prompts, the user will be asked to provide values for each of these each time the
 	// file is parsed.
 	//
 	// The provided values will then be stored in Vars.
-	Prompts map[string]Prompt `json:"prompts,omitempty"`
+	Prompts map[string]Prompt `json:"prompts,omitempty" toml:"prompts,omitempty" yaml:"prompts,omitempty"`
 
 	// The HTTP requests described in the file
-	Requests []Request `json:"requests,omitempty"`
+	Requests []Request `json:"requests,omitempty" toml:"requests,omitempty" yaml:"requests,omitempty"`
 
 	// Global timeout for all requests
-	Timeout time.Duration `json:"timeout,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty" toml:"timeout,omitempty" yaml:"timeout,omitempty"`
 
 	// Global connection timeout for all requests
-	ConnectionTimeout time.Duration `json:"connectionTimeout,omitempty"`
+	ConnectionTimeout time.Duration `json:"connectionTimeout,omitempty" toml:"connectionTimeout,omitempty" yaml:"connectionTimeout,omitempty"`
 
 	// Disable following redirects globally across all requests
-	NoRedirect bool `json:"noRedirect,omitempty"`
+	NoRedirect bool `json:"noRedirect,omitempty" toml:"noRedirect,omitempty" yaml:"noRedirect,omitempty"`
 }
 
 // String implements [fmt.Stringer] for a [File] and renders
