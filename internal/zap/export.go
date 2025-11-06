@@ -99,7 +99,7 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 			return fmt.Errorf("could not export request %s: %w", request.Name, err)
 		}
 
-		fmt.Fprintln(z.stdout, exported)
+		fmt.Fprint(z.stdout, exported)
 	}
 
 	return nil

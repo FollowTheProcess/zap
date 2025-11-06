@@ -32,6 +32,3 @@ curl \
     --header 'Content-Type: application/json' \
     --header 'X-Something-Else: yes' \
     https://api.somewhere.com/items/1
-
--- end --
-# Here just to control space at the end of the curl command

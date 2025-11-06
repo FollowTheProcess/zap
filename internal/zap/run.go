@@ -119,7 +119,6 @@ func (r RunOptions) Validate() error {
 func (z Zap) Run(
 	ctx context.Context,
 	file string,
-	requests []string,
 	handler syntax.ErrorHandler,
 	options RunOptions,
 ) error {
@@ -132,10 +131,10 @@ func (z Zap) Run(
 	ctx, cancel := context.WithTimeout(ctx, DefaultOverallTimeout)
 	defer cancel()
 
-	if len(requests) == 0 {
+	if len(options.Requests) == 0 {
 		logger.Debug("Executing all requests in file", slog.String("file", file))
 	} else {
-		logger.Debug("Executing specific request(s) in file", slog.String("file", file), slog.Any("requests", requests))
+		logger.Debug("Executing specific request(s) in file", slog.String("file", file), slog.Any("requests", options.Requests))
 	}
 
 	logger.Debug("Run configuration", slog.String("options", fmt.Sprintf("%+v", options)))
@@ -160,20 +159,20 @@ func (z Zap) Run(
 
 	var toExecute []spec.Request
 
-	if len(requests) == 0 {
+	if len(options.Requests) == 0 {
 		// No filter, so execute all the requests
 		toExecute = httpFile.Requests
 	} else {
 		// Only execute the ones asked for (if they exist)
 		for _, actualRequest := range httpFile.Requests {
-			if slices.Contains(requests, actualRequest.Name) {
+			if slices.Contains(options.Requests, actualRequest.Name) {
 				toExecute = append(toExecute, actualRequest)
 			}
 		}
 	}
 
 	if len(toExecute) == 0 {
-		return fmt.Errorf("no matching requests for names %v in %s", requests, file)
+		return fmt.Errorf("no matching requests for names %v in %s", options.Requests, file)
 	}
 
 	logger.Debug("Filtered requests to execute", slog.Int("count", len(toExecute)))
