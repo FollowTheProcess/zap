@@ -181,7 +181,7 @@ func run(options zap.RunOptions) func() {
 	return func() {
 		app := zap.New(false, "test", os.Stdin, os.Stdout, os.Stderr)
 
-		err := app.Run(context.Background(), os.Args[1], options.Requests, simpleErrorHandler(os.Stderr), options)
+		err := app.Run(context.Background(), os.Args[1], simpleErrorHandler(os.Stderr), options)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main

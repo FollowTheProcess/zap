@@ -42,6 +42,15 @@ func (e ExportOptions) Validate() error {
 	}
 }
 
+// TODO(@FollowTheProcess): This currently just exports a bunch of requests by themselves.
+// What we should actually do is export the whole file. Maybe make an Exporter interface?
+//
+// Each implementation (curl, json, yaml, postman) etc. then simply chooses how to export a whole
+// file. The curl one could simply write a bash script with global variables set for example, json
+// and yaml are easy. Postman we might need an entirely different data structure to convert into
+// as I'd like to create a collection per file (if there are multiple requests) and populate
+// collection variables etc.
+
 // Export handles the export subcommand.
 func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandler, options ExportOptions) error {
 	logger := z.logger.Prefixed("export")
@@ -99,7 +108,7 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 			return fmt.Errorf("could not export request %s: %w", request.Name, err)
 		}
 
-		fmt.Fprintln(z.stdout, exported)
+		fmt.Fprint(z.stdout, exported)
 	}
 
 	return nil
