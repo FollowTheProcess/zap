@@ -9,10 +9,7 @@ import (
 	"time"
 )
 
-// Request is a single HTTP request from a .http file as parsed.
-//
-// It is *nearly* concrete but may have e.g. variable interpolation to perform, URLs
-// may not be valid etc. This is simply a structured version of the as-parsed raw text.
+// Request is a single HTTP request from a .http file as a canonical, fully resolved representation.
 type Request struct {
 	// Request scoped variables
 	Vars map[string]string `json:"vars,omitempty" toml:"vars,omitempty" yaml:"vars,omitempty"`
@@ -55,7 +52,7 @@ type Request struct {
 	ResponseRef string `json:"responseRef,omitempty" toml:"responseRef,omitempty" yaml:"responseRef,omitempty"`
 
 	// Request body, if provided inline. Again, may have variable interpolation still to perform
-	Body []byte `json:"body,omitempty" toml:"body,omitempty" yaml:"body,omitempty"`
+	Body Body `json:"body,omitempty" toml:"body,omitempty" yaml:"body,omitempty"`
 
 	// Request scoped timeout, overrides global if set
 	Timeout time.Duration `json:"timeout,omitempty" toml:"timeout,omitempty" yaml:"timeout,omitempty"`
@@ -65,6 +62,28 @@ type Request struct {
 
 	// Disable following redirects for this request, overrides global if set
 	NoRedirect bool `json:"noRedirect,omitempty" toml:"noRedirect,omitempty" yaml:"noRedirect,omitempty"`
+}
+
+// Body is a HTTP request body.
+//
+// It is equivalent to a []byte but has a custom implementation of
+// [encoding.TextMarshaler] allowing a nicer format for serialisation.
+type Body []byte //nolint:recvcheck // Receiver must differ to match encoding.TextMarshaler
+
+// MarshalText implements [encoding.TextMarshaler] for [Body].
+func (b Body) MarshalText() ([]byte, error) {
+	return b, nil
+}
+
+// UnmarshalText implements [encoding.TextUnmarshaler] for [Body].
+func (b *Body) UnmarshalText(text []byte) error {
+	*b = append((*b)[:0], text...)
+	return nil
+}
+
+// String implements [fmt.Stringer] for [Body].
+func (b Body) String() string {
+	return string(b)
 }
 
 // String implements [fmt.Stringer] for a [Request] and formats
@@ -123,7 +142,7 @@ func (r Request) String() string {
 	}
 
 	if r.Body != nil {
-		fmt.Fprintf(builder, "%s\n", string(r.Body))
+		fmt.Fprintf(builder, "%s\n", r.Body.String())
 	}
 
 	if r.ResponseFile != "" {
