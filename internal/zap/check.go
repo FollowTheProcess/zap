@@ -22,7 +22,8 @@ type CheckOptions struct {
 
 // Check implements the check subcommand.
 func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler, options CheckOptions) error {
-	z.logger.Debug("Checking path", slog.String("path", path))
+	logger := z.logger.Prefixed("check").With(slog.String("path", path))
+	logger.Debug("Checking path")
 
 	info, err := os.Stat(path)
 	if err != nil {
@@ -32,7 +33,7 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 	var paths []string
 
 	if info.IsDir() {
-		z.logger.Debug("Path is a directory", slog.String("path", path))
+		logger.Debug("Path is a directory")
 
 		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
@@ -49,12 +50,12 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 			return fmt.Errorf("could not walk %s: %w", path, err)
 		}
 	} else {
-		z.logger.Debug("Path is a file", slog.String("path", path))
+		logger.Debug("Path is a file")
 
 		paths = []string{path}
 	}
 
-	z.logger.Debug("Checking http files", slog.Int("number", len(paths)))
+	logger.Debug("Checking http files given by path", slog.Int("number", len(paths)))
 
 	group := errgroup.Group{}
 
