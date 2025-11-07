@@ -455,6 +455,25 @@ func (z Zap) evaluateRequestPrompts(
 	return evaluated, nil
 }
 
+// evaluateAllPrompts evaluates global and all request prompts in the file, this is primarily used
+// when exporting entire files into 3rd party formats as all variables need to be resolved.
+func (z Zap) evaluateAllPrompts(logger *log.Logger, file spec.File) (spec.File, error) {
+	file, err := z.evaluateGlobalPrompts(logger, file)
+	if err != nil {
+		return spec.File{}, err
+	}
+
+	// Evaluate all prompts for all requests
+	requests, err := z.evaluateRequestPrompts(logger, file.Requests, file.Prompts)
+	if err != nil {
+		return spec.File{}, err
+	}
+
+	file.Requests = requests
+
+	return file, nil
+}
+
 // writeResponseFile writes the response body to the file specified in the request.
 func (z Zap) writeResponseFile(logger *log.Logger, base, file string, body []byte) error {
 	path := filepath.Join(base, file)

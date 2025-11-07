@@ -37,15 +37,6 @@ func (e ExportOptions) Validate() error {
 	}
 }
 
-// TODO(@FollowTheProcess): This currently just exports a bunch of requests by themselves.
-// What we should actually do is export the whole file. Maybe make an Exporter interface?
-//
-// Each implementation (curl, json, yaml, postman) etc. then simply chooses how to export a whole
-// file. The curl one could simply write a bash script with global variables set for example, json
-// and yaml are easy. Postman we might need an entirely different data structure to convert into
-// as I'd like to create a collection per file (if there are multiple requests) and populate
-// collection variables etc.
-
 // Export handles the export subcommand.
 func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandler, options ExportOptions) error {
 	logger := z.logger.Prefixed("export")
@@ -59,21 +50,12 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 		return err
 	}
 
-	httpFile, err = z.evaluateGlobalPrompts(logger, httpFile)
-	if err != nil {
-		return fmt.Errorf("could not evaluate global prompts: %w", err)
-	}
-
 	logger.Debug("Parsed file successfully", slog.String("file", file), slog.Duration("took", time.Since(start)))
 
-	evaluated, err := z.evaluateRequestPrompts(logger, httpFile.Requests, httpFile.Prompts)
+	httpFile, err = z.evaluateAllPrompts(logger, httpFile)
 	if err != nil {
-		return fmt.Errorf("could not evaluate request prompts: %w", err)
+		return err
 	}
-
-	// TODO(@FollowTheProcess): Should probably have an evaluateAllPrompts function that takes in
-	// a file and returns the evaluated file
-	httpFile.Requests = evaluated
 
 	return z.exportFile(httpFile, options)
 }
