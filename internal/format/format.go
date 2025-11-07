@@ -12,9 +12,6 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 )
 
-// TODO(@FollowTheProcess): The body is being formatted as raw bytes, which users probably don't want
-// lets implement MarshalText or something that is smarter than that
-
 // Exporter is the interface defining a mechanism for exporting a .http file
 // into an external format.
 type Exporter interface {
