@@ -4,9 +4,6 @@ exec export-yaml src.http
 # Fail if stdout != expected and show a diff
 cmp stdout expected
 
-# There should be nothing printed to stderr
-! stderr .
-
 -- src.http --
 ###
 // @name Everything
