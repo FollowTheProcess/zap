@@ -600,6 +600,10 @@ func (p *Parser) parseRequestHeaders(file syntax.File, request syntax.Request) s
 			}
 		}
 
+		if request.Headers == nil {
+			request.Headers = make(http.Header)
+		}
+
 		request.Headers.Add(key, builder.String())
 		builder.Reset() // Reset for the next (outer) loop
 	}
