@@ -314,7 +314,7 @@ func (z Zap) showResponse(file string, request spec.Request, response Response, 
 	// Only print the headers in verbose mode
 	if verbose {
 		for _, key := range slices.Sorted(maps.Keys(response.Header)) {
-			fmt.Fprintf(z.stdout, "%s: %s\n", headerKeyStyle.Text(key), response.Header.Get(key))
+			fmt.Fprintf(z.stdout, "%s: %s\n", headerKeyStyle.Text(key), strings.Join(response.Header.Values(key), ", "))
 		}
 
 		fmt.Fprintln(z.stdout) // Line space
