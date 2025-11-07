@@ -1,0 +1,65 @@
+# Run the equivalent of zap export src.http --format yaml
+exec export-yaml src.http
+
+# Fail if stdout != expected and show a diff
+cmp stdout expected
+
+# There should be nothing printed to stderr
+! stderr .
+
+-- src.http --
+###
+// @name Everything
+# @timeout 30s
+# @connection-timeout 10s
+// @no-redirect
+# @token shhh
+PUT https://api.somewhere.com/items/1 HTTP/2
+Content-Type: application/json
+Accept: application/json
+X-Something-Else: yes
+Authorization: Bearer {{ token }}
+
+{"stuff": "here"}
+-- expected --
+name: src.http
+requests:
+  - vars:
+      token: shhh
+    headers:
+      Accept:
+        - application/json
+      Authorization:
+        - Bearer shhh
+      Content-Type:
+        - application/json
+      X-Something-Else:
+        - "yes"
+    name: Everything
+    method: PUT
+    url: https://api.somewhere.com/items/1
+    httpVersion: HTTP/2
+    body:
+      - 123
+      - 34
+      - 115
+      - 116
+      - 117
+      - 102
+      - 102
+      - 34
+      - 58
+      - 32
+      - 34
+      - 104
+      - 101
+      - 114
+      - 101
+      - 34
+      - 125
+      - 10
+    timeout: 30s
+    connectionTimeout: 10s
+    noRedirect: true
+timeout: 30s
+connectionTimeout: 10s

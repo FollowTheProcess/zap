@@ -17,7 +17,13 @@ func export(ctx context.Context) func() (*cli.Command, error) {
 			"export",
 			cli.Short("Export a .http file to an alternative format"),
 			cli.RequiredArg("file", "Path to the .http file"),
-			cli.Flag(&options.Format, "format", 'f', "json", "Export format, one of 'json', 'curl', 'postman'"),
+			cli.Flag(
+				&options.Format,
+				"format",
+				'f',
+				"json",
+				"Export format, one of (json|curl|yaml|toml|postman)",
+			),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
 			cli.Run(func(cmd *cli.Command, args []string) error {
 				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())

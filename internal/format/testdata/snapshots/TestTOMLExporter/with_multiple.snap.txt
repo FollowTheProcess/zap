@@ -1,0 +1,61 @@
+name = "with multiple"
+timeout = "0s"
+connectionTimeout = "0s"
+
+[[requests]]
+method = "GET"
+url = "https://api.nowhere.com/v1/items/1234"
+timeout = "0s"
+connectionTimeout = "0s"
+
+[[requests]]
+method = "GET"
+url = "https://api.nowhere.com/v1/items/1234"
+timeout = "0s"
+connectionTimeout = "0s"
+noRedirect = true
+
+[[requests]]
+method = "GET"
+url = "https://api.elsehwere.new/users/1"
+responseFile = "response.200.json"
+timeout = "0s"
+connectionTimeout = "0s"
+
+[[requests]]
+method = "GET"
+url = "https://jsonplaceholder.typicode.com/todos/1"
+timeout = "0s"
+connectionTimeout = "0s"
+[requests.headers]
+Accept = ["application/json"]
+Content-Type = ["application/json"]
+User-Agent = ["go.followtheprocess.codes/zap test"]
+X-Custom-Header = ["yes"]
+
+[[requests]]
+method = "DELETE"
+url = "https://somewhere.org/api"
+timeout = "15s"
+connectionTimeout = "1s"
+
+[[requests]]
+method = "POST"
+url = "https://somewhere.org/api/items/1"
+body = [123, 34, 115, 116, 117, 102, 102, 34, 58, 34, 104, 101, 114, 101, 34, 125]
+timeout = "0s"
+connectionTimeout = "0s"
+
+[[requests]]
+method = "POST"
+url = "https://somewhere.org/api/items/1"
+bodyFile = "a/file.txt"
+timeout = "0s"
+connectionTimeout = "0s"
+
+[[requests]]
+method = "GET"
+url = "https://api.elsehwere.new/users/1"
+responseFile = "response.200.json"
+timeout = "0s"
+connectionTimeout = "0s"

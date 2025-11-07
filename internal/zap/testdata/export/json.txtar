@@ -1,0 +1,58 @@
+# Run the equivalent of zap export src.http --format json
+exec export-json src.http
+
+# Fail if stdout != expected and show a diff
+cmp stdout expected
+
+# There should be nothing printed to stderr
+! stderr .
+
+-- src.http --
+###
+// @name Everything
+# @timeout 30s
+# @connection-timeout 10s
+// @no-redirect
+# @token shhh
+PUT https://api.somewhere.com/items/1 HTTP/2
+Content-Type: application/json
+Accept: application/json
+X-Something-Else: yes
+Authorization: Bearer {{ token }}
+
+{"stuff": "here"}
+-- expected --
+{
+  "name": "src.http",
+  "requests": [
+    {
+      "vars": {
+        "token": "shhh"
+      },
+      "headers": {
+        "Accept": [
+          "application/json"
+        ],
+        "Authorization": [
+          "Bearer shhh"
+        ],
+        "Content-Type": [
+          "application/json"
+        ],
+        "X-Something-Else": [
+          "yes"
+        ]
+      },
+      "name": "Everything",
+      "method": "PUT",
+      "url": "https://api.somewhere.com/items/1",
+      "httpVersion": "HTTP/2",
+      "body": "eyJzdHVmZiI6ICJoZXJlIn0K",
+      "timeout": 30000000000,
+      "connectionTimeout": 10000000000,
+      "noRedirect": true
+    }
+  ],
+  "timeout": 30000000000,
+  "connectionTimeout": 10000000000
+}

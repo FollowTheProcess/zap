@@ -41,6 +41,11 @@ jobs:
       - name: Setup Bats
         id: bats
         uses: bats-core/bats-action@3.0.1
+        with:
+          support-path: "${{ github.workspace }}/tests/bats-support"
+          assert-path: "${{ github.workspace }}/tests/bats-assert"
+          detik-path: "${{ github.workspace }}/tests/bats-detik"
+          file-path: "${{ github.workspace }}/tests/bats-file"
 
       - name: Build Test Binary
         run: mkdir -p ./bin && go build -o ./bin/zap -ldflags='-s -w -X go.followtheprocess.codes/zap/internal/cmd.version=test' ./cmd/zap
