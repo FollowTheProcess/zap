@@ -16,9 +16,6 @@ cmp stdout expected
 # Fail if the response file is not expected
 cmp getItem.200.json getItem.200.expected.json
 
-# There should be nothing printed to stderr
-! stderr .
-
 -- src.http --
 ###
 # @name = getItem

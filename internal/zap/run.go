@@ -210,18 +210,6 @@ func (z Zap) Run(
 	return nil
 }
 
-// Response is a compact version of a [http.Response] with only the data we need
-// to display a HTTP response to a user.
-type Response struct {
-	Header        http.Header   // Response headers
-	Status        string        // E.g. "200 OK"
-	Proto         string        // e.g. "HTTP/1.2"
-	Body          []byte        // The read body
-	StatusCode    int           // HTTP status code
-	ContentLength int           // len(Body)
-	Duration      time.Duration // Duration of the request/response round trip
-}
-
 // doRequest executes a single HTTP request.
 func (z Zap) doRequest(
 	ctx context.Context,
@@ -281,7 +269,7 @@ func (z Zap) doRequest(
 		StatusCode:    res.StatusCode,
 		Proto:         res.Proto,
 		Header:        res.Header,
-		Body:          body,
+		Body:          spec.Body(body),
 		ContentLength: len(body),
 		Duration:      duration,
 	}
@@ -320,7 +308,7 @@ func (z Zap) showResponse(file string, request spec.Request, response Response, 
 		fmt.Fprintln(z.stdout) // Line space
 	}
 
-	fmt.Fprintln(z.stdout, string(response.Body))
+	fmt.Fprintln(z.stdout, response.Body.String())
 }
 
 // evaluateGlobalPrompts asks the user to provide values for prompts defined in the top level

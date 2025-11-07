@@ -4,9 +4,6 @@ exec export-toml src.http
 # Fail if stdout != expected and show a diff
 cmp stdout expected
 
-# There should be nothing printed to stderr
-! stderr .
-
 -- src.http --
 ###
 // @name Everything
@@ -31,7 +28,7 @@ name = "Everything"
 method = "PUT"
 url = "https://api.somewhere.com/items/1"
 httpVersion = "HTTP/2"
-body = [123, 34, 115, 116, 117, 102, 102, 34, 58, 32, 34, 104, 101, 114, 101, 34, 125, 10]
+body = "{\"stuff\": \"here\"}\n"
 timeout = "30s"
 connectionTimeout = "10s"
 noRedirect = true

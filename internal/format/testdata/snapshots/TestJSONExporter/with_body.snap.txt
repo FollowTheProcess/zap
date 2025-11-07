@@ -4,7 +4,7 @@
     {
       "method": "POST",
       "url": "https://somewhere.org/api/items/1",
-      "body": "eyJzdHVmZiI6ImhlcmUifQ=="
+      "body": "{\"stuff\":\"here\"}"
     }
   ]
 }

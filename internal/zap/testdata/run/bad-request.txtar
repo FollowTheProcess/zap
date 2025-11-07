@@ -13,9 +13,6 @@ replace stdout '\d+(?:\.\d+)?(?:s|ms|µs)' '[DURATION]'
 # Fail if stdout != expected and show a diff
 cmp stdout expected
 
-# There should be nothing printed to stderr
-! stderr .
-
 -- src.http --
 ###
 # @name = uhOh

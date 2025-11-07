@@ -33,9 +33,6 @@ import (
 // TODO(@FollowTheProcess): Comprehensive tests for resolving files, can do that when I move the eval
 // of templates to the resolve stage
 
-// TODO(@FollowTheProcess): Use [http.Header] as the type for headers... duh, kind of obvious
-// when I think about it now
-
 // File represents a single .http file as parsed.
 //
 // Interpolation has been performed on the fly during parsing so this

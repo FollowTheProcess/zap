@@ -2,20 +2,4 @@ name: with body
 requests:
   - method: POST
     url: https://somewhere.org/api/items/1
-    body:
-      - 123
-      - 34
-      - 115
-      - 116
-      - 117
-      - 102
-      - 102
-      - 34
-      - 58
-      - 34
-      - 104
-      - 101
-      - 114
-      - 101
-      - 34
-      - 125
+    body: '{"stuff":"here"}'
