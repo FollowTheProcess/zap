@@ -17,10 +17,18 @@
     },
     {
       "headers": {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": "go.followtheprocess.codes/zap test",
-        "X-Custom-Header": "yes"
+        "Accept": [
+          "application/json"
+        ],
+        "Content-Type": [
+          "application/json"
+        ],
+        "User-Agent": [
+          "go.followtheprocess.codes/zap test"
+        ],
+        "X-Custom-Header": [
+          "yes"
+        ]
       },
       "method": "GET",
       "url": "https://jsonplaceholder.typicode.com/todos/1"

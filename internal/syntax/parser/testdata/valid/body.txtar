@@ -20,7 +20,9 @@ Content-Type: application/json
   "requests": [
     {
       "headers": {
-        "Content-Type": "application/json"
+        "Content-Type": [
+          "application/json"
+        ]
       },
       "name": "#1",
       "comment": "Body",

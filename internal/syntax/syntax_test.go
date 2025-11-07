@@ -163,10 +163,10 @@ func TestFileString(t *testing.T) {
 					{
 						Method: http.MethodPost,
 						URL:    "https://api.com/v1/items/123",
-						Headers: map[string]string{
-							"Accept":        "application/json",
-							"Content-Type":  "application/json",
-							"Authorization": "Bearer xxxxx",
+						Headers: http.Header{
+							"Accept":        []string{"application/json"},
+							"Content-Type":  []string{"application/json"},
+							"Authorization": []string{"Bearer xxxxx"},
 						},
 					},
 				},

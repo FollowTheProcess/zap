@@ -21,7 +21,9 @@ curl \
     --create-dirs \
     {{- end }}
     {{- range $key, $value := .Headers }}
-    --header '{{ $key }}: {{ $value }}' \
+    {{- range $value }}
+    --header '{{ $key }}: {{ . }}' \
+    {{- end }}
     {{- end }}
     {{ .URL }}
 {{ end -}}

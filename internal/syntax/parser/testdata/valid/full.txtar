@@ -34,10 +34,18 @@ Authorization: Bearer {{ token }}
         "token": "shhh"
       },
       "headers": {
-        "Accept": "application/json",
-        "Authorization": "Bearer shhh",
-        "Content-Type": "application/json",
-        "X-Something-Else": "yes"
+        "Accept": [
+          "application/json"
+        ],
+        "Authorization": [
+          "Bearer shhh"
+        ],
+        "Content-Type": [
+          "application/json"
+        ],
+        "X-Something-Else": [
+          "yes"
+        ]
       },
       "name": "Everything",
       "method": "PUT",

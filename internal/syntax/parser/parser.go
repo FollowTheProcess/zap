@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -285,7 +286,12 @@ func (p *Parser) parseRequest(file syntax.File) (syntax.Request, error) {
 		return syntax.Request{}, ErrParse
 	}
 
-	request := syntax.Request{}
+	request := syntax.Request{
+		// Vars and Prompts are lazily initialised as it's not obvious that all requests will have those.
+		//
+		// Headers on the other hand every request will have so we initialise the map here always.
+		Headers: make(http.Header),
+	}
 
 	// Does it have a comment as in "### [comment]"
 	if p.next.Is(token.Comment) {
@@ -313,14 +319,6 @@ func (p *Parser) parseRequest(file syntax.File) (syntax.Request, error) {
 	if p.next.Is(token.HTTPVersion) {
 		p.advance()
 		request.HTTPVersion = p.text()
-	}
-
-	// Now any headers, initialising the map lazily although in fairness
-	// its likely that most requests will have headers
-	if p.next.Is(token.Header) {
-		if request.Headers == nil {
-			request.Headers = make(map[string]string)
-		}
 	}
 
 	request = p.parseRequestHeaders(file, request)
@@ -602,7 +600,11 @@ func (p *Parser) parseRequestHeaders(file syntax.File, request syntax.Request) s
 			}
 		}
 
-		request.Headers[key] = builder.String()
+		if request.Headers == nil {
+			request.Headers = make(http.Header)
+		}
+
+		request.Headers.Add(key, builder.String())
 		builder.Reset() // Reset for the next (outer) loop
 	}
 

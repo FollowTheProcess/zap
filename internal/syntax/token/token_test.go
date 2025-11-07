@@ -1,12 +1,20 @@
 package token_test
 
 import (
+	"flag"
 	"fmt"
 	"math/rand/v2"
 	"testing"
 
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
+)
+
+var (
+	// Everything else has these, this allows passing -update or -clean to go test ./...
+	// and not getting a flag not defined error.
+	_ = flag.Bool("update", false, "Update snapshots")
+	_ = flag.Bool("clean", false, "Clean all snapshots and recreate")
 )
 
 func FuzzTokenString(f *testing.F) {

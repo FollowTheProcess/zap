@@ -24,7 +24,9 @@ Content-Type: application/json
         "syntaxVar": "syntax"
       },
       "headers": {
-        "Content-Type": "application/json"
+        "Content-Type": [
+          "application/json"
+        ]
       },
       "name": "#1",
       "comment": "Body",

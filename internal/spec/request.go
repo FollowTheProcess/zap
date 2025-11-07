@@ -3,6 +3,7 @@ package spec
 import (
 	"fmt"
 	"maps"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ type Request struct {
 	Vars map[string]string `json:"vars,omitempty" toml:"vars,omitempty" yaml:"vars,omitempty"`
 
 	// Request headers, may have variable interpolation in the values but not the keys
-	Headers map[string]string `json:"headers,omitempty" toml:"headers,omitempty" yaml:"headers,omitempty"`
+	Headers http.Header `json:"headers,omitempty" toml:"headers,omitempty" yaml:"headers,omitempty"`
 
 	// Request scoped prompts, the user will be asked to provide values for each of these
 	// whenever this particular request is invoked.
@@ -110,9 +111,7 @@ func (r Request) String() string {
 		fmt.Fprintf(builder, "%s %s\n", r.Method, r.URL)
 	}
 
-	for _, key := range slices.Sorted(maps.Keys(r.Headers)) {
-		fmt.Fprintf(builder, "%s: %s\n", key, r.Headers[key])
-	}
+	_ = r.Headers.Write(builder) //nolint:errcheck // Not much we can do if it can't write headers
 
 	// Separate the body section
 	if r.Body != nil || r.BodyFile != "" || r.ResponseFile != "" {

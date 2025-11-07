@@ -250,10 +250,7 @@ func (z Zap) doRequest(
 		return Response{}, fmt.Errorf("HTTP request %q is invalid: %w", request.Name, err)
 	}
 
-	for key, value := range request.Headers {
-		req.Header.Add(key, value)
-	}
-
+	req.Header = request.Headers
 	req.Header.Add("User-Agent", "go.followtheprocess.codes/zap "+z.version)
 
 	start := time.Now()
@@ -317,7 +314,7 @@ func (z Zap) showResponse(file string, request spec.Request, response Response, 
 	// Only print the headers in verbose mode
 	if verbose {
 		for _, key := range slices.Sorted(maps.Keys(response.Header)) {
-			fmt.Fprintf(z.stdout, "%s: %s\n", headerKeyStyle.Text(key), response.Header.Get(key))
+			fmt.Fprintf(z.stdout, "%s: %s\n", headerKeyStyle.Text(key), strings.Join(response.Header.Values(key), ", "))
 		}
 
 		fmt.Fprintln(z.stdout) // Line space
@@ -439,12 +436,17 @@ func (z Zap) evaluateRequestPrompts(
 
 			// Headers
 			for name, header := range request.Headers {
-				replaced := replacer.Replace(header)
-				logger.Debug(
-					"Replacing prompted request Header",
-					slog.String("from", header),
-					slog.String("to", replaced),
-				)
+				replaced := make([]string, 0, len(header))
+				for _, part := range header {
+					newPart := replacer.Replace(part)
+					logger.Debug(
+						"Replacing prompted request Header",
+						slog.String("from", part),
+						slog.String("to", newPart),
+					)
+					replaced = append(replaced, newPart)
+				}
+
 				request.Headers[name] = replaced
 			}
 		}
@@ -453,6 +455,25 @@ func (z Zap) evaluateRequestPrompts(
 	}
 
 	return evaluated, nil
+}
+
+// evaluateAllPrompts evaluates global and all request prompts in the file, this is primarily used
+// when exporting entire files into 3rd party formats as all variables need to be resolved.
+func (z Zap) evaluateAllPrompts(logger *log.Logger, file spec.File) (spec.File, error) {
+	file, err := z.evaluateGlobalPrompts(logger, file)
+	if err != nil {
+		return spec.File{}, err
+	}
+
+	// Evaluate all prompts for all requests
+	requests, err := z.evaluateRequestPrompts(logger, file.Requests, file.Prompts)
+	if err != nil {
+		return spec.File{}, err
+	}
+
+	file.Requests = requests
+
+	return file, nil
 }
 
 // writeResponseFile writes the response body to the file specified in the request.
