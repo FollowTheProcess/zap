@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
+	"strings"
 	"time"
 
 	"go.followtheprocess.codes/zap/internal/format"
@@ -13,6 +15,8 @@ import (
 
 const (
 	formatJSON    = "json"
+	formatYAML    = "yaml"
+	formatTOML    = "toml"
 	formatCurl    = "curl"
 	formatPostman = "postman"
 )
@@ -29,12 +33,12 @@ type ExportOptions struct {
 // Validate reports whether the ExportOptions is valid, returning a non-nil
 // error if it's not.
 func (e ExportOptions) Validate() error {
-	switch f := e.Format; f {
-	case formatJSON, formatCurl, formatPostman:
-		return nil
-	default:
-		return fmt.Errorf("invalid option for --format %q, allowed values are 'json', 'curl', 'postman'", f)
+	allowed := []string{formatJSON, formatYAML, formatTOML, formatCurl, formatPostman}
+	if !slices.Contains(allowed, e.Format) {
+		return fmt.Errorf("invalid option for --format, expected one of (%s)", strings.Join(allowed, ", "))
 	}
+
+	return nil
 }
 
 // Export handles the export subcommand.
@@ -62,11 +66,16 @@ func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandle
 
 // exportFile performs the export operation on the given http file.
 func (z Zap) exportFile(file spec.File, options ExportOptions) error {
+	// Default to JSON
 	var exporter format.Exporter
 
 	switch options.Format {
 	case formatJSON:
 		exporter = format.JSONExporter{}
+	case formatYAML:
+		exporter = format.YAMLExporter{}
+	case formatTOML:
+		exporter = format.TOMLExporter{}
 	case formatCurl:
 		exporter = format.CurlExporter{}
 	default:
