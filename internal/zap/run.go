@@ -210,18 +210,6 @@ func (z Zap) Run(
 	return nil
 }
 
-// Response is a compact version of a [http.Response] with only the data we need
-// to display a HTTP response to a user.
-type Response struct {
-	Header        http.Header   // Response headers
-	Status        string        // E.g. "200 OK"
-	Proto         string        // e.g. "HTTP/1.2"
-	Body          spec.Body     // The read body
-	StatusCode    int           // HTTP status code
-	ContentLength int           // len(Body)
-	Duration      time.Duration // Duration of the request/response round trip
-}
-
 // doRequest executes a single HTTP request.
 func (z Zap) doRequest(
 	ctx context.Context,
