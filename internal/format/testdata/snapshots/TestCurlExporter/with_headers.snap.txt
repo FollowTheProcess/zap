@@ -3,7 +3,10 @@ curl \
     --request GET \
     --location \
     --header 'Accept: application/json' \
+    --header 'Accept: application/xml' \
     --header 'Content-Type: application/json' \
     --header 'User-Agent: go.followtheprocess.codes/zap test' \
     --header 'X-Custom-Header: yes' \
+    --header 'X-Custom-Header: multiple' \
+    --header 'X-Custom-Header: things' \
     https://jsonplaceholder.typicode.com/todos/1

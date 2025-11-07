@@ -51,11 +51,11 @@ func TestJSONExporter(t *testing.T) {
 					{
 						Method: http.MethodGet,
 						URL:    "https://jsonplaceholder.typicode.com/todos/1",
-						Headers: map[string]string{
-							"Content-Type":    "application/json",
-							"Accept":          "application/json",
-							"User-Agent":      "go.followtheprocess.codes/zap test",
-							"X-Custom-Header": "yes",
+						Headers: http.Header{
+							"Content-Type":    []string{"application/json"},
+							"Accept":          []string{"application/json"},
+							"User-Agent":      []string{"go.followtheprocess.codes/zap test"},
+							"X-Custom-Header": []string{"yes"},
 						},
 					},
 				},
@@ -136,11 +136,11 @@ func TestJSONExporter(t *testing.T) {
 					{
 						Method: http.MethodGet,
 						URL:    "https://jsonplaceholder.typicode.com/todos/1",
-						Headers: map[string]string{
-							"Content-Type":    "application/json",
-							"Accept":          "application/json",
-							"User-Agent":      "go.followtheprocess.codes/zap test",
-							"X-Custom-Header": "yes",
+						Headers: http.Header{
+							"Content-Type":    []string{"application/json"},
+							"Accept":          []string{"application/json"},
+							"User-Agent":      []string{"go.followtheprocess.codes/zap test"},
+							"X-Custom-Header": []string{"yes"},
 						},
 					},
 					{

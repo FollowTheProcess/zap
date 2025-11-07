@@ -10,9 +10,15 @@ Content-Length: 69
   "requests": [
     {
       "headers": {
-        "Accept": "application/json;charset=utf8",
-        "Content-Length": "69",
-        "Content-Type": "application/json"
+        "Accept": [
+          "application/json;charset=utf8"
+        ],
+        "Content-Length": [
+          "69"
+        ],
+        "Content-Type": [
+          "application/json"
+        ]
       },
       "name": "#1",
       "comment": "With Headers",

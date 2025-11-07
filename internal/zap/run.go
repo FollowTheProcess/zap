@@ -250,10 +250,7 @@ func (z Zap) doRequest(
 		return Response{}, fmt.Errorf("HTTP request %q is invalid: %w", request.Name, err)
 	}
 
-	for key, value := range request.Headers {
-		req.Header.Add(key, value)
-	}
-
+	req.Header = request.Headers
 	req.Header.Add("User-Agent", "go.followtheprocess.codes/zap "+z.version)
 
 	start := time.Now()
@@ -439,12 +436,17 @@ func (z Zap) evaluateRequestPrompts(
 
 			// Headers
 			for name, header := range request.Headers {
-				replaced := replacer.Replace(header)
-				logger.Debug(
-					"Replacing prompted request Header",
-					slog.String("from", header),
-					slog.String("to", replaced),
-				)
+				replaced := make([]string, 0, len(header))
+				for _, part := range header {
+					newPart := replacer.Replace(part)
+					logger.Debug(
+						"Replacing prompted request Header",
+						slog.String("from", part),
+						slog.String("to", newPart),
+					)
+					replaced = append(replaced, newPart)
+				}
+
 				request.Headers[name] = replaced
 			}
 		}

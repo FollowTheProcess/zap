@@ -136,10 +136,10 @@ func TestFormat(t *testing.T) {
 						Name:   "Another Request",
 						Method: http.MethodPost,
 						URL:    "https://api.com/v1/items/123",
-						Headers: map[string]string{
-							"Accept":        "application/json",
-							"Content-Type":  "application/json",
-							"Authorization": "Bearer xxxxx",
+						Headers: http.Header{
+							"Accept":        []string{"application/json"},
+							"Content-Type":  []string{"application/json"},
+							"Authorization": []string{"Bearer xxxxx"},
 						},
 					},
 				},
@@ -287,8 +287,8 @@ func TestResolve(t *testing.T) {
 				Name: "test.http",
 				Requests: []syntax.Request{
 					{
-						Headers: map[string]string{
-							"Accept": "application/json",
+						Headers: http.Header{
+							"Accept": []string{"application/json"},
 						},
 						Prompts: map[string]syntax.Prompt{
 							"value": {
@@ -306,8 +306,8 @@ func TestResolve(t *testing.T) {
 				Name: "test.http",
 				Requests: []spec.Request{
 					{
-						Headers: map[string]string{
-							"Accept": "application/json",
+						Headers: http.Header{
+							"Accept": []string{"application/json"},
 						},
 						Prompts: map[string]spec.Prompt{
 							"value": {
