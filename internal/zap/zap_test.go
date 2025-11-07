@@ -42,6 +42,15 @@ func TestMain(m *testing.M) {
 		"export-curl": export(zap.ExportOptions{
 			Format: "curl",
 		}),
+		"export-json": export(zap.ExportOptions{
+			Format: "json",
+		}),
+		"export-yaml": export(zap.ExportOptions{
+			Format: "yaml",
+		}),
+		"export-toml": export(zap.ExportOptions{
+			Format: "toml",
+		}),
 	})
 }
 
