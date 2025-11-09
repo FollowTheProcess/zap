@@ -50,6 +50,9 @@ const (
 
 // RunOptions are the options passed to the run subcommand.
 type RunOptions struct {
+	// File is the path of the http file.
+	File string
+
 	// Output is the output format in which to display the HTTP response.
 	//
 	// Allowed values: 'stdout', 'json', 'yaml'.
@@ -118,7 +121,6 @@ func (r RunOptions) Validate() error {
 // Run implements the run subcommand.
 func (z Zap) Run(
 	ctx context.Context,
-	file string,
 	handler syntax.ErrorHandler,
 	options RunOptions,
 ) error {
@@ -132,21 +134,25 @@ func (z Zap) Run(
 	defer cancel()
 
 	if len(options.Requests) == 0 {
-		logger.Debug("Executing all requests in file", slog.String("file", file))
+		logger.Debug("Executing all requests in file", slog.String("file", options.File))
 	} else {
-		logger.Debug("Executing specific request(s) in file", slog.String("file", file), slog.Any("requests", options.Requests))
+		logger.Debug("Executing specific request(s) in file", slog.String("file", options.File), slog.Any("requests", options.Requests))
 	}
 
 	logger.Debug("Run configuration", slog.String("options", fmt.Sprintf("%+v", options)))
 
 	start := time.Now()
 
-	httpFile, err := z.parseFile(file, handler)
+	httpFile, err := z.parseFile(options.File, handler)
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("Parsed file successfully", slog.String("file", file), slog.Duration("took", time.Since(start)))
+	logger.Debug(
+		"Parsed file successfully",
+		slog.String("file", options.File),
+		slog.Duration("took", time.Since(start)),
+	)
 
 	// TODO(@FollowTheProcess): The below steps should happen in the resolving
 
@@ -172,7 +178,7 @@ func (z Zap) Run(
 	}
 
 	if len(toExecute) == 0 {
-		return fmt.Errorf("no matching requests for names %v in %s", options.Requests, file)
+		return fmt.Errorf("no matching requests for names %v in %s", options.Requests, options.File)
 	}
 
 	logger.Debug("Filtered requests to execute", slog.Int("count", len(toExecute)))
@@ -195,7 +201,7 @@ func (z Zap) Run(
 			return err
 		}
 
-		base := filepath.Dir(file)
+		base := filepath.Dir(options.File)
 
 		if request.ResponseFile != "" {
 			err := z.writeResponseFile(logger, base, request.ResponseFile, response.Body)
@@ -204,7 +210,7 @@ func (z Zap) Run(
 			}
 		}
 
-		z.showResponse(file, request, response, options.Verbose)
+		z.showResponse(options.File, request, response, options.Verbose)
 	}
 
 	return nil

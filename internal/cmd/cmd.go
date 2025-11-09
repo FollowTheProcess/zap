@@ -36,7 +36,6 @@ func Build(ctx context.Context) (*cli.Command, error) {
 		),
 		cli.Example("Check for syntax errors in a file", "zap check ./demo.http"),
 		cli.Example("Check for syntax errors in multiple files (recursively)", "zap check ./examples"),
-		cli.Allow(cli.NoArgs()),
 		cli.Flag(&debug, "debug", 'd', false, "Enable debug logs"),
 		cli.SubCommands(
 			run(ctx),
@@ -44,7 +43,7 @@ func Build(ctx context.Context) (*cli.Command, error) {
 			export(ctx),
 			test(ctx),
 		),
-		cli.Run(func(cmd *cli.Command, args []string) error {
+		cli.Run(func(cmd *cli.Command) error {
 			app := zap.New(debug, version, os.Stdin, os.Stdout, os.Stderr)
 			app.Hello(ctx)
 

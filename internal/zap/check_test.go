@@ -30,7 +30,7 @@ func TestCheckValid(t *testing.T) {
 
 			app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-			err := app.Check(t.Context(), file, simpleErrorHandler(stderr), zap.CheckOptions{})
+			err := app.Check(t.Context(), simpleErrorHandler(stderr), zap.CheckOptions{Path: file})
 			test.Ok(t, err)
 
 			test.Diff(t, stdout.String(), fmt.Sprintf("Success: %s is valid\n", file))
@@ -51,7 +51,7 @@ func TestCheckValidDir(t *testing.T) {
 
 	app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-	err = app.Check(t.Context(), path, simpleErrorHandler(stderr), zap.CheckOptions{})
+	err = app.Check(t.Context(), simpleErrorHandler(stderr), zap.CheckOptions{Path: path})
 	test.Ok(t, err)
 
 	s := &strings.Builder{}
@@ -80,7 +80,7 @@ func TestCheckInvalid(t *testing.T) {
 
 			app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-			err := app.Check(t.Context(), file, simpleErrorHandler(stderr), zap.CheckOptions{})
+			err := app.Check(t.Context(), simpleErrorHandler(stderr), zap.CheckOptions{Path: file})
 			test.Err(t, err)
 
 			test.Equal(t, stdout.String(), "")

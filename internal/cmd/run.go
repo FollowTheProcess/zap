@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.followtheprocess.codes/cli"
+	"go.followtheprocess.codes/cli/flag"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/zap"
 )
@@ -36,30 +37,30 @@ func run(ctx context.Context) func() (*cli.Command, error) {
 			"run",
 			cli.Short("Execute one or more http requests from a file"),
 			cli.Long(runLong),
-			cli.RequiredArg("file", "Path to the .http file"),
-			cli.Flag(&options.Timeout, "timeout", cli.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
+			cli.Arg(&options.File, "file", "Path to the .http file"),
+			cli.Flag(&options.Timeout, "timeout", flag.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
 			cli.Flag(
 				&options.ConnectionTimeout,
 				"connection-timeout",
-				cli.NoShortHand,
+				flag.NoShortHand,
 				zap.DefaultConnectionTimeout,
 				"Connection timeout for the request",
 			),
 			cli.Flag(
 				&options.OverallTimeout,
 				"overall-timeout",
-				cli.NoShortHand,
+				flag.NoShortHand,
 				zap.DefaultOverallTimeout,
 				"Overall timeout for the execution",
 			),
-			cli.Flag(&options.NoRedirect, "no-redirect", cli.NoShortHand, false, "Disable following redirects"),
+			cli.Flag(&options.NoRedirect, "no-redirect", flag.NoShortHand, false, "Disable following redirects"),
 			cli.Flag(&options.Output, "output", 'o', "stdout", "Output format, one of (stdout|json|yaml)"),
 			cli.Flag(&options.Requests, "request", 'r', nil, "Name(s) of requests to execute"),
 			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional response data"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
-			cli.Run(func(cmd *cli.Command, args []string) error {
+			cli.Run(func(cmd *cli.Command) error {
 				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-				return app.Run(ctx, cmd.Arg("file"), syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+				return app.Run(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
 			}),
 		)
 	}

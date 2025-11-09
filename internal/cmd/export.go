@@ -16,7 +16,7 @@ func export(ctx context.Context) func() (*cli.Command, error) {
 		return cli.New(
 			"export",
 			cli.Short("Export a .http file to an alternative format"),
-			cli.RequiredArg("file", "Path to the .http file"),
+			cli.Arg(&options.File, "file", "Path to the .http file"),
 			cli.Flag(
 				&options.Format,
 				"format",
@@ -25,9 +25,9 @@ func export(ctx context.Context) func() (*cli.Command, error) {
 				"Export format, one of (json|curl|yaml|toml|postman)",
 			),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
-			cli.Run(func(cmd *cli.Command, args []string) error {
+			cli.Run(func(cmd *cli.Command) error {
 				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-				return app.Export(ctx, cmd.Arg("file"), syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+				return app.Export(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
 			}),
 		)
 	}

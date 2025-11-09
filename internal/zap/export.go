@@ -23,6 +23,9 @@ const (
 
 // ExportOptions are the flags passed to the export subcommand.
 type ExportOptions struct {
+	// File is the file name of the http file to export.
+	File string
+
 	// Format is the format of the export e.g. curl, postman etc.
 	Format string
 
@@ -42,19 +45,23 @@ func (e ExportOptions) Validate() error {
 }
 
 // Export handles the export subcommand.
-func (z Zap) Export(ctx context.Context, file string, handler syntax.ErrorHandler, options ExportOptions) error {
+func (z Zap) Export(ctx context.Context, handler syntax.ErrorHandler, options ExportOptions) error {
 	logger := z.logger.Prefixed("export")
 
 	logger.Debug("Export configuration", slog.String("options", fmt.Sprintf("%+v", options)))
 
 	start := time.Now()
 
-	httpFile, err := z.parseFile(file, handler)
+	httpFile, err := z.parseFile(options.File, handler)
 	if err != nil {
 		return err
 	}
 
-	logger.Debug("Parsed file successfully", slog.String("file", file), slog.Duration("took", time.Since(start)))
+	logger.Debug(
+		"Parsed file successfully",
+		slog.String("file", options.File),
+		slog.Duration("took", time.Since(start)),
+	)
 
 	httpFile, err = z.evaluateAllPrompts(logger, httpFile)
 	if err != nil {

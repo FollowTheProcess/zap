@@ -12,6 +12,9 @@ import (
 
 // TestOptions are the options passed to the test subcommand.
 type TestOptions struct {
+	// Path is the path to test, may be a directory or a file.
+	Path string
+
 	// Requests are the names of specific requests to be run.
 	//
 	// Empty or nil means run all requests in the file.
@@ -66,8 +69,8 @@ func (t TestOptions) Validate() error {
 }
 
 // Test implements the test subcommand.
-func (z Zap) Test(ctx context.Context, path string, handler syntax.ErrorHandler, options TestOptions) error {
-	logger := z.logger.Prefixed("test").With(slog.String("path", path))
+func (z Zap) Test(ctx context.Context, handler syntax.ErrorHandler, options TestOptions) error {
+	logger := z.logger.Prefixed("test").With(slog.String("path", options.Path))
 	logger.Debug("Collecting tests in path")
 
 	return nil
