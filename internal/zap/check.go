@@ -16,16 +16,19 @@ import (
 
 // CheckOptions are the options passed to the check subcommand.
 type CheckOptions struct {
+	// Path is the path (file or directory) to check.
+	Path string
+
 	// Debug enables debug logging.
 	Debug bool
 }
 
 // Check implements the check subcommand.
-func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler, options CheckOptions) error {
-	logger := z.logger.Prefixed("check").With(slog.String("path", path))
+func (z Zap) Check(ctx context.Context, handler syntax.ErrorHandler, options CheckOptions) error {
+	logger := z.logger.Prefixed("check").With(slog.String("path", options.Path))
 	logger.Debug("Checking path")
 
-	info, err := os.Stat(path)
+	info, err := os.Stat(options.Path)
 	if err != nil {
 		return fmt.Errorf("could not get path info: %w", err)
 	}
@@ -35,7 +38,7 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 	if info.IsDir() {
 		logger.Debug("Path is a directory")
 
-		err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		err = filepath.WalkDir(options.Path, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -47,12 +50,12 @@ func (z Zap) Check(ctx context.Context, path string, handler syntax.ErrorHandler
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("could not walk %s: %w", path, err)
+			return fmt.Errorf("could not walk %s: %w", options.Path, err)
 		}
 	} else {
 		logger.Debug("Path is a file")
 
-		paths = []string{path}
+		paths = []string{options.Path}
 	}
 
 	logger.Debug("Checking http files given by path", slog.Int("number", len(paths)))

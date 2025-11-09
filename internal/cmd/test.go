@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.followtheprocess.codes/cli"
+	"go.followtheprocess.codes/cli/flag"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/zap"
 )
@@ -38,29 +39,29 @@ func test(ctx context.Context) func() (*cli.Command, error) {
 			"test",
 			cli.Short("Run http requests as tests"),
 			cli.Long(testLong),
-			cli.OptionalArg("path", "Path to test, may be directory or file", "."),
-			cli.Flag(&options.Timeout, "timeout", cli.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
+			cli.Arg(&options.Path, "path", "Path to test, may be directory or file", cli.ArgDefault(".")),
+			cli.Flag(&options.Timeout, "timeout", flag.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
 			cli.Flag(
 				&options.ConnectionTimeout,
 				"connection-timeout",
-				cli.NoShortHand,
+				flag.NoShortHand,
 				zap.DefaultConnectionTimeout,
 				"Connection timeout for the request",
 			),
 			cli.Flag(
 				&options.OverallTimeout,
 				"overall-timeout",
-				cli.NoShortHand,
+				flag.NoShortHand,
 				zap.DefaultOverallTimeout,
 				"Overall timeout for the execution",
 			),
-			cli.Flag(&options.NoRedirect, "no-redirect", cli.NoShortHand, false, "Disable following redirects"),
+			cli.Flag(&options.NoRedirect, "no-redirect", flag.NoShortHand, false, "Disable following redirects"),
 			cli.Flag(&options.Requests, "request", 'r', nil, "Name(s) of requests to test"),
 			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional test information"),
 			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
-			cli.Run(func(cmd *cli.Command, args []string) error {
+			cli.Run(func(cmd *cli.Command) error {
 				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-				return app.Test(ctx, cmd.Arg("path"), syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+				return app.Test(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
 			}),
 		)
 	}
