@@ -30,11 +30,16 @@ tasks:
 
   fmt:
     desc: Run go fmt on all source files
+    preconditions:
+      - sh: command -v rumdl
+        msg: rumdl not installed, see https://github.com/rvben/rumdl#installation
     sources:
       - "**/*.go"
       - .golangci.yml
+      - "**/*.md"
     cmds:
       - golangci-lint fmt ./...
+      - rumdl fmt --fix .
 
   test:
     desc: Run the test suite
@@ -95,15 +100,17 @@ tasks:
     sources:
       - "**/*.go"
       - .golangci.yml
+      - "**/*.md"
     preconditions:
-      - sh: command -v golangci-lint
-        msg: golangci-lint not installed, see https://golangci-lint.run/usage/install/#local-installation
+      - sh: command -v rumdl
+        msg: rumdl not installed, see https://github.com/rvben/rumdl#installation
 
       - sh: command -v typos
         msg: requires typos-cli, run `brew install typos-cli`
     cmds:
       - golangci-lint run --fix
       - typos
+      - rumdl check --fix .
 
   doc:
     desc: Render the pkg docs locally
