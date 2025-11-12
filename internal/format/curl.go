@@ -14,11 +14,15 @@ import (
 var curlTempl string
 
 // curlFunctions are custom template functions available in the curlTemplate.
+//
+//nolint:gochecknoglobals // This has to be here
 var curlFunctions = template.FuncMap{
 	"trim": strings.TrimSpace,
 }
 
 // curlTemplate is the parsed curl command line text/template.
+//
+//nolint:gochecknoglobals // Having the template as a global means it's parsed only once
 var curlTemplate = template.Must(template.New("curl").Funcs(curlFunctions).Parse(curlTempl))
 
 // CurlExporter is an [Exporter] that transforms .http files into curl shell scripts.

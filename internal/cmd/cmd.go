@@ -9,6 +9,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/zap"
 )
 
+//nolint:gochecknoglobals // These have to be here
 var (
 	version = "dev"
 	commit  = ""
