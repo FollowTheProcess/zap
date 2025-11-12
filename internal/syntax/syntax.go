@@ -302,6 +302,10 @@ func (p Prompt) String() string {
 // PrettyConsoleHandler returns a [ErrorHandler] that formats the syntax error for
 // display on the terminal to a user.
 func PrettyConsoleHandler(w io.Writer) ErrorHandler {
+	// TODO(@FollowTheProcess): This currently reads the whole file every time it's called
+	// maybe we should gather up parse errors and then handle them "prettily" once at the end.
+	//
+	// It also shouldn't live in here
 	return func(pos Position, msg string) {
 		// TODO(@FollowTheProcess): This is a bit better but still some improvement I think
 		fmt.Fprintf(w, "%s: %s\n\n", pos, msg)
