@@ -9,26 +9,24 @@ import (
 )
 
 // export returns the zap export subcommand.
-func export(ctx context.Context) func() (*cli.Command, error) {
-	return func() (*cli.Command, error) {
-		var options zap.ExportOptions
+func export() (*cli.Command, error) {
+	var options zap.ExportOptions
 
-		return cli.New(
-			"export",
-			cli.Short("Export a .http file to an alternative format"),
-			cli.Arg(&options.File, "file", "Path to the .http file"),
-			cli.Flag(
-				&options.Format,
-				"format",
-				'f',
-				"json",
-				"Export format, one of (json|curl|yaml|toml|postman)",
-			),
-			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
-			cli.Run(func(cmd *cli.Command) error {
-				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-				return app.Export(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
-			}),
-		)
-	}
+	return cli.New(
+		"export",
+		cli.Short("Export a .http file to an alternative format"),
+		cli.Arg(&options.File, "file", "Path to the .http file"),
+		cli.Flag(
+			&options.Format,
+			"format",
+			'f',
+			"Export format, one of (json|curl|yaml|toml|postman)",
+			cli.FlagDefault("json"),
+		),
+		cli.Flag(&options.Debug, "debug", 'd', "Enable debug logging"),
+		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
+			app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
+			return app.Export(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+		}),
+	)
 }

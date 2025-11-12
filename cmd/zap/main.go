@@ -23,10 +23,10 @@ func run() error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer cancel()
 
-	cli, err := cmd.Build(ctx)
+	cli, err := cmd.Build()
 	if err != nil {
 		return err
 	}
 
-	return cli.Execute()
+	return cli.Execute(ctx)
 }

@@ -19,20 +19,18 @@ files with the '.http' extension and any matching files will be validated.
 `
 
 // check returns the check subcommand.
-func check(ctx context.Context) func() (*cli.Command, error) {
-	return func() (*cli.Command, error) {
-		var options zap.CheckOptions
+func check() (*cli.Command, error) {
+	var options zap.CheckOptions
 
-		return cli.New(
-			"check",
-			cli.Short("Check http files for syntax errors"),
-			cli.Long(checkLong),
-			cli.Arg(&options.Path, "path", "The path to check", cli.ArgDefault(".")),
-			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
-			cli.Run(func(cmd *cli.Command) error {
-				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-				return app.Check(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
-			}),
-		)
-	}
+	return cli.New(
+		"check",
+		cli.Short("Check http files for syntax errors"),
+		cli.Long(checkLong),
+		cli.Arg(&options.Path, "path", "The path to check", cli.ArgDefault(".")),
+		cli.Flag(&options.Debug, "debug", 'd', "Enable debug logging"),
+		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
+			app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
+			return app.Check(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+		}),
+	)
 }

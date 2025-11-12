@@ -29,39 +29,43 @@ json by passing '--output json'.
 `
 
 // run returns the zap run subcommand.
-func run(ctx context.Context) func() (*cli.Command, error) {
-	return func() (*cli.Command, error) {
-		var options zap.RunOptions
+func run() (*cli.Command, error) {
+	var options zap.RunOptions
 
-		return cli.New(
-			"run",
-			cli.Short("Execute one or more http requests from a file"),
-			cli.Long(runLong),
-			cli.Arg(&options.File, "file", "Path to the .http file"),
-			cli.Flag(&options.Timeout, "timeout", flag.NoShortHand, zap.DefaultTimeout, "Timeout for the request"),
-			cli.Flag(
-				&options.ConnectionTimeout,
-				"connection-timeout",
-				flag.NoShortHand,
-				zap.DefaultConnectionTimeout,
-				"Connection timeout for the request",
-			),
-			cli.Flag(
-				&options.OverallTimeout,
-				"overall-timeout",
-				flag.NoShortHand,
-				zap.DefaultOverallTimeout,
-				"Overall timeout for the execution",
-			),
-			cli.Flag(&options.NoRedirect, "no-redirect", flag.NoShortHand, false, "Disable following redirects"),
-			cli.Flag(&options.Output, "output", 'o', "stdout", "Output format, one of (stdout|json|yaml)"),
-			cli.Flag(&options.Requests, "request", 'r', nil, "Name(s) of requests to execute"),
-			cli.Flag(&options.Verbose, "verbose", 'v', false, "Show additional response data"),
-			cli.Flag(&options.Debug, "debug", 'd', false, "Enable debug logging"),
-			cli.Run(func(cmd *cli.Command) error {
-				app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-				return app.Run(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
-			}),
-		)
-	}
+	return cli.New(
+		"run",
+		cli.Short("Execute one or more http requests from a file"),
+		cli.Long(runLong),
+		cli.Arg(&options.File, "file", "Path to the .http file"),
+		cli.Flag(
+			&options.Timeout,
+			"timeout",
+			flag.NoShortHand,
+			"Timeout for the request",
+			cli.FlagDefault(zap.DefaultTimeout),
+		),
+		cli.Flag(
+			&options.ConnectionTimeout,
+			"connection-timeout",
+			flag.NoShortHand,
+			"Connection timeout for the request",
+			cli.FlagDefault(zap.DefaultConnectionTimeout),
+		),
+		cli.Flag(
+			&options.OverallTimeout,
+			"overall-timeout",
+			flag.NoShortHand,
+			"Overall timeout for the execution",
+			cli.FlagDefault(zap.DefaultOverallTimeout),
+		),
+		cli.Flag(&options.NoRedirect, "no-redirect", flag.NoShortHand, "Disable following redirects"),
+		cli.Flag(&options.Output, "output", 'o', "Output format, one of (stdout|json|yaml)", cli.FlagDefault("stdout")),
+		cli.Flag(&options.Requests, "request", 'r', "Name(s) of requests to execute"),
+		cli.Flag(&options.Verbose, "verbose", 'v', "Show additional response data"),
+		cli.Flag(&options.Debug, "debug", 'd', "Enable debug logging"),
+		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
+			app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
+			return app.Run(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+		}),
+	)
 }

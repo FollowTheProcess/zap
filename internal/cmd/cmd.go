@@ -20,7 +20,7 @@ var (
 // collections etc. and convert them to .http files
 
 // Build builds and returns the zap CLI.
-func Build(ctx context.Context) (*cli.Command, error) {
+func Build() (*cli.Command, error) {
 	var debug bool
 
 	return cli.New(
@@ -37,14 +37,14 @@ func Build(ctx context.Context) (*cli.Command, error) {
 		),
 		cli.Example("Check for syntax errors in a file", "zap check ./demo.http"),
 		cli.Example("Check for syntax errors in multiple files (recursively)", "zap check ./examples"),
-		cli.Flag(&debug, "debug", 'd', false, "Enable debug logs"),
+		cli.Flag(&debug, "debug", 'd', "Enable debug logs"),
 		cli.SubCommands(
-			run(ctx),
-			check(ctx),
-			export(ctx),
-			test(ctx),
+			run,
+			check,
+			export,
+			test,
 		),
-		cli.Run(func(cmd *cli.Command) error {
+		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
 			app := zap.New(debug, version, os.Stdin, os.Stdout, os.Stderr)
 			app.Hello(ctx)
 
