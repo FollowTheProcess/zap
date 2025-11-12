@@ -57,9 +57,6 @@ linters:
           - maintidx # Flags table driven tests
 
   settings:
-    cyclop:
-      max-complexity: 20
-
     depguard:
       rules:
         main:
