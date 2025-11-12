@@ -1,7 +1,7 @@
 # Zap
 
 <p align="center">
-<img src="https://github.com/FollowTheProcess/zap/raw/main/docs/img/logo.png" alt="logo">
+<img src="https://github.com/FollowTheProcess/zap/raw/main/docs/img/logo.webp" alt="logo" width=80%>
 </p>
 
 [![License](https://img.shields.io/github/license/FollowTheProcess/zap)](https://github.com/FollowTheProcess/zap)
