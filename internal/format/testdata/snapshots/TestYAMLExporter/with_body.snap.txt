@@ -1,5 +1,0 @@
-name: with body
-requests:
-  - method: POST
-    url: https://somewhere.org/api/items/1
-    body: '{"stuff":"here"}'

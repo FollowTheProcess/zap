@@ -1,0 +1,8 @@
+source: curl_test.go
+expression: buf.String()
+---
+|2
+
+  curl \
+      --request GET \
+      https://api.nowhere.com/v1/items/1234

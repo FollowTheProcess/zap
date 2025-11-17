@@ -1,0 +1,8 @@
+source: syntax_test.go
+expression: tt.file.String()
+---
+|+
+  @name = NoRedirect
+
+  @no-redirect = true
+

@@ -1,4 +1,0 @@
-@name = NoRedirect
-
-@no-redirect = true
-

@@ -1,0 +1,14 @@
+source: json_test.go
+expression: buf.String()
+---
+|
+  {
+    "name": "with response file",
+    "requests": [
+      {
+        "method": "GET",
+        "url": "https://api.elsehwere.new/users/1",
+        "responseFile": "response.200.json"
+      }
+    ]
+  }

@@ -306,7 +306,6 @@ func TestFileString(t *testing.T) {
 				t,
 				snapshot.Update(*update),
 				snapshot.Clean(*clean),
-				snapshot.Color(true),
 			)
 			snap.Snap(tt.file.String())
 		})

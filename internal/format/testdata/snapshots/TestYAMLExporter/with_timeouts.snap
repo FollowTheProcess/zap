@@ -1,0 +1,10 @@
+source: yaml_test.go
+expression: buf.String()
+---
+|
+  name: with timeouts
+  requests:
+    - method: DELETE
+      url: https://somewhere.org/api
+      timeout: 15s
+      connectionTimeout: 1s

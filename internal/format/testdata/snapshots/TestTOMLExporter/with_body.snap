@@ -1,0 +1,14 @@
+source: toml_test.go
+expression: buf.String()
+---
+|
+  name = "with body"
+  timeout = "0s"
+  connectionTimeout = "0s"
+
+  [[requests]]
+  method = "POST"
+  url = "https://somewhere.org/api/items/1"
+  body = "{\"stuff\":\"here\"}"
+  timeout = "0s"
+  connectionTimeout = "0s"

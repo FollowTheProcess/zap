@@ -1,0 +1,14 @@
+source: toml_test.go
+expression: buf.String()
+---
+|
+  name = "with body file"
+  timeout = "0s"
+  connectionTimeout = "0s"
+
+  [[requests]]
+  method = "POST"
+  url = "https://somewhere.org/api/items/1"
+  bodyFile = "a/file.txt"
+  timeout = "0s"
+  connectionTimeout = "0s"

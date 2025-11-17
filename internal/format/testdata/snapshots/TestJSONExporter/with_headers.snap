@@ -1,0 +1,27 @@
+source: json_test.go
+expression: buf.String()
+---
+|
+  {
+    "name": "with headers",
+    "requests": [
+      {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ],
+          "User-Agent": [
+            "go.followtheprocess.codes/zap test"
+          ],
+          "X-Custom-Header": [
+            "yes"
+          ]
+        },
+        "method": "GET",
+        "url": "https://jsonplaceholder.typicode.com/todos/1"
+      }
+    ]
+  }

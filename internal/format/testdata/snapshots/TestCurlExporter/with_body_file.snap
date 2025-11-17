@@ -1,0 +1,10 @@
+source: curl_test.go
+expression: buf.String()
+---
+|2
+
+  curl \
+      --request POST \
+      --location \
+      --data @a/file.txt \
+      https://somewhere.org/api/items/1
