@@ -5,7 +5,6 @@ import (
 
 	"go.followtheprocess.codes/cli"
 	"go.followtheprocess.codes/cli/flag"
-	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/zap"
 )
 
@@ -66,7 +65,7 @@ func test() (*cli.Command, error) {
 		cli.Flag(&options.Debug, "debug", 'd', "Enable debug logging"),
 		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
 			app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-			return app.Test(ctx, syntax.PrettyConsoleHandler(cmd.Stderr()), options)
+			return app.Test(ctx, zap.PrettyConsoleHandler(cmd.Stderr()), options)
 		}),
 	)
 }

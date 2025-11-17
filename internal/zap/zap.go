@@ -3,12 +3,15 @@
 package zap
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"strings"
 
+	"go.followtheprocess.codes/hue"
 	"go.followtheprocess.codes/log"
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
@@ -86,4 +89,48 @@ func (z Zap) parseFile(file string, handler syntax.ErrorHandler) (spec.File, err
 	}
 
 	return resolved, nil
+}
+
+// PrettyConsoleHandler returns a [ErrorHandler] that formats the syntax error for
+// display on the terminal to a user.
+func PrettyConsoleHandler(w io.Writer) syntax.ErrorHandler {
+	// TODO(@FollowTheProcess): This currently reads the whole file every time it's called
+	// maybe we should gather up parse errors and then handle them "prettily" once at the end.
+	//
+	// It also shouldn't live in here
+	return func(pos syntax.Position, msg string) {
+		// TODO(@FollowTheProcess): This is a bit better but still some improvement I think
+		fmt.Fprintf(w, "%s: %s\n\n", pos, msg)
+
+		contents, err := os.ReadFile(pos.Name)
+		if err != nil {
+			fmt.Fprintf(w, "unable to show src context: %v\n", err)
+			return
+		}
+
+		lines := bytes.Split(contents, []byte("\n"))
+
+		const contextLines = 3
+
+		startLine := max(pos.Line-contextLines, 0)
+		endLine := min(pos.Line+contextLines, len(lines))
+
+		for i, line := range lines {
+			i++ // Lines are 1 indexed
+			if i >= startLine && i <= endLine {
+				// Note: This is U+2502/"Box Drawings Light Vertical" NOT standard vertical pipe '|'
+				margin := fmt.Sprintf("%d │ ", i)
+				fmt.Fprintf(w, "%s%s\n", margin, line)
+
+				if i == pos.Line {
+					hue.Red.Fprintf(
+						w,
+						"%s%s\n",
+						strings.Repeat(" ", len(margin)+pos.StartCol-1),
+						strings.Repeat("─", pos.EndCol-pos.StartCol),
+					)
+				}
+			}
+		}
+	}
 }
