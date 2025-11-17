@@ -1,0 +1,14 @@
+source: syntax_test.go
+expression: tt.file.String()
+---
+|
+  @name = Requests
+
+  @base = https://api.com/v1
+
+  ###
+  # @name = AnotherRequest
+  POST https://api.com/v1/items/123
+
+  < ./body.json
+  <> response.json

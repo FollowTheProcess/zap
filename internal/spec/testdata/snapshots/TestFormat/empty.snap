@@ -1,0 +1,4 @@
+source: spec_test.go
+expression: tt.file.String()
+---
+"\n"

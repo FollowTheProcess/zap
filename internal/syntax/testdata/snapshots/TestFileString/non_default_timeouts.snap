@@ -1,0 +1,9 @@
+source: syntax_test.go
+expression: tt.file.String()
+---
+|+
+  @name = Timeouts
+
+  @timeout = 42s
+  @connection-timeout = 12s
+

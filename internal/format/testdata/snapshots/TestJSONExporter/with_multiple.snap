@@ -1,0 +1,62 @@
+source: json_test.go
+expression: buf.String()
+---
+|
+  {
+    "name": "with multiple",
+    "requests": [
+      {
+        "method": "GET",
+        "url": "https://api.nowhere.com/v1/items/1234"
+      },
+      {
+        "method": "GET",
+        "url": "https://api.nowhere.com/v1/items/1234",
+        "noRedirect": true
+      },
+      {
+        "method": "GET",
+        "url": "https://api.elsehwere.new/users/1",
+        "responseFile": "response.200.json"
+      },
+      {
+        "headers": {
+          "Accept": [
+            "application/json"
+          ],
+          "Content-Type": [
+            "application/json"
+          ],
+          "User-Agent": [
+            "go.followtheprocess.codes/zap test"
+          ],
+          "X-Custom-Header": [
+            "yes"
+          ]
+        },
+        "method": "GET",
+        "url": "https://jsonplaceholder.typicode.com/todos/1"
+      },
+      {
+        "method": "DELETE",
+        "url": "https://somewhere.org/api",
+        "timeout": 15000000000,
+        "connectionTimeout": 1000000000
+      },
+      {
+        "method": "POST",
+        "url": "https://somewhere.org/api/items/1",
+        "body": "{\"stuff\":\"here\"}"
+      },
+      {
+        "method": "POST",
+        "url": "https://somewhere.org/api/items/1",
+        "bodyFile": "a/file.txt"
+      },
+      {
+        "method": "GET",
+        "url": "https://api.elsehwere.new/users/1",
+        "responseFile": "response.200.json"
+      }
+    ]
+  }

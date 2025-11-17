@@ -1,7 +1,0 @@
-
-curl \
-    --request DELETE \
-    --location \
-    --connect-timeout 1 \
-    --max-time 15 \
-    https://somewhere.org/api

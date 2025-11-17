@@ -1,0 +1,9 @@
+source: spec_test.go
+expression: tt.file.String()
+---
+|+
+  @name = SomeVars
+
+  @base = https://url.com/api/v1
+  @hello = world
+

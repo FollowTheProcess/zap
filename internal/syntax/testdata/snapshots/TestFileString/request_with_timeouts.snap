@@ -1,0 +1,14 @@
+source: syntax_test.go
+expression: tt.file.String()
+---
+|
+  @name = Requests
+
+  @base = https://api.com/v1
+
+  ### This time it's a POST
+  # @name = AnotherRequest
+  # @timeout = 3s
+  # @connection-timeout = 500ms
+  # @no-redirect = true
+  POST https://api.com/v1/items/123

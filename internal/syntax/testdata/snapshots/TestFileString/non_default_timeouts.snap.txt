@@ -1,5 +1,0 @@
-@name = Timeouts
-
-@timeout = 42s
-@connection-timeout = 12s
-

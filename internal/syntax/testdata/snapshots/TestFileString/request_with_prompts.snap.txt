@@ -1,7 +1,0 @@
-@base = https://api.com/v1
-
-###
-@prompt id The ID of the item
-POST https://api.com/v1/items/{{ id }}
-
-> ./response.json

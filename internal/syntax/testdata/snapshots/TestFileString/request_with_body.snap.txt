@@ -1,9 +1,0 @@
-@name = Requests
-
-@base = https://api.com/v1
-
-### This time with JSON body
-# @name = PostJSON
-POST https://api.com/v1/items/123
-
-{"some": "json", "here": "yes"}

@@ -1,0 +1,4 @@
+source: spec_test.go
+expression: tt.file.String()
+---
+"@name = Requests\n\n@base = https://api.com/v1\n\n###\n# @name = Another Request\nPOST https://api.com/v1/items/123\nAccept: application/json\r\nAuthorization: Bearer xxxxx\r\nContent-Type: application/json\r\n"

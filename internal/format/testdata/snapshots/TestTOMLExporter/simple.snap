@@ -1,0 +1,13 @@
+source: toml_test.go
+expression: buf.String()
+---
+|
+  name = "simple"
+  timeout = "0s"
+  connectionTimeout = "0s"
+
+  [[requests]]
+  method = "GET"
+  url = "https://api.nowhere.com/v1/items/1234"
+  timeout = "0s"
+  connectionTimeout = "0s"
