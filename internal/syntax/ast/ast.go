@@ -12,6 +12,9 @@ type Node interface {
 
 	// End returns the last token associated with the node.
 	End() token.Token
+
+	// Kind returns the kind of node this is.
+	Kind() Kind
 }
 
 // File is an ast [Node] representing a single .http file.
@@ -21,6 +24,9 @@ type File struct {
 
 	// Statements is the list of ast statements in the file.
 	Statements []Statement
+
+	// Type is the type of the node, in this case [KindFile].
+	Type Kind
 }
 
 // Start returns the first token in a file.
@@ -41,4 +47,9 @@ func (f File) End() token.Token {
 	}
 
 	return f.Statements[len(f.Statements)-1].End()
+}
+
+// Kind returns [KindFile].
+func (f File) Kind() Kind {
+	return f.Type
 }

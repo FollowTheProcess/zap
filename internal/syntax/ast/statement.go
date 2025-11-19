@@ -19,6 +19,9 @@ type VarStatement struct {
 
 	// At is the '@' token declaring the variable.
 	At token.Token
+
+	// Type is the kind of node.
+	Type Kind
 }
 
 // Start returns the first token in a VarStatement, which is
@@ -31,6 +34,11 @@ func (v VarStatement) Start() token.Token {
 // the final token in the value expression.
 func (v VarStatement) End() token.Token {
 	return v.Value.End()
+}
+
+// Kind returns [KindVarStatement].
+func (v VarStatement) Kind() Kind {
+	return v.Type
 }
 
 // statementNode marks a [VarStatement] as an [ast.Statement].
