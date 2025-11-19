@@ -31,3 +31,27 @@ func (i Ident) End() token.Token {
 
 // statementNode marks an [Ident] as an [ast.Expression].
 func (i Ident) expressionNode() {}
+
+// TextLiteral is a literal text expression.
+type TextLiteral struct {
+	// The text value (unquoted)
+	Value string
+
+	// The [token.Text] token.
+	Token token.Token
+}
+
+// Start returns the first token of the TextLiteral, which is
+// obviously just the [token.Text].
+func (t TextLiteral) Start() token.Token {
+	return t.Token
+}
+
+// End returns the last token in the TextLiteral, which is also
+// the [token.Text].
+func (t TextLiteral) End() token.Token {
+	return t.Token
+}
+
+// statementNode marks a [TextLiteral] as an [ast.Expression].
+func (t TextLiteral) expressionNode() {}
