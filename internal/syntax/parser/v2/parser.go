@@ -1,4 +1,13 @@
 // Package parser implements the new .http file parser.
+//
+// The original parser was "dumb" in the sense that it could handle http syntax but as
+// I went to implement more complex features like more interpolation expressions, loading
+// env vars using {{ env.VAR }}, and referring to previous requests responses via their
+// name e.g. {{ requests.<name>.response.body }} I realised I needed to re-think the implementation.
+//
+// So this parser (which will eventually replace the existing one) parses a http file into
+// a proper abstract syntax tree, which will then allow things like expression precedence
+// and proper scoped variable resolution.
 package parser
 
 import (
