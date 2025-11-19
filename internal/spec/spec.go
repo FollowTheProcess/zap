@@ -29,6 +29,9 @@ import (
 // into a spec.File, and that is the canonical representation. We can transform a spec.File into a
 // postman collection, a JSON document, a YAML document, a collection of curl snippets etc. and vice
 // versa for importing those formats.
+//
+// I think to do this properly I might need an AST, that way I can properly pick apart templating
+// and e.g. resolve references from one requests response being used in another request's variables.
 
 // TODO(@FollowTheProcess): Comprehensive tests for resolving files, can do that when I move the eval
 // of templates to the resolve stage
