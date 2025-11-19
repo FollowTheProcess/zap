@@ -66,6 +66,7 @@ func (p *Parser) Parse() (ast.File, error) {
 	file := ast.File{
 		Name:       p.name,
 		Statements: make([]ast.Statement, 0),
+		Type:       ast.KindFile,
 	}
 
 	for !p.current.Is(token.EOF) {
@@ -237,7 +238,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 // parseVarStatement parses a variable declaration statement.
 func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 	result := ast.VarStatement{
-		At: p.current,
+		At:   p.current,
+		Type: ast.KindVarStatement,
 	}
 
 	if err := p.expect(token.Ident); err != nil {
@@ -247,6 +249,7 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 	result.Ident = ast.Ident{
 		Name:  p.text(),
 		Token: p.current,
+		Type:  ast.KindIdent,
 	}
 
 	// Optional '='
@@ -282,6 +285,7 @@ func (p *Parser) parseTextLiteral() (ast.TextLiteral, error) {
 	text := ast.TextLiteral{
 		Value: p.text(),
 		Token: p.current,
+		Type:  ast.KindTextLiteral,
 	}
 
 	return text, nil

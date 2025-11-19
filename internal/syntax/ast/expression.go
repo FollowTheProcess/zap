@@ -15,6 +15,9 @@ type Ident struct {
 
 	// The [token.Ident] token.
 	Token token.Token
+
+	// Type is the kind of ast node, in this case [KindIdent].
+	Type Kind
 }
 
 // Start returns the first token in the Ident, which is
@@ -29,6 +32,11 @@ func (i Ident) End() token.Token {
 	return i.Token
 }
 
+// Kind returns [KindIdent].
+func (i Ident) Kind() Kind {
+	return i.Type
+}
+
 // statementNode marks an [Ident] as an [ast.Expression].
 func (i Ident) expressionNode() {}
 
@@ -39,6 +47,9 @@ type TextLiteral struct {
 
 	// The [token.Text] token.
 	Token token.Token
+
+	// Type is [KindTextLiteral].
+	Type Kind
 }
 
 // Start returns the first token of the TextLiteral, which is
@@ -51,6 +62,11 @@ func (t TextLiteral) Start() token.Token {
 // the [token.Text].
 func (t TextLiteral) End() token.Token {
 	return t.Token
+}
+
+// Kind returns [KindTextLiteral].
+func (t TextLiteral) Kind() Kind {
+	return t.Type
 }
 
 // statementNode marks a [TextLiteral] as an [ast.Expression].

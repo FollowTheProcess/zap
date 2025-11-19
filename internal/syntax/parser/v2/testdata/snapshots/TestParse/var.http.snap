@@ -1,0 +1,25 @@
+source: parser_test.go
+expression: parsed
+---
+name: var.http
+statements:
+  - value:
+      value: something
+      token:
+        kind: Text
+        start: 8
+        end: 17
+      type: TextLiteral
+    ident:
+      name: test
+      token:
+        kind: Ident
+        start: 1
+        end: 5
+      type: Ident
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: VarStatement
+type: File
