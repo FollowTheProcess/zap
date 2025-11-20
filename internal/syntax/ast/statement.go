@@ -20,7 +20,7 @@ type VarStatement struct {
 	// At is the '@' token declaring the variable.
 	At token.Token
 
-	// Type is the kind of node.
+	// Type is the kind of node [KindVarStatement].
 	Type Kind
 }
 
@@ -43,3 +43,46 @@ func (v VarStatement) Kind() Kind {
 
 // statementNode marks a [VarStatement] as an [ast.Statement].
 func (v VarStatement) statementNode() {}
+
+// A PromptStatement is a single prompt declaration.
+type PromptStatement struct {
+	// Ident is the [Ident] node representing the identifier
+	// the prompt Value is being assigned to.
+	Ident Ident
+
+	// Description is the [Text] node containing the description
+	// of the prompt.
+	Description TextLiteral
+
+	// At is the '@' token declaring the prompt.
+	At token.Token
+
+	// Type is the kind of the node, in this case
+	// [KindPromptStatement].
+	Type Kind
+}
+
+// Start returns the first token in a PromptStatement, which is
+// the opening '@'.
+func (p PromptStatement) Start() token.Token {
+	return p.At
+}
+
+// End returns the final token in a PromptStatement which is
+// either the [TextLiteral] of the description if it's present
+// or the [Ident] if not.
+func (p PromptStatement) End() token.Token {
+	if p.Description.Value != "" {
+		return p.Description.End()
+	}
+
+	return p.Ident.End()
+}
+
+// Kind returns [KindPromptStatement].
+func (p PromptStatement) Kind() Kind {
+	return p.Type
+}
+
+// statementNode marks a [PromptStatement] as an [ast.Statement].
+func (p PromptStatement) statementNode() {}

@@ -13,6 +13,7 @@ const (
 	KindIdent                    // Ident
 	KindTextLiteral              // TextLiteral
 	KindInterp                   // Interp
+	KindPrompt                   // Prompt
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

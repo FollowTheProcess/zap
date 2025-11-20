@@ -1,0 +1,25 @@
+source: parser_test.go
+expression: parsed
+---
+name: prompt.http
+statements:
+  - ident:
+      name: id
+      token:
+        kind: Ident
+        start: 8
+        end: 10
+      type: Ident
+    description:
+      value: User ID
+      token:
+        kind: Text
+        start: 11
+        end: 18
+      type: TextLiteral
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: Prompt
+type: File

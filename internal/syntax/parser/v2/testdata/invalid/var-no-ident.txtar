@@ -1,0 +1,5 @@
+-- src.http --
+@##
+-- want.txt --
+var-no-ident.txtar:1:1-2: expected Ident, got Separator
+var-no-ident.txtar:1:2-3: parseStatement: unrecognised token: Separator
