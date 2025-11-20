@@ -12,6 +12,7 @@ const (
 	KindVarStatement             // VarStatement
 	KindIdent                    // Ident
 	KindTextLiteral              // TextLiteral
+	KindInterp                   // Interp
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

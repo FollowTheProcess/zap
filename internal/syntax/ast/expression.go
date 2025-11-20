@@ -69,5 +69,40 @@ func (t TextLiteral) Kind() Kind {
 	return t.Type
 }
 
-// statementNode marks a [TextLiteral] as an [ast.Expression].
+// expressionNode marks a [TextLiteral] as an [ast.Expression].
 func (t TextLiteral) expressionNode() {}
+
+// Interp is a text interpolation expression.
+type Interp struct {
+	// Expr is the expression inside the interpolation.
+	Expr Expression
+
+	// Open is the opening interpolation token.
+	Open token.Token
+
+	// Close is the closing interpolation token.
+	Close token.Token
+
+	// Type is [KindInterp].
+	Type Kind
+}
+
+// Start returns the first token of the interpolation, i.e
+// the opening [token.OpenInterp].
+func (i Interp) Start() token.Token {
+	return i.Open
+}
+
+// End returns the final token of the interpolation, i.e.
+// the closing [token.CloseInterp].
+func (i Interp) End() token.Token {
+	return i.Close
+}
+
+// Kind returns [KindInterp].
+func (i Interp) Kind() Kind {
+	return i.Type
+}
+
+// expressionNode marks an [Interp] as an [ast.Expression].
+func (i Interp) expressionNode() {}

@@ -48,7 +48,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-// testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
+// testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
 // the enclosing test.
 func testFailHandler(tb testing.TB) syntax.ErrorHandler {
 	tb.Helper()
