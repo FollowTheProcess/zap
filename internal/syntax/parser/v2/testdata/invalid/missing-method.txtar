@@ -1,0 +1,5 @@
+-- src.http --
+### NoMethod
+https://api.something.com/v1
+-- want.txt --
+missing-method.txtar:1:1-4: parseStatement: unrecognised token: Separator

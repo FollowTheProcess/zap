@@ -1,0 +1,5 @@
+-- src.http --
+### Broke
+GET https://ASDFGHJ@£$%^&*( )
+-- want.txt --
+invalid-request-url.txtar:1:1-4: parseStatement: unrecognised token: Separator

@@ -1,0 +1,6 @@
+-- src.http --
+### BadTimeout
+# @timeout = amillionyears
+GET https://github.com/api
+-- want.txt --
+bad-timeout.txtar:1:1-4: parseStatement: unrecognised token: Separator
