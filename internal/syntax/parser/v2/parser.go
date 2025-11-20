@@ -228,6 +228,10 @@ func (p *Parser) synchronise() {
 func (p *Parser) parseStatement() (ast.Statement, error) {
 	switch p.current.Kind {
 	case token.At:
+		if p.next.Is(token.Prompt) {
+			return p.parsePrompt()
+		}
+
 		return p.parseVarStatement()
 	default:
 		p.errorf("parseStatement: unrecognised token: %s", p.current.Kind)
@@ -265,6 +269,42 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 	}
 
 	result.Value = value
+
+	return result, nil
+}
+
+// parsePrompt parses a prompt.
+func (p *Parser) parsePrompt() (ast.PromptStatement, error) {
+	result := ast.PromptStatement{
+		At:   p.current,
+		Type: ast.KindPrompt,
+	}
+
+	if err := p.expect(token.Prompt); err != nil {
+		return result, err
+	}
+
+	if err := p.expect(token.Ident); err != nil {
+		return result, err
+	}
+
+	ident, err := p.parseIdent()
+	if err != nil {
+		return result, err
+	}
+
+	result.Ident = ident
+
+	if p.next.Is(token.Text) {
+		p.advance()
+
+		text, err := p.parseTextLiteral()
+		if err != nil {
+			return result, err
+		}
+
+		result.Description = text
+	}
 
 	return result, nil
 }

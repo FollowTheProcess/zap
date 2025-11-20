@@ -77,6 +77,26 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindInterp,
 		},
 		{
+			name: "prompt",
+			node: ast.PromptStatement{
+				Ident: ast.Ident{
+					Name:  "id",
+					Token: token.Token{Kind: token.Ident, Start: 8, End: 10},
+					Type:  ast.KindIdent,
+				},
+				Description: ast.TextLiteral{
+					Value: "User ID",
+					Token: token.Token{Kind: token.Text, Start: 11, End: 18},
+					Type:  ast.KindTextLiteral,
+				},
+				At:   token.Token{Kind: token.At, Start: 0, End: 1},
+				Type: ast.KindPrompt,
+			},
+			start: token.Token{Kind: token.At, Start: 0, End: 1},
+			end:   token.Token{Kind: token.Text, Start: 11, End: 18},
+			kind:  ast.KindPrompt,
+		},
+		{
 			name: "file",
 			node: ast.File{
 				Name: "test.http",
