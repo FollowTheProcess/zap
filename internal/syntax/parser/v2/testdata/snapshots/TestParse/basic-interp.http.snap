@@ -1,0 +1,35 @@
+source: parser_test.go
+expression: parsed
+---
+name: basic-interp.http
+statements:
+  - value:
+      expr:
+        name: ident
+        token:
+          kind: Ident
+          start: 10
+          end: 15
+        type: Ident
+      open:
+        kind: OpenInterp
+        start: 7
+        end: 9
+      close:
+        kind: CloseInterp
+        start: 16
+        end: 18
+      type: Interp
+    ident:
+      name: var
+      token:
+        kind: Ident
+        start: 1
+        end: 4
+      type: Ident
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: VarStatement
+type: File

@@ -274,6 +274,10 @@ func (p *Parser) parseExpression() (ast.Expression, error) {
 	switch p.current.Kind {
 	case token.Text:
 		return p.parseTextLiteral()
+	case token.OpenInterp:
+		return p.parseInterp()
+	case token.Ident:
+		return p.parseIdent()
 	default:
 		p.errorf("parseExpression: unexpected token %s", p.current.Kind)
 		return nil, ErrParse
@@ -289,4 +293,44 @@ func (p *Parser) parseTextLiteral() (ast.TextLiteral, error) {
 	}
 
 	return text, nil
+}
+
+// parseIdent parses an Ident.
+func (p *Parser) parseIdent() (ast.Ident, error) {
+	ident := ast.Ident{
+		Name:  p.text(),
+		Token: p.current,
+		Type:  ast.KindIdent,
+	}
+
+	return ident, nil
+}
+
+// parseInterp parses an interpolation expression, i.e.
+// '{{' <expr> '}}'.
+func (p *Parser) parseInterp() (ast.Interp, error) {
+	result := ast.Interp{
+		Open: p.current,
+		Type: ast.KindInterp,
+	}
+
+	// TODO(@FollowTheProcess): Just like the other parser, for now we'll assume only idents are allowed here
+	if err := p.expect(token.Ident); err != nil {
+		return result, err
+	}
+
+	expr, err := p.parseExpression()
+	if err != nil {
+		return result, err
+	}
+
+	result.Expr = expr
+
+	if err := p.expect(token.CloseInterp); err != nil {
+		return result, err
+	}
+
+	result.Close = p.current
+
+	return result, nil
 }
