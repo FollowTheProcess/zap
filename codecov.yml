@@ -1,3 +1,3 @@
 ignore:
-  - internal/syntax/token/kind_string.go # Auto generated
+  - "**/*_string.go" # https://pkg.go.dev/golang.org/x/tools/cmd/stringer generated code
   - internal/cmd # Just the CLI definitions, nothing to test
