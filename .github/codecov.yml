@@ -1,0 +1,16 @@
+# https://docs.codecov.com/docs/codecovyml-reference
+coverage:
+  # TODO(@FollowTheProcess): Increase this to 85..100
+  range: 75..100
+  round: down
+  precision: 1
+  status:
+    # https://docs.codecov.com/docs/commit-status
+    project:
+      default:
+        # Avoid false negatives
+        threshold: 1%
+
+ignore:
+  - "**/*_string.go" # https://pkg.go.dev/golang.org/x/tools/cmd/stringer generated code
+  - internal/cmd # Just the CLI definitions, nothing to test

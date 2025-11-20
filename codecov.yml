@@ -1,3 +1,0 @@
-ignore:
-  - "**/*_string.go" # https://pkg.go.dev/golang.org/x/tools/cmd/stringer generated code
-  - internal/cmd # Just the CLI definitions, nothing to test
