@@ -1,0 +1,8 @@
+-- src.http --
+@base = https://notaurl%^&*6666----=
+
+### Broke
+GET {{ base }}£$%^&*
+-- want.txt --
+invalid-global-url.txtar:1:9-37: parseExpression: unexpected token URL
+invalid-global-url.txtar:3:1-4: parseStatement: unrecognised token: Separator

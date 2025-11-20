@@ -1,0 +1,6 @@
+-- src.http --
+### Get a Thing
+@prompt id The ID of a thing to get
+GET https://api.something.com/{{ missing }}/thing/{{ id }}
+-- want.txt --
+undeclared-prompt.txtar:1:1-4: parseStatement: unrecognised token: Separator

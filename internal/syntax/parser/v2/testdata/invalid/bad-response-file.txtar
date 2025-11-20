@@ -1,0 +1,12 @@
+-- src.http --
+### Bad
+GET https://blowup.com
+
+{
+  "hello": "body"
+}
+
+> )(*&^%
+-- want.txt --
+bad-response-file.txtar:1:1-4: parseStatement: unrecognised token: Separator
+bad-response-file.txtar:8:4: unrecognised character: ')'

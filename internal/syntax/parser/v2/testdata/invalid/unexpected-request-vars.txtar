@@ -1,0 +1,6 @@
+-- src.http --
+### MyRequest
+@something !@£$%^&*()
+-- want.txt --
+unexpected-request-vars.txtar:1:1-4: parseStatement: unrecognised token: Separator
+unexpected-request-vars.txtar:2:13: unrecognised character: '!'
