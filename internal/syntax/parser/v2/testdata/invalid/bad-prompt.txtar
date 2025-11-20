@@ -1,0 +1,4 @@
+-- src.http --
+@prompt ###
+-- want.txt --
+bad-prompt.txtar:1:12: parseStatement: unrecognised token: Separator

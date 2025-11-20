@@ -97,6 +97,21 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindPrompt,
 		},
 		{
+			name: "prompt no description",
+			node: ast.PromptStatement{
+				Ident: ast.Ident{
+					Name:  "id",
+					Token: token.Token{Kind: token.Ident, Start: 8, End: 10},
+					Type:  ast.KindIdent,
+				},
+				At:   token.Token{Kind: token.At, Start: 0, End: 1},
+				Type: ast.KindPrompt,
+			},
+			start: token.Token{Kind: token.At, Start: 0, End: 1},
+			end:   token.Token{Kind: token.Ident, Start: 8, End: 10}, // End returns the ident
+			kind:  ast.KindPrompt,
+		},
+		{
 			name: "file",
 			node: ast.File{
 				Name: "test.http",
