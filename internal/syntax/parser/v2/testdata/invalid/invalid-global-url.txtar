@@ -4,5 +4,4 @@
 ### Broke
 GET {{ base }}£$%^&*
 -- want.txt --
-invalid-global-url.txtar:1:9-37: parseExpression: unexpected token URL
-invalid-global-url.txtar:3:1-4: parseStatement: unrecognised token: Separator
+invalid-global-url.txtar:4:22: parseStatement: unrecognised token: Text

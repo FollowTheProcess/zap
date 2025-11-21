@@ -33,7 +33,11 @@ func (v VarStatement) Start() token.Token {
 // End returns the final token in a VarStatement which is
 // the final token in the value expression.
 func (v VarStatement) End() token.Token {
-	return v.Value.End()
+	if v.Value != nil {
+		return v.Value.End()
+	}
+
+	return v.Ident.End()
 }
 
 // Kind returns [KindVarStatement].
@@ -113,3 +117,73 @@ func (c Comment) Kind() Kind {
 
 // statementNode marks a [Comment] as an [ast.Statement].
 func (c Comment) statementNode() {}
+
+// Method represents a HTTP method.
+type Method struct {
+	// Token is the method token e.g. [token.MethodGet].
+	Token token.Token
+
+	// Type is [KindMethod].
+	Type Kind
+}
+
+// Start returns the method token.
+func (m Method) Start() token.Token {
+	return m.Token
+}
+
+// End also returns the method token.
+func (m Method) End() token.Token {
+	return m.Token
+}
+
+// Kind returns [KindMethod].
+func (m Method) Kind() Kind {
+	return m.Type
+}
+
+// statementNode marks a [Method] as an [ast.Statement].
+func (m Method) statementNode() {}
+
+// Request is a single HTTP request.
+type Request struct {
+	// URL is the expression that when evaluated, returns the URL
+	// for the request. May be a [TextLiteral] or an [Interp].
+	URL Expression
+
+	// Comment is the optional [Comment] node attached to a request.
+	Comment Comment
+
+	// Method is the [Method] node.
+	Method Method
+
+	// Sep is the [token.Separator] immediately before the request.
+	Sep token.Token
+
+	// Type is [KindRequest].
+	Type Kind
+}
+
+// Start returns the first token associated with the [Request],
+// which is the [token.Separator] immediately before it.
+func (r Request) Start() token.Token {
+	return r.Sep
+}
+
+// End returns the last token associated with the [Request].
+func (r Request) End() token.Token {
+	// TODO(@FollowTheProcess): There's more that can come after this
+	if r.URL != nil {
+		return r.URL.End()
+	}
+
+	return r.Method.End()
+}
+
+// Kind returns [KindRequest].
+func (r Request) Kind() Kind {
+	return r.Type
+}
+
+// statementNode marks a [Request] as an [ast.Statement].
+func (r Request) statementNode() {}

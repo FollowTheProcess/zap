@@ -28,6 +28,17 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindTextLiteral,
 		},
 		{
+			name: "url literal",
+			node: ast.URL{
+				Value: "https://example.com",
+				Token: token.Token{Kind: token.URL, Start: 0, End: 19},
+				Type:  ast.KindURL,
+			},
+			start: token.Token{Kind: token.URL, Start: 0, End: 19},
+			end:   token.Token{Kind: token.URL, Start: 0, End: 19},
+			kind:  ast.KindURL,
+		},
+		{
 			name: "ident",
 			node: ast.Ident{
 				Name:  "test",
@@ -120,6 +131,16 @@ func TestNode(t *testing.T) {
 			start: token.Token{Kind: token.Comment, Start: 12, End: 26},
 			end:   token.Token{Kind: token.Comment, Start: 12, End: 26},
 			kind:  ast.KindComment,
+		},
+		{
+			name: "method",
+			node: ast.Method{
+				Token: token.Token{Kind: token.MethodGet, Start: 0, End: 3},
+				Type:  ast.KindMethod,
+			},
+			start: token.Token{Kind: token.MethodGet, Start: 0, End: 3},
+			end:   token.Token{Kind: token.MethodGet, Start: 0, End: 3},
+			kind:  ast.KindMethod,
 		},
 		{
 			name: "file",

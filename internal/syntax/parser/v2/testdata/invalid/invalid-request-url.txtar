@@ -2,4 +2,4 @@
 ### Broke
 GET https://ASDFGHJ@£$%^&*( )
 -- want.txt --
-invalid-request-url.txtar:1:1-4: parseStatement: unrecognised token: Separator
+invalid-request-url.txtar:2:32: parseStatement: unrecognised token: Body

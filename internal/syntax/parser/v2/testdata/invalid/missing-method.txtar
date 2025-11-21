@@ -2,4 +2,4 @@
 ### NoMethod
 https://api.something.com/v1
 -- want.txt --
-missing-method.txtar:1:1-4: parseStatement: unrecognised token: Separator
+missing-method.txtar:1:5-13: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got Text
