@@ -14,6 +14,8 @@ const (
 	KindTextLiteral              // TextLiteral
 	KindInterp                   // Interp
 	KindPrompt                   // Prompt
+	KindRequest                  // Request
+	KindComment                  // Comment
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

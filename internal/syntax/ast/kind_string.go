@@ -15,11 +15,13 @@ func _() {
 	_ = x[KindTextLiteral-4]
 	_ = x[KindInterp-5]
 	_ = x[KindPrompt-6]
+	_ = x[KindRequest-7]
+	_ = x[KindComment-8]
 }
 
-const _Kind_name = "InvalidFileVarStatementIdentTextLiteralInterpPrompt"
+const _Kind_name = "InvalidFileVarStatementIdentTextLiteralInterpPromptRequestComment"
 
-var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 45, 51}
+var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 45, 51, 58, 65}
 
 func (i Kind) String() string {
 	idx := int(i) - 0

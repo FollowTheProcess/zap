@@ -112,6 +112,16 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindPrompt,
 		},
 		{
+			name: "comment",
+			node: ast.Comment{
+				Token: token.Token{Kind: token.Comment, Start: 12, End: 26},
+				Type:  ast.KindComment,
+			},
+			start: token.Token{Kind: token.Comment, Start: 12, End: 26},
+			end:   token.Token{Kind: token.Comment, Start: 12, End: 26},
+			kind:  ast.KindComment,
+		},
+		{
 			name: "file",
 			node: ast.File{
 				Name: "test.http",
