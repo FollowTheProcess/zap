@@ -86,3 +86,30 @@ func (p PromptStatement) Kind() Kind {
 
 // statementNode marks a [PromptStatement] as an [ast.Statement].
 func (p PromptStatement) statementNode() {}
+
+// Comment represents a single line comment.
+type Comment struct {
+	// Token is the [token.Comment] beginning the line comment.
+	Token token.Token
+
+	// Type is [KindComment].
+	Type Kind
+}
+
+// Start returns the [token.Comment].
+func (c Comment) Start() token.Token {
+	return c.Token
+}
+
+// End also returns the [token.Comment].
+func (c Comment) End() token.Token {
+	return c.Token
+}
+
+// Kind returns [KindComment].
+func (c Comment) Kind() Kind {
+	return c.Type
+}
+
+// statementNode marks a [Comment] as an [ast.Statement].
+func (c Comment) statementNode() {}

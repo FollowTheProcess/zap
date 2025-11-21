@@ -233,6 +233,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		}
 
 		return p.parseVarStatement()
+	case token.Comment:
+		return p.parseComment()
 	default:
 		p.errorf("parseStatement: unrecognised token: %s", p.current.Kind)
 		return nil, ErrParse
@@ -304,6 +306,20 @@ func (p *Parser) parsePrompt() (ast.PromptStatement, error) {
 		}
 
 		result.Description = text
+	}
+
+	return result, nil
+}
+
+// parseComment parses a line comment.
+//
+// Comments are parsed into ast nodes so that comments above requests may
+// be used as their "docstring". Similar to how doc comments are attached
+// to ast nodes in Go.
+func (p *Parser) parseComment() (ast.Comment, error) {
+	result := ast.Comment{
+		Token: p.current,
+		Type:  ast.KindComment,
 	}
 
 	return result, nil

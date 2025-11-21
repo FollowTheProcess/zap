@@ -1,0 +1,16 @@
+source: parser_test.go
+expression: parsed
+---
+name: comments.http
+statements:
+  - token:
+      kind: Comment
+      start: 3
+      end: 20
+    type: Comment
+  - token:
+      kind: Comment
+      start: 23
+      end: 31
+    type: Comment
+type: File
