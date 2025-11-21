@@ -10,5 +10,4 @@ DESTROY https://api.something.com/v1
 ### Okay
 GET https://api.somethingelse.com/v1
 -- want.txt --
-bad-method.txtar:1:1-4: parseStatement: unrecognised token: Separator
-bad-method.txtar:4:1-4: parseStatement: unrecognised token: Separator
+bad-method.txtar:1:5-14: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got Text

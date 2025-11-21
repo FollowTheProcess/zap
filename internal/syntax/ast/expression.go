@@ -72,6 +72,38 @@ func (t TextLiteral) Kind() Kind {
 // expressionNode marks a [TextLiteral] as an [ast.Expression].
 func (t TextLiteral) expressionNode() {}
 
+// URL is a literal URL expression.
+type URL struct {
+	// The url value (unquoted)
+	Value string
+
+	// The [token.URL] token.
+	Token token.Token
+
+	// Type is [KindURL].
+	Type Kind
+}
+
+// Start returns the first token of the URL, which is
+// obviously just the [token.URL].
+func (u URL) Start() token.Token {
+	return u.Token
+}
+
+// End returns the last token in the URL, which is also
+// the [token.URL].
+func (u URL) End() token.Token {
+	return u.Token
+}
+
+// Kind returns [KindURL].
+func (u URL) Kind() Kind {
+	return u.Type
+}
+
+// expressionNode marks a [URL] as an [ast.Expression].
+func (u URL) expressionNode() {}
+
 // Interp is a text interpolation expression.
 type Interp struct {
 	// Expr is the expression inside the interpolation.

@@ -2,5 +2,5 @@
 ### MyRequest
 @something !@£$%^&*()
 -- want.txt --
-unexpected-request-vars.txtar:1:1-4: parseStatement: unrecognised token: Separator
+unexpected-request-vars.txtar:1:5-14: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got At
 unexpected-request-vars.txtar:2:13: unrecognised character: '!'

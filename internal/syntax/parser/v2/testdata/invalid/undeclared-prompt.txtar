@@ -3,4 +3,4 @@
 @prompt id The ID of a thing to get
 GET https://api.something.com/{{ missing }}/thing/{{ id }}
 -- want.txt --
-undeclared-prompt.txtar:1:1-4: parseStatement: unrecognised token: Separator
+undeclared-prompt.txtar:1:5-16: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got At

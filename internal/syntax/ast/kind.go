@@ -12,10 +12,12 @@ const (
 	KindVarStatement             // VarStatement
 	KindIdent                    // Ident
 	KindTextLiteral              // TextLiteral
+	KindURL                      // URL
 	KindInterp                   // Interp
 	KindPrompt                   // Prompt
 	KindRequest                  // Request
 	KindComment                  // Comment
+	KindMethod                   // Method
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

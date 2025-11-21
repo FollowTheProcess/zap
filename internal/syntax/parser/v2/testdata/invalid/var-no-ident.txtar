@@ -2,4 +2,4 @@
 @##
 -- want.txt --
 var-no-ident.txtar:1:1-2: expected Ident, got Separator
-var-no-ident.txtar:1:2-3: parseStatement: unrecognised token: Separator
+var-no-ident.txtar:1:4: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got EOF

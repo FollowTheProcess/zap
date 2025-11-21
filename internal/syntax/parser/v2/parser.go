@@ -235,6 +235,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		return p.parseVarStatement()
 	case token.Comment:
 		return p.parseComment()
+	case token.Separator:
+		return p.parseRequest()
 	default:
 		p.errorf("parseStatement: unrecognised token: %s", p.current.Kind)
 		return nil, ErrParse
@@ -325,8 +327,78 @@ func (p *Parser) parseComment() (ast.Comment, error) {
 	return result, nil
 }
 
+// parseRequest parses a single http request.
+func (p *Parser) parseRequest() (ast.Request, error) {
+	result := ast.Request{
+		Sep:  p.current,
+		Type: ast.KindRequest,
+	}
+
+	// Optional comment
+	if p.next.Is(token.Comment) {
+		p.advance()
+
+		comment, err := p.parseComment()
+		if err != nil {
+			return result, err
+		}
+
+		result.Comment = comment
+	}
+
+	// TODO(@FollowTheProcess): Request vars and prompts are allowed to go here
+
+	// Now must be a HTTP method
+	err := p.expect(
+		token.MethodConnect,
+		token.MethodDelete,
+		token.MethodGet,
+		token.MethodHead,
+		token.MethodOptions,
+		token.MethodPatch,
+		token.MethodPost,
+		token.MethodPut,
+		token.MethodTrace,
+	)
+	if err != nil {
+		return result, err
+	}
+
+	method, err := p.parseMethod()
+	if err != nil {
+		return result, err
+	}
+
+	result.Method = method
+
+	if err = p.expect(token.URL, token.OpenInterp); err != nil {
+		return result, err
+	}
+
+	url, err := p.parseExpression()
+	if err != nil {
+		return result, err
+	}
+
+	result.URL = url
+
+	return result, nil
+}
+
+// parseMethod parses a http method.
+func (p *Parser) parseMethod() (ast.Method, error) {
+	result := ast.Method{
+		Token: p.current,
+		Type:  ast.KindMethod,
+	}
+
+	return result, nil
+}
+
 // parseExpression parses an expression.
 func (p *Parser) parseExpression() (ast.Expression, error) {
+	// TODO(@FollowTheProcess): We need some precedence in here so that interps get evaluated
+	// first
 	switch p.current.Kind {
 	case token.Text:
 		return p.parseTextLiteral()
@@ -334,6 +406,8 @@ func (p *Parser) parseExpression() (ast.Expression, error) {
 		return p.parseInterp()
 	case token.Ident:
 		return p.parseIdent()
+	case token.URL:
+		return p.parseURL()
 	default:
 		p.errorf("parseExpression: unexpected token %s", p.current.Kind)
 		return nil, ErrParse
@@ -349,6 +423,17 @@ func (p *Parser) parseTextLiteral() (ast.TextLiteral, error) {
 	}
 
 	return text, nil
+}
+
+// parseURL parses a URL literal.
+func (p *Parser) parseURL() (ast.URL, error) {
+	result := ast.URL{
+		Value: p.text(),
+		Token: p.current,
+		Type:  ast.KindURL,
+	}
+
+	return result, nil
 }
 
 // parseIdent parses an Ident.
