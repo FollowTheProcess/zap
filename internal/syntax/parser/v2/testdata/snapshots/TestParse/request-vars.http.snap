@@ -1,0 +1,100 @@
+source: parser_test.go
+expression: parsed
+---
+name: request-vars.http
+statements:
+  - url:
+      value: https://example.com
+      token:
+        kind: URL
+        start: 78
+        end: 97
+      type: URL
+    vars:
+      - value:
+          value: value
+          token:
+            kind: Text
+            start: 19
+            end: 24
+          type: TextLiteral
+        ident:
+          name: something
+          token:
+            kind: Ident
+            start: 7
+            end: 16
+          type: Ident
+        at:
+          kind: At
+          start: 6
+          end: 7
+        type: VarStatement
+      - value:
+          expr:
+            name: something
+            token:
+              kind: Ident
+              start: 40
+              end: 49
+            type: Ident
+          open:
+            kind: OpenInterp
+            start: 37
+            end: 39
+          close:
+            kind: CloseInterp
+            start: 50
+            end: 52
+          type: Interp
+        ident:
+          name: interp
+          token:
+            kind: Ident
+            start: 28
+            end: 34
+          type: Ident
+        at:
+          kind: At
+          start: 27
+          end: 28
+        type: VarStatement
+    prompts:
+      - ident:
+          name: id
+          token:
+            kind: Ident
+            start: 63
+            end: 65
+          type: Ident
+        description:
+          value: User ID
+          token:
+            kind: Text
+            start: 66
+            end: 73
+          type: TextLiteral
+        at:
+          kind: At
+          start: 55
+          end: 56
+        type: Prompt
+    comment:
+      text: ""
+      token:
+        kind: EOF
+        start: 0
+        end: 0
+      type: Invalid
+    method:
+      token:
+        kind: MethodGet
+        start: 74
+        end: 77
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File

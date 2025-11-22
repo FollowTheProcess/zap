@@ -1,0 +1,5 @@
+###
+# @something = value
+# @interp = {{ something }}
+# @prompt id User ID
+GET https://example.com

@@ -250,7 +250,11 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 		Type: ast.KindVarStatement,
 	}
 
-	if err := p.expect(token.Ident); err != nil {
+	// All keywords like @timeout, @no-redirect etc. get parsed in here as they
+	// are structurally identical, they are all effectively a variable declaration, just their
+	// variables are "special". During resolution they get mapped into dedicated fields in the
+	// resulting spec.File.
+	if err := p.expect(token.Name, token.Timeout, token.ConnectionTimeout, token.NoRedirect, token.Ident); err != nil {
 		return result, err
 	}
 
@@ -347,7 +351,41 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		result.Comment = comment
 	}
 
-	// TODO(@FollowTheProcess): Request vars and prompts are allowed to go here
+	for p.next.Is(token.At) {
+		p.advance()
+
+		switch p.next.Kind {
+		// All keywords like @timeout, @no-redirect etc. get parsed in here as they
+		// are structurally identical, they are all effectively a variable declaration, just their
+		// variables are "special". During resolution they get mapped into dedicated fields in the
+		// resulting spec.File.
+		case token.Name, token.Timeout, token.ConnectionTimeout, token.NoRedirect, token.Ident:
+			varStatement, err := p.parseVarStatement()
+			if err != nil {
+				return result, err
+			}
+
+			result.Vars = append(result.Vars, varStatement)
+		case token.Prompt:
+			prompt, err := p.parsePrompt()
+			if err != nil {
+				return result, err
+			}
+
+			result.Prompts = append(result.Prompts, prompt)
+		default:
+			// Use expect for the free error message
+			if err := p.expect(token.Name,
+				token.Timeout,
+				token.ConnectionTimeout,
+				token.NoRedirect,
+				token.Ident,
+				token.Prompt,
+			); err != nil {
+				return result, err
+			}
+		}
+	}
 
 	// Now must be a HTTP method
 	err := p.expect(
