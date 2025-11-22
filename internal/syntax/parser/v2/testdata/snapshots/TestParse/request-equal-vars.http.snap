@@ -1,22 +1,22 @@
 source: parser_test.go
 expression: parsed
 ---
-name: request-vars.http
+name: request-equal-vars.http
 statements:
   - url:
       value: https://example.com
       token:
         kind: URL
-        start: 130
-        end: 149
+        start: 138
+        end: 157
       type: URL
     vars:
       - value:
           value: value
           token:
             kind: Text
-            start: 17
-            end: 22
+            start: 19
+            end: 24
           type: TextLiteral
         ident:
           name: something
@@ -35,100 +35,100 @@ statements:
             name: something
             token:
               kind: Ident
-              start: 36
-              end: 45
+              start: 40
+              end: 49
             type: Ident
           open:
             kind: OpenInterp
-            start: 33
-            end: 35
+            start: 37
+            end: 39
           close:
             kind: CloseInterp
-            start: 46
-            end: 48
+            start: 50
+            end: 52
           type: Interp
         ident:
           name: interp
           token:
             kind: Ident
-            start: 26
-            end: 32
+            start: 28
+            end: 34
           type: Ident
         at:
           kind: At
-          start: 25
-          end: 26
+          start: 27
+          end: 28
         type: VarStatement
       - value:
           value: 30s
           token:
             kind: Text
-            start: 81
-            end: 84
+            start: 87
+            end: 90
           type: TextLiteral
         ident:
           name: timeout
           token:
             kind: Timeout
-            start: 73
-            end: 80
+            start: 77
+            end: 84
           type: Ident
         at:
           kind: At
-          start: 72
-          end: 73
+          start: 76
+          end: 77
         type: VarStatement
       - value:
           value: 10s
           token:
             kind: Text
-            start: 107
-            end: 110
+            start: 115
+            end: 118
           type: TextLiteral
         ident:
           name: connection-timeout
           token:
             kind: ConnectionTimeout
-            start: 88
-            end: 106
+            start: 94
+            end: 112
           type: Ident
         at:
           kind: At
-          start: 87
-          end: 88
+          start: 93
+          end: 94
         type: VarStatement
       - value: null
         ident:
           name: no-redirect
           token:
             kind: NoRedirect
-            start: 114
-            end: 125
+            start: 122
+            end: 133
           type: Ident
         at:
           kind: At
-          start: 113
-          end: 114
+          start: 121
+          end: 122
         type: VarStatement
     prompts:
       - ident:
           name: id
           token:
             kind: Ident
-            start: 59
-            end: 61
+            start: 63
+            end: 65
           type: Ident
         description:
           value: User ID
           token:
             kind: Text
-            start: 62
-            end: 69
+            start: 66
+            end: 73
           type: TextLiteral
         at:
           kind: At
-          start: 51
-          end: 52
+          start: 55
+          end: 56
         type: Prompt
     comment:
       text: ""
@@ -140,8 +140,8 @@ statements:
     method:
       token:
         kind: MethodGet
-        start: 126
-        end: 129
+        start: 134
+        end: 137
       type: Method
     sep:
       kind: Separator

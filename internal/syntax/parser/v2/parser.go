@@ -250,11 +250,11 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 		Type: ast.KindVarStatement,
 	}
 
-	// All keywords like @timeout, @no-redirect etc. get parsed in here as they
+	// All keywords like @timeout, @name etc. get parsed in here as they
 	// are structurally identical, they are all effectively a variable declaration, just their
 	// variables are "special". During resolution they get mapped into dedicated fields in the
 	// resulting spec.File.
-	if err := p.expect(token.Name, token.Timeout, token.ConnectionTimeout, token.NoRedirect, token.Ident); err != nil {
+	if err := p.expect(token.Name, token.Timeout, token.ConnectionTimeout, token.Ident); err != nil {
 		return result, err
 	}
 
@@ -277,6 +277,27 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 	}
 
 	result.Value = value
+
+	return result, nil
+}
+
+// parseNoRedirect parses a @no-redirect variable declaration, it is a special case
+// of [parseVarStatement] that does not require a value expression.
+func (p *Parser) parseNoRedirect() (ast.VarStatement, error) {
+	result := ast.VarStatement{
+		At:   p.current,
+		Type: ast.KindVarStatement,
+	}
+
+	if err := p.expect(token.NoRedirect); err != nil {
+		return result, err
+	}
+
+	result.Ident = ast.Ident{
+		Name:  p.text(),
+		Token: p.current,
+		Type:  ast.KindIdent,
+	}
 
 	return result, nil
 }
@@ -359,13 +380,22 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		// are structurally identical, they are all effectively a variable declaration, just their
 		// variables are "special". During resolution they get mapped into dedicated fields in the
 		// resulting spec.File.
-		case token.Name, token.Timeout, token.ConnectionTimeout, token.NoRedirect, token.Ident:
+		case token.Name, token.Timeout, token.ConnectionTimeout, token.Ident:
 			varStatement, err := p.parseVarStatement()
 			if err != nil {
 				return result, err
 			}
 
 			result.Vars = append(result.Vars, varStatement)
+		case token.NoRedirect:
+			// @no-redirect is a special case because it does not take a value, simply specifying
+			// it is enough to disable redirects
+			noRedirect, err := p.parseNoRedirect()
+			if err != nil {
+				return result, err
+			}
+
+			result.Vars = append(result.Vars, noRedirect)
 		case token.Prompt:
 			prompt, err := p.parsePrompt()
 			if err != nil {

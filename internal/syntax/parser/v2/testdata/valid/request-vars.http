@@ -1,5 +1,8 @@
 ###
-# @something = value
-# @interp = {{ something }}
+# @something value
+# @interp {{ something }}
 # @prompt id User ID
+# @timeout 30s
+# @connection-timeout 10s
+# @no-redirect
 GET https://example.com
