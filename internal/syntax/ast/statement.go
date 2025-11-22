@@ -154,6 +154,14 @@ type Request struct {
 	// for the request. May be a [TextLiteral] or an [Interp].
 	URL Expression
 
+	// Vars are any [VarStatement] nodes attached to the request defining
+	// local variables.
+	Vars []VarStatement
+
+	// Prompts are any [PromptStatement] nodes attached to the request
+	// defining local prompted variables.
+	Prompts []PromptStatement
+
 	// Comment is the optional [Comment] node attached to a request.
 	Comment Comment
 

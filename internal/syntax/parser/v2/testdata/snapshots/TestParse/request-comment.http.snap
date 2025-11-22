@@ -10,6 +10,8 @@ statements:
         start: 18
         end: 37
       type: URL
+    vars: []
+    prompts: []
     comment:
       text: A comment
       token:

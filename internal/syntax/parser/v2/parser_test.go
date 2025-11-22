@@ -37,6 +37,7 @@ func TestParse(t *testing.T) {
 				t,
 				snapshot.Update(*update),
 				snapshot.Clean(*clean),
+				snapshot.Color(os.Getenv("CI") == ""),
 			)
 
 			src, err := os.Open(file)
