@@ -186,6 +186,25 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindFile,
 		},
 		{
+			name: "request",
+			node: ast.Request{
+				URL: ast.TextLiteral{
+					Value: "https://example.com",
+					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Type:  ast.KindTextLiteral,
+				},
+				Method: ast.Method{
+					Token: token.Token{Kind: token.MethodGet, Start: 5, End: 8},
+					Type:  ast.KindMethod,
+				},
+				Sep:  token.Token{Kind: token.Separator, Start: 0, End: 3},
+				Type: ast.KindRequest,
+			},
+			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
+			end:   token.Token{Kind: token.URL, Start: 9, End: 28},
+			kind:  ast.KindRequest,
+		},
+		{
 			name:  "empty file",
 			node:  ast.File{Type: ast.KindFile},
 			start: token.Token{Kind: token.EOF},
