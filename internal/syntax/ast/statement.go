@@ -162,6 +162,9 @@ type Request struct {
 	// defining local prompted variables.
 	Prompts []PromptStatement
 
+	// Headers are the [HeaderStatement] nodes attached to the request
+	Headers []Header
+
 	// Comment is the optional [Comment] node attached to a request.
 	Comment Comment
 
@@ -183,7 +186,7 @@ func (r Request) Start() token.Token {
 
 // End returns the last token associated with the [Request].
 func (r Request) End() token.Token {
-	// TODO(@FollowTheProcess): There's more that can come after this
+	// TODO(@FollowTheProcess): There's more that can come after this like body, response ref etc.
 	if r.URL != nil {
 		return r.URL.End()
 	}
@@ -198,3 +201,38 @@ func (r Request) Kind() Kind {
 
 // statementNode marks a [Request] as an [ast.Statement].
 func (r Request) statementNode() {}
+
+// Header is a HTTP header node.
+type Header struct {
+	// Value is the value expression of the header.
+	Value Expression
+
+	// Key is the string containing the header key.
+	Key string
+
+	// Token is the [token.Header] representing the header key.
+	Token token.Token
+
+	// Type is [KindHeader].
+	Type Kind
+}
+
+// Start returns the first token associated with the header, in this
+// case the [token.Header] token.
+func (h Header) Start() token.Token {
+	return h.Token
+}
+
+// End returns the last token associated with the header, which
+// is the final token in the Value expression.
+func (h Header) End() token.Token {
+	return h.Value.End()
+}
+
+// Kind returns [KindHeader].
+func (h Header) Kind() Kind {
+	return h.Type
+}
+
+// statementNode marks a [Header] as an [ast.Statement].
+func (h Header) statementNode() {}

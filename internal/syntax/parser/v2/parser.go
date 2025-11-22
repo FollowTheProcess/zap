@@ -110,6 +110,7 @@ func (p *Parser) advance() {
 // It returns an [ErrParse] is the expectation is violated, nil otherwise.
 func (p *Parser) expect(kinds ...token.Kind) error {
 	if p.next.Is(token.Error) {
+		p.error("Error token from scanner")
 		// Nobody expects an error!
 		// But seriously, this means the scanner has emitted an error and has already
 		// passed it to the error handler
@@ -451,6 +452,17 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 
 	result.URL = url
 
+	for p.next.Is(token.Header) {
+		p.advance()
+
+		header, err := p.parseHeader()
+		if err != nil {
+			return result, err
+		}
+
+		result.Headers = append(result.Headers, header)
+	}
+
 	return result, nil
 }
 
@@ -500,6 +512,32 @@ func (p *Parser) parseURL() (ast.URL, error) {
 		Token: p.current,
 		Type:  ast.KindURL,
 	}
+
+	return result, nil
+}
+
+// parseHeader parses a Header statement.
+func (p *Parser) parseHeader() (ast.Header, error) {
+	result := ast.Header{
+		Token: p.current,
+		Type:  ast.KindHeader,
+		Key:   p.text(),
+	}
+
+	if err := p.expect(token.Colon); err != nil {
+		return result, err
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return result, err
+	}
+
+	value, err := p.parseExpression()
+	if err != nil {
+		return result, err
+	}
+
+	result.Value = value
 
 	return result, nil
 }

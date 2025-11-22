@@ -18,6 +18,7 @@ const (
 	KindRequest                  // Request
 	KindComment                  // Comment
 	KindMethod                   // Method
+	KindHeader                   // Header
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].
