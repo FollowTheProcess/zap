@@ -1,5 +1,5 @@
 -- src.http --
 @##
 -- want.txt --
-var-no-ident.txtar:1:1-2: expected Ident, got Separator
+var-no-ident.txtar:1:1-2: expected one of [Name Timeout ConnectionTimeout Ident], got Separator
 var-no-ident.txtar:1:4: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got EOF

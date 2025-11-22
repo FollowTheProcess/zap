@@ -1,0 +1,151 @@
+source: parser_test.go
+expression: parsed
+---
+name: request-vars.http
+statements:
+  - url:
+      value: https://example.com
+      token:
+        kind: URL
+        start: 130
+        end: 149
+      type: URL
+    vars:
+      - value:
+          value: value
+          token:
+            kind: Text
+            start: 17
+            end: 22
+          type: TextLiteral
+        ident:
+          name: something
+          token:
+            kind: Ident
+            start: 7
+            end: 16
+          type: Ident
+        at:
+          kind: At
+          start: 6
+          end: 7
+        type: VarStatement
+      - value:
+          expr:
+            name: something
+            token:
+              kind: Ident
+              start: 36
+              end: 45
+            type: Ident
+          open:
+            kind: OpenInterp
+            start: 33
+            end: 35
+          close:
+            kind: CloseInterp
+            start: 46
+            end: 48
+          type: Interp
+        ident:
+          name: interp
+          token:
+            kind: Ident
+            start: 26
+            end: 32
+          type: Ident
+        at:
+          kind: At
+          start: 25
+          end: 26
+        type: VarStatement
+      - value:
+          value: 30s
+          token:
+            kind: Text
+            start: 81
+            end: 84
+          type: TextLiteral
+        ident:
+          name: timeout
+          token:
+            kind: Timeout
+            start: 73
+            end: 80
+          type: Ident
+        at:
+          kind: At
+          start: 72
+          end: 73
+        type: VarStatement
+      - value:
+          value: 10s
+          token:
+            kind: Text
+            start: 107
+            end: 110
+          type: TextLiteral
+        ident:
+          name: connection-timeout
+          token:
+            kind: ConnectionTimeout
+            start: 88
+            end: 106
+          type: Ident
+        at:
+          kind: At
+          start: 87
+          end: 88
+        type: VarStatement
+      - value: null
+        ident:
+          name: no-redirect
+          token:
+            kind: NoRedirect
+            start: 114
+            end: 125
+          type: Ident
+        at:
+          kind: At
+          start: 113
+          end: 114
+        type: VarStatement
+    prompts:
+      - ident:
+          name: id
+          token:
+            kind: Ident
+            start: 59
+            end: 61
+          type: Ident
+        description:
+          value: User ID
+          token:
+            kind: Text
+            start: 62
+            end: 69
+          type: TextLiteral
+        at:
+          kind: At
+          start: 51
+          end: 52
+        type: Prompt
+    comment:
+      text: ""
+      token:
+        kind: EOF
+        start: 0
+        end: 0
+      type: Invalid
+    method:
+      token:
+        kind: MethodGet
+        start: 126
+        end: 129
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File

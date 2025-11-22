@@ -1,6 +1,7 @@
 -- src.http --
 ### BadTimeout
-# @timeout = amillionyears
+# @timeout = %^&*(
 GET https://github.com/api
 -- want.txt --
-bad-timeout.txtar:1:5-15: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got At
+bad-timeout.txtar:2:15: parseExpression: unexpected token Error
+bad-timeout.txtar:2:15: unrecognised character: '%'
