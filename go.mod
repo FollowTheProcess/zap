@@ -10,7 +10,7 @@ require (
 	go.followtheprocess.codes/hue v1.0.0
 	go.followtheprocess.codes/log v1.2.0
 	go.followtheprocess.codes/msg v1.9.2
-	go.followtheprocess.codes/snapshot v0.9.0
+	go.followtheprocess.codes/snapshot v0.9.1
 	go.followtheprocess.codes/test v1.1.0
 	go.uber.org/goleak v1.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3

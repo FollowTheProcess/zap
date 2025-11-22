@@ -1,29 +1,29 @@
 source: parser_test.go
 expression: parsed
 ---
-name: minimal-request.http
+name: request-comment.http
 statements:
   - url:
       value: https://example.com
       token:
         kind: URL
-        start: 8
-        end: 27
+        start: 18
+        end: 37
       type: URL
     vars: []
     prompts: []
     comment:
-      text: ""
+      text: A comment
       token:
-        kind: EOF
-        start: 0
-        end: 0
-      type: Invalid
+        kind: Comment
+        start: 4
+        end: 13
+      type: Comment
     method:
       token:
         kind: MethodGet
-        start: 4
-        end: 7
+        start: 14
+        end: 17
       type: Method
     sep:
       kind: Separator
