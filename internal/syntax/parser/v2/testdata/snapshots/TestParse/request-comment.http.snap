@@ -12,6 +12,7 @@ statements:
       type: URL
     vars: []
     prompts: []
+    headers: []
     comment:
       text: A comment
       token:

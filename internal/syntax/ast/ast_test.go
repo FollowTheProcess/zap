@@ -144,6 +144,22 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindMethod,
 		},
 		{
+			name: "header",
+			node: ast.Header{
+				Value: ast.TextLiteral{
+					Value: "application/json",
+					Token: token.Token{Kind: token.Text, Start: 14, End: 30},
+					Type:  ast.KindTextLiteral,
+				},
+				Key:   "Content-Type",
+				Token: token.Token{Kind: token.Header, Start: 0, End: 12},
+				Type:  ast.KindHeader,
+			},
+			start: token.Token{Kind: token.Header, Start: 0, End: 12},
+			end:   token.Token{Kind: token.Text, Start: 14, End: 30},
+			kind:  ast.KindHeader,
+		},
+		{
 			name: "file",
 			node: ast.File{
 				Name: "test.http",
