@@ -3,12 +3,14 @@ expression: parsed
 ---
 name: comments.http
 statements:
-  - token:
+  - text: This is a comment
+    token:
       kind: Comment
       start: 3
       end: 20
     type: Comment
-  - token:
+  - text: This too
+    token:
       kind: Comment
       start: 23
       end: 31

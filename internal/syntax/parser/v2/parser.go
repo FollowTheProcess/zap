@@ -322,6 +322,7 @@ func (p *Parser) parseComment() (ast.Comment, error) {
 	result := ast.Comment{
 		Token: p.current,
 		Type:  ast.KindComment,
+		Text:  p.text(),
 	}
 
 	return result, nil
@@ -397,8 +398,7 @@ func (p *Parser) parseMethod() (ast.Method, error) {
 
 // parseExpression parses an expression.
 func (p *Parser) parseExpression() (ast.Expression, error) {
-	// TODO(@FollowTheProcess): We need some precedence in here so that interps get evaluated
-	// first
+	// TODO(@FollowTheProcess): We need some precedence in here so that interps get evaluated first
 	switch p.current.Kind {
 	case token.Text:
 		return p.parseTextLiteral()

@@ -127,6 +127,7 @@ func TestNode(t *testing.T) {
 			node: ast.Comment{
 				Token: token.Token{Kind: token.Comment, Start: 12, End: 26},
 				Type:  ast.KindComment,
+				Text:  "a comment",
 			},
 			start: token.Token{Kind: token.Comment, Start: 12, End: 26},
 			end:   token.Token{Kind: token.Comment, Start: 12, End: 26},

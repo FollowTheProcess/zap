@@ -93,6 +93,9 @@ func (p PromptStatement) statementNode() {}
 
 // Comment represents a single line comment.
 type Comment struct {
+	// Text is the test contained in the comment.
+	Text string
+
 	// Token is the [token.Comment] beginning the line comment.
 	Token token.Token
 
