@@ -93,3 +93,26 @@ func TestMethod(t *testing.T) {
 		})
 	}
 }
+
+func TestPrecedence(t *testing.T) {
+	tests := []struct {
+		kind token.Kind // Token kind under test
+		want int        // Expected precedence
+	}{
+		// Currently the only one with any precedence
+		{kind: token.OpenInterp, want: token.HighestPrecedence},
+		// Some others
+		{kind: token.Text, want: token.LowestPrecedence},
+		{kind: token.Separator, want: token.LowestPrecedence},
+		{kind: token.Ident, want: token.LowestPrecedence},
+		{kind: token.Colon, want: token.LowestPrecedence},
+		{kind: token.Comment, want: token.LowestPrecedence},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.kind.String(), func(t *testing.T) {
+			tok := token.Token{Kind: tt.kind} // Position info doesn't matter
+			test.Equal(t, tok.Precedence(), tt.want)
+		})
+	}
+}
