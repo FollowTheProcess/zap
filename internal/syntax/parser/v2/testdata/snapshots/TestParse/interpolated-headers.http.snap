@@ -1,0 +1,125 @@
+source: parser_test.go
+expression: parsed
+---
+name: interpolated-headers.http
+statements:
+  - value:
+      value: shhh
+      token:
+        kind: Text
+        start: 9
+        end: 13
+      type: TextLiteral
+    ident:
+      name: token
+      token:
+        kind: Ident
+        start: 1
+        end: 6
+      type: Ident
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: VarStatement
+  - url:
+      value: https://example.com
+      token:
+        kind: URL
+        start: 23
+        end: 42
+      type: URL
+    vars: []
+    prompts: []
+    headers:
+      - value:
+          value: '*/*'
+          token:
+            kind: Text
+            start: 51
+            end: 54
+          type: TextLiteral
+        key: Accept
+        token:
+          kind: Header
+          start: 43
+          end: 49
+        type: Header
+      - value:
+          value: application/json
+          token:
+            kind: Text
+            start: 69
+            end: 85
+          type: TextLiteral
+        key: Content-Type
+        token:
+          kind: Header
+          start: 55
+          end: 67
+        type: Header
+      - value:
+          value: something
+          token:
+            kind: Text
+            start: 97
+            end: 106
+          type: TextLiteral
+        key: X-Api-Key
+        token:
+          kind: Header
+          start: 86
+          end: 95
+        type: Header
+      - value:
+          left:
+            value: 'Bearer '
+            token:
+              kind: Text
+              start: 122
+              end: 129
+            type: TextLiteral
+          right: null
+          interp:
+            expr:
+              name: token
+              token:
+                kind: Ident
+                start: 132
+                end: 137
+              type: Ident
+            open:
+              kind: OpenInterp
+              start: 129
+              end: 131
+            close:
+              kind: CloseInterp
+              start: 138
+              end: 140
+            type: Interp
+          type: InterpolatedExpression
+        key: Authorization
+        token:
+          kind: Header
+          start: 107
+          end: 120
+        type: Header
+    comment:
+      text: ""
+      token:
+        kind: EOF
+        start: 0
+        end: 0
+      type: Invalid
+    method:
+      token:
+        kind: MethodGet
+        start: 19
+        end: 22
+      type: Method
+    sep:
+      kind: Separator
+      start: 15
+      end: 18
+    type: Request
+type: File

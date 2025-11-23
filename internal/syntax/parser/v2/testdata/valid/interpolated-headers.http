@@ -1,0 +1,8 @@
+@token = shhh
+
+###
+GET https://example.com
+Accept: */*
+Content-Type: application/json
+X-Api-Key: something
+Authorization: Bearer {{ token }}

@@ -1,7 +1,0 @@
--- src.http --
-@base = https://notaurl%^&*6666----=
-
-### Broke
-GET {{ base }}£$%^&*
--- want.txt --
-invalid-global-url.txtar:4:22: parseStatement: unrecognised token: Text
