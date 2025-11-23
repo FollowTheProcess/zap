@@ -334,6 +334,16 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindInterpolatedExpression,
 		},
 		{
+			name: "body",
+			node: ast.Body{
+				Token: token.Token{Kind: token.Body, Start: 12, End: 136},
+				Type:  ast.KindBody,
+			},
+			start: token.Token{Kind: token.Body, Start: 12, End: 136},
+			end:   token.Token{Kind: token.Body, Start: 12, End: 136},
+			kind:  ast.KindBody,
+		},
+		{
 			name:  "empty file",
 			node:  ast.File{Type: ast.KindFile},
 			start: token.Token{Kind: token.EOF},

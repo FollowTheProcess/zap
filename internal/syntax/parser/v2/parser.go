@@ -466,7 +466,7 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 	if p.next.Is(token.Body) {
 		p.advance()
 
-		body, err := p.parseBody()
+		body, err := p.parseExpression(token.LowestPrecedence)
 		if err != nil {
 			return result, err
 		}
@@ -583,7 +583,7 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 
 	precedence := p.current.Precedence()
 
-	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL) {
+	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) {
 		p.advance()
 
 		right, err := p.parseExpression(precedence)
