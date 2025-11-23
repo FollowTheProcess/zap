@@ -122,6 +122,29 @@ func TestInvalid(t *testing.T) {
 	}
 }
 
+func FuzzParser(f *testing.F) {
+	// Get all the .http source from testdata for the corpus
+	pattern := filepath.Join("testdata", "valid", "*.http")
+	files, err := filepath.Glob(pattern)
+	test.Ok(f, err)
+
+	for _, file := range files {
+		src, err := os.ReadFile(file)
+		test.Ok(f, err)
+
+		f.Add(src)
+	}
+
+	// Property: The parser never panics or loops indefinitely, fuzz by default
+	// will catch both of these
+	f.Fuzz(func(t *testing.T, src []byte) {
+		parser, err := parser.New("fuzz", bytes.NewReader(src), nil)
+		test.Ok(t, err)
+
+		_, _ = parser.Parse() //nolint:errcheck // Just checking for panics and infinite loops
+	})
+}
+
 // testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
 // the enclosing test.
 func testFailHandler(tb testing.TB) syntax.ErrorHandler {
