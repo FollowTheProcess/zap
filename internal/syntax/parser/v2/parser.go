@@ -1,13 +1,14 @@
-// Package parser implements the new .http file parser.
+// Package parser implements the a .http file parser.
 //
-// The original parser was "dumb" in the sense that it could handle http syntax but as
-// I went to implement more complex features like more interpolation expressions, loading
-// env vars using {{ env.VAR }}, and referring to previous requests responses via their
-// name e.g. {{ requests.<name>.response.body }} I realised I needed to re-think the implementation.
+// The parser parses a stream of tokens from the scanner into ast nodes, if
+// a parse error occurs, partial nodes may be returned rather than the idiomatic
+// Go norm of <zero value>, error. This is intentional both to aid error reporting and
+// to increase the fault tolerance of the parser for use in e.g. language servers that
+// commonly parse incomplete or incorrect code and require a best effort partial AST
+// to function in these scenarios.
 //
-// So this parser (which will eventually replace the existing one) parses a http file into
-// a proper abstract syntax tree, which will then allow things like expression precedence
-// and proper scoped variable resolution.
+// Once parsed, the abstract syntax tree is resolved which is where variable interpolation,
+// and more thorough validation happen.
 package parser
 
 import (
@@ -570,16 +571,17 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 
 // parseInterpolatedExpression parses a composite interpolation expression.
 func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.InterpolatedExpression, error) {
-	interp, err := p.parseInterp()
-	if err != nil {
-		return ast.InterpolatedExpression{}, err
+	expr := ast.InterpolatedExpression{
+		Left: left,
+		Type: ast.KindInterpolatedExpression,
 	}
 
-	expr := ast.InterpolatedExpression{
-		Left:   left,
-		Interp: interp,
-		Type:   ast.KindInterpolatedExpression,
+	interp, err := p.parseInterp()
+	if err != nil {
+		return expr, err
 	}
+
+	expr.Interp = interp
 
 	precedence := p.current.Precedence()
 
