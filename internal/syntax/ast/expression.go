@@ -194,3 +194,32 @@ func (i InterpolatedExpression) Kind() Kind {
 
 // expressionNode marks an [InterpolatedExpression] as an [Expression].
 func (i InterpolatedExpression) expressionNode() {}
+
+// Body is the http body expression.
+type Body struct {
+	// Token is the [token.Body] token.
+	Token token.Token
+
+	// Type is [KindBody].
+	Type Kind
+}
+
+// Start returns the first token associated with the body, which
+// is just the [token.Body].
+func (b Body) Start() token.Token {
+	return b.Token
+}
+
+// End returns the last token associated with the body, which is
+// also just the [token.Body].
+func (b Body) End() token.Token {
+	return b.Token
+}
+
+// Kind returns [KindBody].
+func (b Body) Kind() Kind {
+	return b.Type
+}
+
+// expressionNode marks a [Body] as an [Expression].
+func (b Body) expressionNode() {}

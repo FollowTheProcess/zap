@@ -1,31 +1,36 @@
 source: parser_test.go
 expression: parsed
 ---
-name: request-comment.http
+name: body.http
 statements:
   - url:
-      value: https://example.com
+      value: https://api.somewhere.com/items/1
       token:
         kind: URL
-        start: 18
-        end: 37
+        start: 14
+        end: 47
       type: URL
-    body: null
+    body:
+      token:
+        kind: Body
+        start: 49
+        end: 75
+      type: Body
     vars: []
     prompts: []
     headers: []
     comment:
-      text: A comment
+      text: Body
       token:
         kind: Comment
         start: 4
-        end: 13
+        end: 8
       type: Comment
     method:
       token:
-        kind: MethodGet
-        start: 14
-        end: 17
+        kind: MethodPost
+        start: 9
+        end: 13
       type: Method
     sep:
       kind: Separator

@@ -20,6 +20,7 @@ const (
 	KindMethod                             // Method
 	KindHeader                             // Header
 	KindInterpolatedExpression             // InterpolatedExpression
+	KindBody                               // Body
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

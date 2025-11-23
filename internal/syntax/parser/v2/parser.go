@@ -463,6 +463,17 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		result.Headers = append(result.Headers, header)
 	}
 
+	if p.next.Is(token.Body) {
+		p.advance()
+
+		body, err := p.parseBody()
+		if err != nil {
+			return result, err
+		}
+
+		result.Body = body
+	}
+
 	return result, nil
 }
 
@@ -496,6 +507,8 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 		expr, err = p.parseIdent()
 	case token.URL:
 		expr, err = p.parseURL()
+	case token.Body:
+		expr, err = p.parseBody()
 	default:
 		p.errorf("parseExpression: unexpected token %s", p.current.Kind)
 		return nil, ErrParse
@@ -528,7 +541,7 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	//
 	// In our case the Interp is the operator and carries the highest precedence.
 
-	for p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL) && precedence < p.next.Precedence() {
+	for p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) && precedence < p.next.Precedence() {
 		p.advance()
 
 		switch p.current.Kind {
@@ -541,6 +554,8 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 			expr, err = p.parseIdent()
 		case token.URL:
 			expr, err = p.parseURL()
+		case token.Body:
+			expr, err = p.parseBody()
 		default:
 			p.errorf("parseExpression: unexpected token: %s", p.current.Kind)
 		}
@@ -668,4 +683,14 @@ func (p *Parser) parseInterp() (ast.Interp, error) {
 	result.Close = p.current
 
 	return result, nil
+}
+
+// parseBody parses a body expression.
+func (p *Parser) parseBody() (ast.Body, error) {
+	body := ast.Body{
+		Token: p.current,
+		Type:  ast.KindBody,
+	}
+
+	return body, nil
 }

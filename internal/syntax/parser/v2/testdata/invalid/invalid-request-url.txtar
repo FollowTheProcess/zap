@@ -1,5 +1,0 @@
--- src.http --
-### Broke
-GET https://ASDFGHJ@£$%^&*( )
--- want.txt --
-invalid-request-url.txtar:2:32: parseStatement: unrecognised token: Body

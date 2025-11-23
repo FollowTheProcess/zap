@@ -29,6 +29,7 @@ statements:
         start: 23
         end: 42
       type: URL
+    body: null
     vars: []
     prompts: []
     headers:
