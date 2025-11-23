@@ -221,6 +221,37 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindRequest,
 		},
 		{
+			// https://example/com/{{ version }}/items/123
+			// |------ left ------|-- interp --|- right -|
+			name: "interpolated expression",
+			node: ast.InterpolatedExpression{
+				Left: ast.URL{
+					Value: "https://example.com/",
+					Token: token.Token{Kind: token.URL, Start: 0, End: 20},
+					Type:  ast.KindURL,
+				},
+				Interp: ast.Interp{
+					Expr: ast.Ident{
+						Name:  "version",
+						Token: token.Token{Kind: token.Ident, Start: 23, End: 30},
+						Type:  ast.KindIdent,
+					},
+					Open:  token.Token{Kind: token.OpenInterp, Start: 20, End: 22},
+					Close: token.Token{Kind: token.CloseInterp, Start: 31, End: 33},
+					Type:  ast.KindInterp,
+				},
+				Right: ast.URL{
+					Value: "/items/123",
+					Token: token.Token{Kind: token.URL, Start: 33, End: 43},
+					Type:  ast.KindURL,
+				},
+				Type: ast.KindInterpolatedExpression,
+			},
+			start: token.Token{Kind: token.URL, Start: 0, End: 20},
+			end:   token.Token{Kind: token.URL, Start: 33, End: 43},
+			kind:  ast.KindInterpolatedExpression,
+		},
+		{
 			name:  "empty file",
 			node:  ast.File{Type: ast.KindFile},
 			start: token.Token{Kind: token.EOF},

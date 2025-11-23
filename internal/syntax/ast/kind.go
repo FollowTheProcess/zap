@@ -7,18 +7,19 @@ type Kind int
 //
 //go:generate stringer -type Kind -linecomment
 const (
-	KindInvalid      Kind = iota // Invalid
-	KindFile                     // File
-	KindVarStatement             // VarStatement
-	KindIdent                    // Ident
-	KindTextLiteral              // TextLiteral
-	KindURL                      // URL
-	KindInterp                   // Interp
-	KindPrompt                   // Prompt
-	KindRequest                  // Request
-	KindComment                  // Comment
-	KindMethod                   // Method
-	KindHeader                   // Header
+	KindInvalid                Kind = iota // Invalid
+	KindFile                               // File
+	KindVarStatement                       // VarStatement
+	KindIdent                              // Ident
+	KindTextLiteral                        // TextLiteral
+	KindURL                                // URL
+	KindInterp                             // Interp
+	KindPrompt                             // Prompt
+	KindRequest                            // Request
+	KindComment                            // Comment
+	KindMethod                             // Method
+	KindHeader                             // Header
+	KindInterpolatedExpression             // InterpolatedExpression
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

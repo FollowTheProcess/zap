@@ -3,4 +3,4 @@
 @prompt id The ID of a thing to get
 GET https://api.something.com/{{ missing }}/thing/{{ id }}
 -- want.txt --
-undeclared-prompt.txtar:3:31-33: parseStatement: unrecognised token: OpenInterp
+undeclared-prompt.txtar:4:1: parseExpression: unexpected token EOF

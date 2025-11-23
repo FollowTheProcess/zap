@@ -1,0 +1,51 @@
+source: parser_test.go
+expression: parsed
+---
+name: interpolated-expression.http
+statements:
+  - value:
+      left:
+        value: https://api.somewhere.com/
+        token:
+          kind: URL
+          start: 7
+          end: 33
+        type: URL
+      right:
+        value: /items/1
+        token:
+          kind: URL
+          start: 46
+          end: 54
+        type: URL
+      interp:
+        expr:
+          name: version
+          token:
+            kind: Ident
+            start: 36
+            end: 43
+          type: Ident
+        open:
+          kind: OpenInterp
+          start: 33
+          end: 35
+        close:
+          kind: CloseInterp
+          start: 44
+          end: 46
+        type: Interp
+      type: InterpolatedExpression
+    ident:
+      name: url
+      token:
+        kind: Ident
+        start: 1
+        end: 4
+      type: Ident
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: VarStatement
+type: File
