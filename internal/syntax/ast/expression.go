@@ -138,3 +138,49 @@ func (i Interp) Kind() Kind {
 
 // expressionNode marks an [Interp] as an [ast.Expression].
 func (i Interp) expressionNode() {}
+
+// InterpolatedExpression is a composite expression comprised of
+// an [Interp] sandwiched between two other expressions.
+//
+// The Left and Right expressions, may also be arbitrarily nested
+// InterpolatedExpressions.
+//
+// This allows us to do precedence based parsing in a manner similar to
+// binary expressions where there is a Left, Right and an Op with different
+// precedence dependencing on whether it's '+', '*', '/' etc.
+//
+// In our case, there is only one precedence based operator: an interp, which
+// has the highest precedence.
+type InterpolatedExpression struct {
+	// Left is the expression before the interp, it may itself
+	// be any other valid expression, including more nested InterpolatedExpressions.
+	Left Expression
+
+	// Right is the expression immediately after the interp, like Left
+	// it may also be any valid expression.
+	Right Expression
+
+	// Interp is the [Interp] expression in between Left and Right.
+	Interp Interp
+
+	// Type is [KindInterpolatedExpression].
+	Type Kind
+}
+
+// Start returns the first token associated with the left expression.
+func (i InterpolatedExpression) Start() token.Token {
+	return i.Left.Start()
+}
+
+// End returns the last token associated with the right expression.
+func (i InterpolatedExpression) End() token.Token {
+	return i.Right.End()
+}
+
+// Kind returns [KindInterpolatedExpression].
+func (i InterpolatedExpression) Kind() Kind {
+	return i.Type
+}
+
+// expressionNode marks an [InterpolatedExpression] as an [Expression].
+func (i InterpolatedExpression) expressionNode() {}

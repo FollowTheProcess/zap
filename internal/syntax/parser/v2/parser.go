@@ -272,7 +272,7 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 
 	p.advance()
 
-	value, err := p.parseExpression()
+	value, err := p.parseExpression(token.LowestPrecedence)
 	if err != nil {
 		return result, err
 	}
@@ -445,7 +445,7 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		return result, err
 	}
 
-	url, err := p.parseExpression()
+	url, err := p.parseExpression(token.LowestPrecedence)
 	if err != nil {
 		return result, err
 	}
@@ -477,21 +477,71 @@ func (p *Parser) parseMethod() (ast.Method, error) {
 }
 
 // parseExpression parses an expression.
-func (p *Parser) parseExpression() (ast.Expression, error) {
-	// TODO(@FollowTheProcess): We need some precedence in here so that interps get evaluated first
+func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
+	var (
+		left ast.Expression
+		err  error
+	)
+
 	switch p.current.Kind {
 	case token.Text:
-		return p.parseTextLiteral()
+		left, err = p.parseTextLiteral()
 	case token.OpenInterp:
-		return p.parseInterp()
+		left, err = p.parseInterp()
 	case token.Ident:
-		return p.parseIdent()
+		left, err = p.parseIdent()
 	case token.URL:
-		return p.parseURL()
+		left, err = p.parseURL()
 	default:
 		p.errorf("parseExpression: unexpected token %s", p.current.Kind)
 		return nil, ErrParse
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL) && precedence < p.next.Precedence() {
+		p.advance()
+
+		switch p.current.Kind {
+		case token.OpenInterp:
+			left, err = p.parseInterpolatedExpression(left)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			p.errorf("parseExpression: unexpected token: %s", p.current.Kind)
+		}
+	}
+
+	return left, nil
+}
+
+// parseInterpolatedExpression parses a composite interpolation expression.
+func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.InterpolatedExpression, error) {
+	interp, err := p.parseInterp()
+	if err != nil {
+		return ast.InterpolatedExpression{}, err
+	}
+
+	expr := ast.InterpolatedExpression{
+		Left:   left,
+		Interp: interp,
+		Type:   ast.KindInterpolatedExpression,
+	}
+
+	precedence := p.current.Precedence()
+	p.advance()
+
+	right, err := p.parseExpression(precedence)
+	if err != nil {
+		return expr, err
+	}
+
+	expr.Right = right
+
+	return expr, nil
 }
 
 // parseTextLiteral parses a TextLiteral.
@@ -532,7 +582,7 @@ func (p *Parser) parseHeader() (ast.Header, error) {
 		return result, err
 	}
 
-	value, err := p.parseExpression()
+	value, err := p.parseExpression(token.LowestPrecedence)
 	if err != nil {
 		return result, err
 	}
@@ -566,7 +616,7 @@ func (p *Parser) parseInterp() (ast.Interp, error) {
 		return result, err
 	}
 
-	expr, err := p.parseExpression()
+	expr, err := p.parseExpression(token.LowestPrecedence)
 	if err != nil {
 		return result, err
 	}

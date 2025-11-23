@@ -20,11 +20,12 @@ func _() {
 	_ = x[KindComment-9]
 	_ = x[KindMethod-10]
 	_ = x[KindHeader-11]
+	_ = x[KindInterpolatedExpression-12]
 }
 
-const _Kind_name = "InvalidFileVarStatementIdentTextLiteralURLInterpPromptRequestCommentMethodHeader"
+const _Kind_name = "InvalidFileVarStatementIdentTextLiteralURLInterpPromptRequestCommentMethodHeaderInterpolatedExpression"
 
-var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 42, 48, 54, 61, 68, 74, 80}
+var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 42, 48, 54, 61, 68, 74, 80, 102}
 
 func (i Kind) String() string {
 	idx := int(i) - 0
