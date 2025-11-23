@@ -476,7 +476,7 @@ func (p *Parser) parseMethod() (ast.Method, error) {
 	return result, nil
 }
 
-// parseExpression parses an expression.
+// parseExpression parses an expression given a precedence level.
 func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	var (
 		left ast.Expression
@@ -500,6 +500,26 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Very similar to how programming languages parse binary expressions using operator precedence
+	// e.g. 'a + b / c' should be parsed as '(a + (b / c))' as '/' has a higher precedence or binding
+	// power than '+'.
+	//
+	// The equivalent for us is that {{ <ident> }} should have a higher precedence such that:
+	//
+	// 'https://example.com/{{ version }}/items/1'
+	//
+	// should be parsed as:
+	//
+	// '('https://example.com/(<version>)/items/1')'
+	//
+	// Where the '{{ version }}' is more deeply nested in the ast.
+	//
+	// This is done here with the [ast.InterpolatedExpression] node which represents an [ast.Interp]
+	// sandwiched between two arbitrary expressions. This is analogous to a binary expression node
+	// in most programming languages where two expressions are sandwiched between a binary operator.
+	//
+	// In our case the Interp is the operator and carries the highest precedence.
 
 	for p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL) && precedence < p.next.Precedence() {
 		p.advance()
