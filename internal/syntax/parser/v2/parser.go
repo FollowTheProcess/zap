@@ -478,20 +478,24 @@ func (p *Parser) parseMethod() (ast.Method, error) {
 
 // parseExpression parses an expression given a precedence level.
 func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
+	// Prefix expressions, when the expression begins with one of these tokens, analogous
+	// to prefix expressions like -5, !true or 'text literal'
 	var (
-		left ast.Expression
+		expr ast.Expression
 		err  error
 	)
 
 	switch p.current.Kind {
 	case token.Text:
-		left, err = p.parseTextLiteral()
+		expr, err = p.parseTextLiteral()
 	case token.OpenInterp:
-		left, err = p.parseInterp()
+		// If the expression begins with an open interp '{{' it's an interpolated
+		// expression with no left hand side, hence nil
+		expr, err = p.parseInterpolatedExpression(nil)
 	case token.Ident:
-		left, err = p.parseIdent()
+		expr, err = p.parseIdent()
 	case token.URL:
-		left, err = p.parseURL()
+		expr, err = p.parseURL()
 	default:
 		p.errorf("parseExpression: unexpected token %s", p.current.Kind)
 		return nil, ErrParse
@@ -501,6 +505,9 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 		return nil, err
 	}
 
+	// Now what happens if the tokens are found in the middle of the expression. Analogous
+	// to infix expressions like 5 + 5.
+	//
 	// Very similar to how programming languages parse binary expressions using operator precedence
 	// e.g. 'a + b / c' should be parsed as '(a + (b / c))' as '/' has a higher precedence or binding
 	// power than '+'.
@@ -526,16 +533,24 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 
 		switch p.current.Kind {
 		case token.OpenInterp:
-			left, err = p.parseInterpolatedExpression(left)
-			if err != nil {
-				return nil, err
-			}
+			// It's an interpolated expression where we already know the left hand side
+			expr, err = p.parseInterpolatedExpression(expr)
+		case token.Text:
+			expr, err = p.parseTextLiteral()
+		case token.Ident:
+			expr, err = p.parseIdent()
+		case token.URL:
+			expr, err = p.parseURL()
 		default:
 			p.errorf("parseExpression: unexpected token: %s", p.current.Kind)
 		}
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return left, nil
+	return expr, nil
 }
 
 // parseInterpolatedExpression parses a composite interpolation expression.
@@ -552,14 +567,17 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 	}
 
 	precedence := p.current.Precedence()
-	p.advance()
 
-	right, err := p.parseExpression(precedence)
-	if err != nil {
-		return expr, err
+	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL) {
+		p.advance()
+
+		right, err := p.parseExpression(precedence)
+		if err != nil {
+			return expr, err
+		}
+
+		expr.Right = right
 	}
-
-	expr.Right = right
 
 	return expr, nil
 }

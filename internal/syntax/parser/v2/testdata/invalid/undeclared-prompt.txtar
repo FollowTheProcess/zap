@@ -1,6 +1,0 @@
--- src.http --
-### Get a Thing
-@prompt id The ID of a thing to get
-GET https://api.something.com/{{ missing }}/thing/{{ id }}
--- want.txt --
-undeclared-prompt.txtar:4:1: parseExpression: unexpected token EOF

@@ -167,14 +167,24 @@ type InterpolatedExpression struct {
 	Type Kind
 }
 
-// Start returns the first token associated with the left expression.
+// Start returns the first token associated with the left expression if there is one,
+// else the start of the interp.
 func (i InterpolatedExpression) Start() token.Token {
-	return i.Left.Start()
+	if i.Left != nil {
+		return i.Left.Start()
+	}
+
+	return i.Interp.Start()
 }
 
-// End returns the last token associated with the right expression.
+// End returns the last token associated with the right expression if there is one,
+// else the end of the interp.
 func (i InterpolatedExpression) End() token.Token {
-	return i.Right.End()
+	if i.Right != nil {
+		return i.Right.End()
+	}
+
+	return i.Interp.End()
 }
 
 // Kind returns [KindInterpolatedExpression].

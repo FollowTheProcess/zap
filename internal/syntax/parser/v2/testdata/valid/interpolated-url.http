@@ -1,0 +1,4 @@
+@base = https://example.com
+
+###
+GET {{ base }}/items/1

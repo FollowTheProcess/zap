@@ -159,6 +159,10 @@ func BenchmarkParser(b *testing.B) {
 	archive, err := txtar.ParseFile(file)
 	test.Ok(b, err)
 
+	if archive == nil {
+		b.Fatal("txtar.ParseFile returned nil archive")
+	}
+
 	test.True(
 		b,
 		len(archive.Files) > 1,
@@ -191,6 +195,10 @@ func FuzzParser(f *testing.F) {
 	for _, file := range files {
 		archive, err := txtar.ParseFile(file)
 		test.Ok(f, err)
+
+		if archive == nil {
+			f.Fatal("txtar.ParseFile returned nil archive")
+		}
 
 		test.True(
 			f,

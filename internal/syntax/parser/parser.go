@@ -59,6 +59,10 @@ func New(name string, r io.Reader, handler syntax.ErrorHandler) (*Parser, error)
 // the installed error handler passed to [New] will have the full detail and should
 // be preferred.
 func (p *Parser) Parse() (syntax.File, error) {
+	if p == nil {
+		return syntax.File{}, errors.New("Parse: nil parse receiver")
+	}
+
 	file := syntax.File{
 		Name: p.name,
 	}

@@ -31,22 +31,26 @@ statements:
           end: 7
         type: VarStatement
       - value:
-          expr:
-            name: something
-            token:
-              kind: Ident
-              start: 40
-              end: 49
-            type: Ident
-          open:
-            kind: OpenInterp
-            start: 37
-            end: 39
-          close:
-            kind: CloseInterp
-            start: 50
-            end: 52
-          type: Interp
+          left: null
+          right: null
+          interp:
+            expr:
+              name: something
+              token:
+                kind: Ident
+                start: 40
+                end: 49
+              type: Ident
+            open:
+              kind: OpenInterp
+              start: 37
+              end: 39
+            close:
+              kind: CloseInterp
+              start: 50
+              end: 52
+            type: Interp
+          type: InterpolatedExpression
         ident:
           name: interp
           token:
