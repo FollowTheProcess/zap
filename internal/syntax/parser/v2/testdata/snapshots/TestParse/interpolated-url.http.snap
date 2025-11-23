@@ -49,6 +49,7 @@ statements:
           end: 47
         type: Interp
       type: InterpolatedExpression
+    body: null
     vars: []
     prompts: []
     headers: []

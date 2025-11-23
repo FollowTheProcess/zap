@@ -1,0 +1,9 @@
+### Body Interp
+# @id = 123
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here",
+  "id": "{{ id }}",
+  "else": "more"
+}

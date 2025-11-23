@@ -10,6 +10,7 @@ statements:
         start: 8
         end: 27
       type: URL
+    body: null
     vars: []
     prompts: []
     headers:

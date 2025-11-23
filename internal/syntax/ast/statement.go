@@ -154,6 +154,9 @@ type Request struct {
 	// for the request. May be a [TextLiteral] or an [Interp].
 	URL Expression
 
+	// Body is the body expression.
+	Body Expression
+
 	// Vars are any [VarStatement] nodes attached to the request defining
 	// local variables.
 	Vars []VarStatement
