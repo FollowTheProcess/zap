@@ -71,21 +71,26 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindVarStatement,
 		},
 		{
-			name: "interp",
+			name: "interp only",
 			// {{ hello }}
-			node: ast.Interp{
-				Expr: ast.Ident{
-					Name:  "hello",
-					Token: token.Token{Kind: token.Ident, Start: 3, End: 8},
-					Type:  ast.KindIdent,
+			node: ast.InterpolatedExpression{
+				Left:  nil,
+				Right: nil,
+				Interp: ast.Interp{
+					Expr: ast.Ident{
+						Name:  "hello",
+						Token: token.Token{Kind: token.Ident, Start: 3, End: 8},
+						Type:  ast.KindIdent,
+					},
+					Open:  token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+					Close: token.Token{Kind: token.CloseInterp, Start: 9, End: 11},
+					Type:  ast.KindInterp,
 				},
-				Open:  token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
-				Close: token.Token{Kind: token.CloseInterp, Start: 9, End: 11},
-				Type:  ast.KindInterp,
+				Type: ast.KindInterpolatedExpression,
 			},
 			start: token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
 			end:   token.Token{Kind: token.CloseInterp, Start: 9, End: 11},
-			kind:  ast.KindInterp,
+			kind:  ast.KindInterpolatedExpression,
 		},
 		{
 			name: "prompt",
@@ -223,7 +228,7 @@ func TestNode(t *testing.T) {
 		{
 			// https://example/com/{{ version }}/items/123
 			// |------ left ------|-- interp --|- right -|
-			name: "interpolated expression",
+			name: "full interp",
 			node: ast.InterpolatedExpression{
 				Left: ast.URL{
 					Value: "https://example.com/",
@@ -249,6 +254,83 @@ func TestNode(t *testing.T) {
 			},
 			start: token.Token{Kind: token.URL, Start: 0, End: 20},
 			end:   token.Token{Kind: token.URL, Start: 33, End: 43},
+			kind:  ast.KindInterpolatedExpression,
+		},
+		{
+			// {{ baseURL }}/items/3
+			// |- interp --|-right-|
+			name: "interp no left",
+			node: ast.InterpolatedExpression{
+				Left: nil,
+				Interp: ast.Interp{
+					Expr: ast.Ident{
+						Name:  "baseURL",
+						Token: token.Token{Kind: token.Ident, Start: 3, End: 10},
+						Type:  ast.KindIdent,
+					},
+					Open:  token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+					Close: token.Token{Kind: token.CloseInterp, Start: 11, End: 13},
+					Type:  ast.KindInterp,
+				},
+				Right: ast.URL{
+					Value: "/items/3",
+					Token: token.Token{Kind: token.URL, Start: 13, End: 21},
+					Type:  ast.KindURL,
+				},
+				Type: ast.KindInterpolatedExpression,
+			},
+			start: token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+			end:   token.Token{Kind: token.URL, Start: 13, End: 21},
+			kind:  ast.KindInterpolatedExpression,
+		},
+		{
+			// https://example/com/{{ endpoint }}
+			// |------ left ------|-- interp ---|
+			name: "interp no right",
+			node: ast.InterpolatedExpression{
+				Left: ast.URL{
+					Value: "https://example.com/",
+					Token: token.Token{Kind: token.URL, Start: 0, End: 20},
+					Type:  ast.KindURL,
+				},
+				Interp: ast.Interp{
+					Expr: ast.Ident{
+						Name:  "endpoint",
+						Token: token.Token{Kind: token.Ident, Start: 23, End: 31},
+						Type:  ast.KindIdent,
+					},
+					Open:  token.Token{Kind: token.OpenInterp, Start: 20, End: 22},
+					Close: token.Token{Kind: token.CloseInterp, Start: 32, End: 34},
+					Type:  ast.KindInterp,
+				},
+				Right: nil,
+				Type:  ast.KindInterpolatedExpression,
+			},
+			start: token.Token{Kind: token.URL, Start: 0, End: 20},
+			end:   token.Token{Kind: token.CloseInterp, Start: 32, End: 34},
+			kind:  ast.KindInterpolatedExpression,
+		},
+		{
+			name: "interp no left or right",
+			// {{ hello }}
+			// |- interp-|
+			node: ast.InterpolatedExpression{
+				Left:  nil,
+				Right: nil,
+				Interp: ast.Interp{
+					Expr: ast.Ident{
+						Name:  "hello",
+						Token: token.Token{Kind: token.Ident, Start: 3, End: 8},
+						Type:  ast.KindIdent,
+					},
+					Open:  token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+					Close: token.Token{Kind: token.CloseInterp, Start: 9, End: 11},
+					Type:  ast.KindInterp,
+				},
+				Type: ast.KindInterpolatedExpression,
+			},
+			start: token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+			end:   token.Token{Kind: token.CloseInterp, Start: 9, End: 11},
 			kind:  ast.KindInterpolatedExpression,
 		},
 		{

@@ -488,6 +488,10 @@ func FuzzScanner(f *testing.F) {
 		archive, err := txtar.ParseFile(file)
 		test.Ok(f, err)
 
+		if archive == nil {
+			f.Fatal("txtar.ParseFile returned nil archive")
+		}
+
 		test.True(
 			f,
 			len(archive.Files) > 1,
@@ -540,6 +544,10 @@ func BenchmarkScanner(b *testing.B) {
 	file := filepath.Join("testdata", "valid", "full.txtar")
 	archive, err := txtar.ParseFile(file)
 	test.Ok(b, err)
+
+	if archive == nil {
+		b.Fatal("txtar.ParseFile returned nil archive")
+	}
 
 	test.True(
 		b,

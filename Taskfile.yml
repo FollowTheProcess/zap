@@ -98,9 +98,13 @@ tasks:
     preconditions:
       - sh: command -v typos
         msg: requires typos-cli, run `brew install typos-cli`
+
+      - sh: command -v nilaway
+        msg: nilaway not installed, see https://github.com/uber-go/nilaway
     cmds:
       - golangci-lint run --fix
       - typos
+      - nilaway ./...
 
   doc:
     desc: Render the pkg docs locally

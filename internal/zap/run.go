@@ -253,6 +253,10 @@ func (z Zap) doRequest(
 	if err != nil {
 		return Response{}, fmt.Errorf("HTTP response error: %w", err)
 	}
+
+	if res == nil {
+		return Response{}, errors.New("nil *http.Response from client.Do")
+	}
 	defer res.Body.Close()
 
 	duration := time.Since(start)
