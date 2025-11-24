@@ -24,6 +24,7 @@ const (
 	KindBodyFile                           // BodyFile
 	KindResponseRedirect                   // ResponseRedirect
 	KindResponseReference                  // ResponseReference
+	KindHTTPVersion                        // HTTPVersion
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

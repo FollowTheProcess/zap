@@ -165,6 +165,10 @@ type Request struct {
 	// provided for the request.
 	ResponseReference *ResponseReference `yaml:"responseReference"`
 
+	// HTTPVersion is the optional HTTPVersion statement provided
+	// for the request.
+	HTTPVersion *HTTPVersion `yaml:"httpVersion"`
+
 	// Comment is the optional [Comment] node attached to a request.
 	Comment *Comment `yaml:"comment"`
 
@@ -330,3 +334,34 @@ func (r ResponseReference) Kind() Kind {
 
 // statementNode marks a [ResponseReference] as a [Statement].
 func (r ResponseReference) statementNode() {}
+
+// HTTPVersion is a HTTP version statement.
+type HTTPVersion struct {
+	// Version is the version number, i.e. in the statement
+	// 'HTTP/1.2' then Version is '1.2'.
+	Version string
+
+	// Token is the [token.HTTPVersion] token.
+	Token token.Token
+
+	// Type is [KindHTTPVersion].
+	Type Kind
+}
+
+// Start returns the [token.HTTPVersion].
+func (h HTTPVersion) Start() token.Token {
+	return h.Token
+}
+
+// End also returns the [token.HTTPVersion].
+func (h HTTPVersion) End() token.Token {
+	return h.Token
+}
+
+// Kind returns [KindHTTPVersion].
+func (h HTTPVersion) Kind() Kind {
+	return h.Type
+}
+
+// statementNode marks a [HTTPVersion] as a [Statement].
+func (h HTTPVersion) statementNode() {}

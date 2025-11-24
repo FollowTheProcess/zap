@@ -25,6 +25,7 @@ statements:
         end: 30
       type: ResponseRedirect
     responseReference: null
+    httpVersion: null
     comment: null
     vars: []
     prompts: []

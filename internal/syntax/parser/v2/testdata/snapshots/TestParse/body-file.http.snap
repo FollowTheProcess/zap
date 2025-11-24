@@ -25,6 +25,7 @@ statements:
       type: BodyFile
     responseRedirect: null
     responseReference: null
+    httpVersion: null
     comment:
       text: Read the body from ./input.json
       token:

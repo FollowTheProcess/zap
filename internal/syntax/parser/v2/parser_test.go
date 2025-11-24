@@ -20,6 +20,8 @@ import (
 	"go.uber.org/goleak"
 )
 
+// TODO(@FollowTheProcess): Remove package-directory mismatch once parser v2 is the main parser
+
 var (
 	update = flag.Bool("update", false, "Update snapshots")
 	clean  = flag.Bool("clean", false, "Erase and regenerate snapshots")
@@ -33,6 +35,8 @@ func TestParse(t *testing.T) {
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
 			snap := snapshot.New(
 				t,
 				snapshot.Update(*update),
@@ -122,11 +126,28 @@ func TestInvalid(t *testing.T) {
 	}
 }
 
+func BenchmarkParser(b *testing.B) {
+	file := filepath.Join("testdata", "valid", "full.http")
+
+	src, err := os.ReadFile(file)
+	test.Ok(b, err)
+
+	for b.Loop() {
+		p, err := parser.New(file, bytes.NewReader(src), testFailHandler(b))
+		test.Ok(b, err)
+
+		_, err = p.Parse()
+		test.Ok(b, err)
+	}
+}
+
 func FuzzParser(f *testing.F) {
 	// Get all the .http source from testdata for the corpus
 	pattern := filepath.Join("testdata", "valid", "*.http")
 	files, err := filepath.Glob(pattern)
 	test.Ok(f, err)
+
+	defer goleak.VerifyNone(f)
 
 	for _, file := range files {
 		src, err := os.ReadFile(file)

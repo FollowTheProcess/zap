@@ -25,11 +25,12 @@ func _() {
 	_ = x[KindBodyFile-14]
 	_ = x[KindResponseRedirect-15]
 	_ = x[KindResponseReference-16]
+	_ = x[KindHTTPVersion-17]
 }
 
-const _Kind_name = "InvalidFileVarStatementIdentTextLiteralURLInterpPromptRequestCommentMethodHeaderInterpolatedExpressionBodyBodyFileResponseRedirectResponseReference"
+const _Kind_name = "InvalidFileVarStatementIdentTextLiteralURLInterpPromptRequestCommentMethodHeaderInterpolatedExpressionBodyBodyFileResponseRedirectResponseReferenceHTTPVersion"
 
-var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 42, 48, 54, 61, 68, 74, 80, 102, 106, 114, 130, 147}
+var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 42, 48, 54, 61, 68, 74, 80, 102, 106, 114, 130, 147, 158}
 
 func (i Kind) String() string {
 	idx := int(i) - 0

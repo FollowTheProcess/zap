@@ -18,6 +18,7 @@ statements:
       type: Body
     responseRedirect: null
     responseReference: null
+    httpVersion: null
     comment:
       text: Body
       token:

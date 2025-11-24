@@ -25,6 +25,7 @@ statements:
         start: 29
         end: 31
       type: ResponseReference
+    httpVersion: null
     comment: null
     vars: []
     prompts: []
