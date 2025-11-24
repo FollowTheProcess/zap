@@ -161,6 +161,10 @@ type Request struct {
 	// provided for the request.
 	ResponseRedirect *ResponseRedirect `yaml:"responseRedirect"`
 
+	// ResponseReference is the optional response reference statement
+	// provided for the request.
+	ResponseReference *ResponseReference `yaml:"responseReference"`
+
 	// Comment is the optional [Comment] node attached to a request.
 	Comment *Comment `yaml:"comment"`
 
@@ -193,9 +197,12 @@ func (r Request) Start() token.Token {
 
 // End returns the last token associated with the [Request].
 func (r Request) End() token.Token {
-	// TODO(@FollowTheProcess): The response file redirect or response ref should be last
 	if r.ResponseRedirect != nil {
 		return r.ResponseRedirect.End()
+	}
+
+	if r.ResponseReference != nil {
+		return r.ResponseReference.End()
 	}
 
 	if r.Body != nil {
@@ -287,3 +294,39 @@ func (r ResponseRedirect) Kind() Kind {
 
 // statementNode marks a [ResponseRedirect] as a [Statement].
 func (r ResponseRedirect) statementNode() {}
+
+// ResponseReference is a response reference statement.
+type ResponseReference struct {
+	// File is the filepath to compare the response body to.
+	File Expression `yaml:"file"`
+
+	// Token is the [token.ResponseRef] beginning the reference statement.
+	Token token.Token `yaml:"token"`
+
+	// Type is [KindResponseReference].
+	Type Kind `yaml:"type"`
+}
+
+// Start returns the first token associated with the reference, which
+// is the opening [token.ResponseRef].
+func (r ResponseReference) Start() token.Token {
+	return r.Token
+}
+
+// End returns the last token associated with the reference, which
+// is the final token in the File expression.
+func (r ResponseReference) End() token.Token {
+	if r.File != nil {
+		return r.File.End()
+	}
+
+	return r.Token
+}
+
+// Kind returns [KindResponseReference].
+func (r ResponseReference) Kind() Kind {
+	return r.Type
+}
+
+// statementNode marks a [ResponseReference] as a [Statement].
+func (r ResponseReference) statementNode() {}

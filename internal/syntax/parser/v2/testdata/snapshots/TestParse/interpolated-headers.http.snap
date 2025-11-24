@@ -31,6 +31,7 @@ statements:
       type: URL
     body: null
     responseRedirect: null
+    responseReference: null
     comment: null
     vars: []
     prompts: []
