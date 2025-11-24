@@ -71,6 +71,23 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindVarStatement,
 		},
 		{
+			name: "var statement no value",
+			// @variable
+			node: ast.VarStatement{
+				Value: nil,
+				Ident: ast.Ident{
+					Name:  "variable",
+					Token: token.Token{Kind: token.Ident, Start: 1, End: 9},
+					Type:  ast.KindIdent,
+				},
+				At:   token.Token{Kind: token.At, Start: 0, End: 1},
+				Type: ast.KindVarStatement,
+			},
+			start: token.Token{Kind: token.At, Start: 0, End: 1},
+			end:   token.Token{Kind: token.Ident, Start: 1, End: 9},
+			kind:  ast.KindVarStatement,
+		},
+		{
 			name: "interp only",
 			// {{ hello }}
 			node: ast.InterpolatedExpression{
@@ -209,6 +226,10 @@ func TestNode(t *testing.T) {
 		{
 			name: "request",
 			node: ast.Request{
+				Body: ast.Body{
+					Token: token.Token{Kind: token.Body, Start: 30, End: 110},
+					Type:  ast.KindBody,
+				},
 				URL: ast.TextLiteral{
 					Value: "https://example.com",
 					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
@@ -222,8 +243,24 @@ func TestNode(t *testing.T) {
 				Type: ast.KindRequest,
 			},
 			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
-			end:   token.Token{Kind: token.URL, Start: 9, End: 28},
+			end:   token.Token{Kind: token.Body, Start: 30, End: 110},
 			kind:  ast.KindRequest,
+		},
+		{
+			name: "inner interp",
+			node: ast.Interp{
+				Expr: ast.Ident{
+					Name:  "id",
+					Token: token.Token{Kind: token.Ident, Start: 3, End: 5},
+					Type:  ast.KindIdent,
+				},
+				Open:  token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+				Close: token.Token{Kind: token.CloseInterp, Start: 6, End: 8},
+				Type:  ast.KindInterp,
+			},
+			start: token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
+			end:   token.Token{Kind: token.CloseInterp, Start: 6, End: 8},
+			kind:  ast.KindInterp,
 		},
 		{
 			// https://example/com/{{ version }}/items/123
@@ -342,6 +379,32 @@ func TestNode(t *testing.T) {
 			start: token.Token{Kind: token.Body, Start: 12, End: 136},
 			end:   token.Token{Kind: token.Body, Start: 12, End: 136},
 			kind:  ast.KindBody,
+		},
+		{
+			name: "body file",
+			node: ast.BodyFile{
+				Token: token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
+				Value: ast.TextLiteral{
+					Value: "./body.json",
+					Token: token.Token{Kind: token.Text, Start: 33, End: 44},
+					Type:  ast.KindTextLiteral,
+				},
+				Type: ast.KindBodyFile,
+			},
+			start: token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
+			end:   token.Token{Kind: token.Text, Start: 33, End: 44},
+			kind:  ast.KindBodyFile,
+		},
+		{
+			name: "body file no value",
+			node: ast.BodyFile{
+				Token: token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
+				Value: nil,
+				Type:  ast.KindBodyFile,
+			},
+			start: token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
+			end:   token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
+			kind:  ast.KindBodyFile,
 		},
 		{
 			name:  "empty file",
