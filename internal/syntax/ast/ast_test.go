@@ -17,6 +17,13 @@ func TestNode(t *testing.T) {
 		kind  ast.Kind    // Expected node kind
 	}{
 		{
+			name:  "empty file",
+			node:  ast.File{Type: ast.KindFile},
+			start: token.Token{Kind: token.EOF},
+			end:   token.Token{Kind: token.EOF},
+			kind:  ast.KindFile,
+		},
+		{
 			name: "text literal",
 			node: ast.TextLiteral{
 				Value: "a piece of text",
@@ -315,6 +322,38 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindRequest,
 		},
 		{
+			name: "request response reference",
+			node: ast.Request{
+				Body: ast.Body{
+					Token: token.Token{Kind: token.Body, Start: 30, End: 110},
+					Type:  ast.KindBody,
+				},
+				ResponseReference: &ast.ResponseReference{
+					File: ast.TextLiteral{
+						Value: "response.json",
+						Token: token.Token{Kind: token.Text, Start: 115, End: 128},
+						Type:  ast.KindTextLiteral,
+					},
+					Token: token.Token{Kind: token.ResponseRef, Start: 111, End: 113},
+					Type:  ast.KindResponseReference,
+				},
+				URL: ast.TextLiteral{
+					Value: "https://example.com",
+					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Type:  ast.KindTextLiteral,
+				},
+				Method: ast.Method{
+					Token: token.Token{Kind: token.MethodGet, Start: 5, End: 8},
+					Type:  ast.KindMethod,
+				},
+				Sep:  token.Token{Kind: token.Separator, Start: 0, End: 3},
+				Type: ast.KindRequest,
+			},
+			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
+			end:   token.Token{Kind: token.Text, Start: 115, End: 128},
+			kind:  ast.KindRequest,
+		},
+		{
 			name: "inner interp",
 			node: ast.Interp{
 				Expr: ast.Ident{
@@ -501,11 +540,30 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindResponseRedirect,
 		},
 		{
-			name:  "empty file",
-			node:  ast.File{Type: ast.KindFile},
-			start: token.Token{Kind: token.EOF},
-			end:   token.Token{Kind: token.EOF},
-			kind:  ast.KindFile,
+			name: "response reference",
+			node: ast.ResponseReference{
+				File: ast.TextLiteral{
+					Value: "response.json",
+					Token: token.Token{Kind: token.Text, Start: 34, End: 47},
+					Type:  ast.KindTextLiteral,
+				},
+				Token: token.Token{Kind: token.ResponseRef, Start: 30, End: 32},
+				Type:  ast.KindResponseReference,
+			},
+			start: token.Token{Kind: token.ResponseRef, Start: 30, End: 32},
+			end:   token.Token{Kind: token.Text, Start: 34, End: 47},
+			kind:  ast.KindResponseReference,
+		},
+		{
+			name: "response reference no file",
+			node: ast.ResponseReference{
+				File:  nil,
+				Token: token.Token{Kind: token.ResponseRef, Start: 30, End: 32},
+				Type:  ast.KindResponseReference,
+			},
+			start: token.Token{Kind: token.ResponseRef, Start: 30, End: 32},
+			end:   token.Token{Kind: token.ResponseRef, Start: 30, End: 32},
+			kind:  ast.KindResponseReference,
 		},
 	}
 

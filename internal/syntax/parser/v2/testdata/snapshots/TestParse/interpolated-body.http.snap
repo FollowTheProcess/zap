@@ -42,6 +42,7 @@ statements:
         type: Interp
       type: InterpolatedExpression
     responseRedirect: null
+    responseReference: null
     comment:
       text: Body Interp
       token:

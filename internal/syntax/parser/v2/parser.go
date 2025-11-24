@@ -499,6 +499,17 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		result.ResponseRedirect = redirect
 	}
 
+	if p.next.Is(token.ResponseRef) {
+		p.advance()
+
+		responseRef, err := p.parseResponseReference()
+		if err != nil {
+			return result, err
+		}
+
+		result.ResponseReference = responseRef
+	}
+
 	return result, nil
 }
 
@@ -753,4 +764,25 @@ func (p *Parser) parseResponseRedirect() (*ast.ResponseRedirect, error) {
 	redirect.File = file
 
 	return redirect, nil
+}
+
+// parseResponseReference parses a response reference statement.
+func (p *Parser) parseResponseReference() (*ast.ResponseReference, error) {
+	ref := &ast.ResponseReference{
+		Token: p.current,
+		Type:  ast.KindResponseReference,
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return ref, err
+	}
+
+	file, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return ref, err
+	}
+
+	ref.File = file
+
+	return ref, nil
 }
