@@ -81,6 +81,9 @@ linters:
       checks:
         - all
 
+    gocognit:
+      min-complexity: 40
+
     gosec:
       excludes:
         - G104 # Errors not checked, handled by errcheck

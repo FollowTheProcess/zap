@@ -22,6 +22,7 @@ const (
 	KindInterpolatedExpression             // InterpolatedExpression
 	KindBody                               // Body
 	KindBodyFile                           // BodyFile
+	KindResponseRedirect                   // ResponseRedirect
 )
 
 // MarshalText implements [encoding.TextMarshaler] for [Kind].

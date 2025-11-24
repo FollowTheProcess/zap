@@ -50,16 +50,11 @@ statements:
         type: Interp
       type: InterpolatedExpression
     body: null
+    responseRedirect: null
+    comment: null
     vars: []
     prompts: []
     headers: []
-    comment:
-      text: ""
-      token:
-        kind: EOF
-        start: 0
-        end: 0
-      type: Invalid
     method:
       token:
         kind: MethodGet

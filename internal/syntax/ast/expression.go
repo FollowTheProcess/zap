@@ -11,13 +11,13 @@ type Expression interface {
 // Ident is a named identifier expression.
 type Ident struct {
 	// Name is the ident's name.
-	Name string
+	Name string `yaml:"name"`
 
 	// The [token.Ident] token.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is the kind of ast node, in this case [KindIdent].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token in the Ident, which is
@@ -43,13 +43,13 @@ func (i Ident) expressionNode() {}
 // TextLiteral is a literal text expression.
 type TextLiteral struct {
 	// The text value (unquoted)
-	Value string
+	Value string `yaml:"value"`
 
 	// The [token.Text] token.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindTextLiteral].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token of the TextLiteral, which is
@@ -75,13 +75,13 @@ func (t TextLiteral) expressionNode() {}
 // URL is a literal URL expression.
 type URL struct {
 	// The url value (unquoted)
-	Value string
+	Value string `yaml:"value"`
 
 	// The [token.URL] token.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindURL].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token of the URL, which is
@@ -107,16 +107,16 @@ func (u URL) expressionNode() {}
 // Interp is a text interpolation expression.
 type Interp struct {
 	// Expr is the expression inside the interpolation.
-	Expr Expression
+	Expr Expression `yaml:"expr"`
 
 	// Open is the opening interpolation token.
-	Open token.Token
+	Open token.Token `yaml:"open"`
 
 	// Close is the closing interpolation token.
-	Close token.Token
+	Close token.Token `yaml:"close"`
 
 	// Type is [KindInterp].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token of the interpolation, i.e
@@ -154,17 +154,17 @@ func (i Interp) expressionNode() {}
 type InterpolatedExpression struct {
 	// Left is the expression before the interp, it may itself
 	// be any other valid expression, including more nested InterpolatedExpressions.
-	Left Expression
+	Left Expression `yaml:"left"`
 
 	// Right is the expression immediately after the interp, like Left
 	// it may also be any valid expression.
-	Right Expression
+	Right Expression `yaml:"right"`
 
 	// Interp is the [Interp] expression in between Left and Right.
-	Interp Interp
+	Interp Interp `yaml:"interp"`
 
 	// Type is [KindInterpolatedExpression].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token associated with the left expression if there is one,
@@ -198,10 +198,10 @@ func (i InterpolatedExpression) expressionNode() {}
 // Body is the http body expression.
 type Body struct {
 	// Token is the [token.Body] token.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindBody].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token associated with the body, which
@@ -227,13 +227,13 @@ func (b Body) expressionNode() {}
 // BodyFile is a http body from a filepath.
 type BodyFile struct {
 	// Value is the expression of the filepath.
-	Value Expression
+	Value Expression `yaml:"value"`
 
 	// Token is the [token.LeftAngle] token.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindBodyFile].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token associated with the BodyFile, which

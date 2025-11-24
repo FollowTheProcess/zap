@@ -36,7 +36,7 @@ const (
 	bufferSize = 32       // benchmarks suggest this is the optimum token channel buffer size
 )
 
-// TODO(@FollowTheProcess): Allow interp in body file, so < {{ ident }}
+// TODO(@FollowTheProcess): Allow interp in body file, so < {{ ident }} and response redirect
 
 // scanFn represents the state of the scanner as a function that does the work
 // associated with the current state, then returns the next state.

@@ -345,8 +345,8 @@ func (p *Parser) parsePrompt() (ast.PromptStatement, error) {
 // Comments are parsed into ast nodes so that comments above requests may
 // be used as their "docstring". Similar to how doc comments are attached
 // to ast nodes in Go.
-func (p *Parser) parseComment() (ast.Comment, error) {
-	result := ast.Comment{
+func (p *Parser) parseComment() (*ast.Comment, error) {
+	result := &ast.Comment{
 		Token: p.current,
 		Type:  ast.KindComment,
 		Text:  p.text(),
@@ -486,6 +486,17 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		result.Body = bodyFile
 	default:
 		// Nothing, not all requests have a body
+	}
+
+	if p.next.Is(token.RightAngle) {
+		p.advance()
+
+		redirect, err := p.parseResponseRedirect()
+		if err != nil {
+			return result, err
+		}
+
+		result.ResponseRedirect = redirect
 	}
 
 	return result, nil
@@ -721,4 +732,25 @@ func (p *Parser) parseBodyFile() (ast.BodyFile, error) {
 	bodyFile.Value = value
 
 	return bodyFile, nil
+}
+
+// parseResponseRedirect parses a response redirect statement.
+func (p *Parser) parseResponseRedirect() (*ast.ResponseRedirect, error) {
+	redirect := &ast.ResponseRedirect{
+		Token: p.current,
+		Type:  ast.KindResponseRedirect,
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return redirect, err
+	}
+
+	file, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return redirect, err
+	}
+
+	redirect.File = file
+
+	return redirect, nil
 }

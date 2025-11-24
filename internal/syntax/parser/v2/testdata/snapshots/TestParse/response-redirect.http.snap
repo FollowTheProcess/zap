@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: minimal-request.http
+name: response-redirect.http
 statements:
   - url:
       value: https://example.com
@@ -11,7 +11,19 @@ statements:
         end: 27
       type: URL
     body: null
-    responseRedirect: null
+    responseRedirect:
+      file:
+        value: response.json
+        token:
+          kind: Text
+          start: 31
+          end: 44
+        type: TextLiteral
+      token:
+        kind: RightAngle
+        start: 29
+        end: 30
+      type: ResponseRedirect
     comment: null
     vars: []
     prompts: []

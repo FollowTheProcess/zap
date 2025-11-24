@@ -16,9 +16,7 @@ statements:
         start: 49
         end: 75
       type: Body
-    vars: []
-    prompts: []
-    headers: []
+    responseRedirect: null
     comment:
       text: Body
       token:
@@ -26,6 +24,9 @@ statements:
         start: 4
         end: 8
       type: Comment
+    vars: []
+    prompts: []
+    headers: []
     method:
       token:
         kind: MethodPost

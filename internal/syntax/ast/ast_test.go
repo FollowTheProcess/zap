@@ -247,6 +247,74 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindRequest,
 		},
 		{
+			name: "request no body",
+			node: ast.Request{
+				Body: nil,
+				URL: ast.TextLiteral{
+					Value: "https://example.com",
+					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Type:  ast.KindTextLiteral,
+				},
+				Method: ast.Method{
+					Token: token.Token{Kind: token.MethodGet, Start: 5, End: 8},
+					Type:  ast.KindMethod,
+				},
+				Sep:  token.Token{Kind: token.Separator, Start: 0, End: 3},
+				Type: ast.KindRequest,
+			},
+			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
+			end:   token.Token{Kind: token.URL, Start: 9, End: 28},
+			kind:  ast.KindRequest,
+		},
+		{
+			name: "request no body or url",
+			node: ast.Request{
+				Body: nil,
+				URL:  nil,
+				Method: ast.Method{
+					Token: token.Token{Kind: token.MethodGet, Start: 5, End: 8},
+					Type:  ast.KindMethod,
+				},
+				Sep:  token.Token{Kind: token.Separator, Start: 0, End: 3},
+				Type: ast.KindRequest,
+			},
+			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
+			end:   token.Token{Kind: token.MethodGet, Start: 5, End: 8},
+			kind:  ast.KindRequest,
+		},
+		{
+			name: "request response redirect",
+			node: ast.Request{
+				Body: ast.Body{
+					Token: token.Token{Kind: token.Body, Start: 30, End: 110},
+					Type:  ast.KindBody,
+				},
+				ResponseRedirect: &ast.ResponseRedirect{
+					File: ast.TextLiteral{
+						Value: "response.json",
+						Token: token.Token{Kind: token.Text, Start: 114, End: 127},
+						Type:  ast.KindTextLiteral,
+					},
+					Token: token.Token{Kind: token.RightAngle, Start: 111, End: 112},
+					Type:  ast.KindResponseRedirect,
+				},
+				URL: ast.TextLiteral{
+					Value: "https://example.com",
+					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Type:  ast.KindTextLiteral,
+				},
+				Method: ast.Method{
+					Token: token.Token{Kind: token.MethodGet, Start: 5, End: 8},
+					Type:  ast.KindMethod,
+				},
+				Sep:  token.Token{Kind: token.Separator, Start: 0, End: 3},
+				Type: ast.KindRequest,
+			},
+			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
+			end:   token.Token{Kind: token.Text, Start: 114, End: 127},
+			kind:  ast.KindRequest,
+		},
+		{
 			name: "inner interp",
 			node: ast.Interp{
 				Expr: ast.Ident{
@@ -405,6 +473,32 @@ func TestNode(t *testing.T) {
 			start: token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
 			end:   token.Token{Kind: token.LeftAngle, Start: 31, End: 32},
 			kind:  ast.KindBodyFile,
+		},
+		{
+			name: "response redirect",
+			node: ast.ResponseRedirect{
+				File: ast.TextLiteral{
+					Value: "response.json",
+					Token: token.Token{Kind: token.Text, Start: 34, End: 47},
+					Type:  ast.KindTextLiteral,
+				},
+				Type:  ast.KindResponseRedirect,
+				Token: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			},
+			start: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			end:   token.Token{Kind: token.Text, Start: 34, End: 47},
+			kind:  ast.KindResponseRedirect,
+		},
+		{
+			name: "response redirect no file",
+			node: ast.ResponseRedirect{
+				File:  nil,
+				Token: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+				Type:  ast.KindResponseRedirect,
+			},
+			start: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			end:   token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			kind:  ast.KindResponseRedirect,
 		},
 		{
 			name:  "empty file",

@@ -41,6 +41,14 @@ statements:
           end: 110
         type: Interp
       type: InterpolatedExpression
+    responseRedirect: null
+    comment:
+      text: Body Interp
+      token:
+        kind: Comment
+        start: 4
+        end: 15
+      type: Comment
     vars:
       - value:
           value: "123"
@@ -63,13 +71,6 @@ statements:
         type: VarStatement
     prompts: []
     headers: []
-    comment:
-      text: Body Interp
-      token:
-        kind: Comment
-        start: 4
-        end: 15
-      type: Comment
     method:
       token:
         kind: MethodPost
