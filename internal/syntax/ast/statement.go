@@ -11,17 +11,17 @@ type Statement interface {
 // A VarStatement is a single variable declaration.
 type VarStatement struct {
 	// Value is the expression that [Ident] is being assigned to.
-	Value Expression
+	Value Expression `yaml:"value"`
 
 	// Ident is the [Ident] node representing the identifier
 	// the expression Value is being assigned to.
-	Ident Ident
+	Ident Ident `yaml:"ident"`
 
 	// At is the '@' token declaring the variable.
-	At token.Token
+	At token.Token `yaml:"at"`
 
 	// Type is the kind of node [KindVarStatement].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token in a VarStatement, which is
@@ -45,25 +45,25 @@ func (v VarStatement) Kind() Kind {
 	return v.Type
 }
 
-// statementNode marks a [VarStatement] as an [ast.Statement].
+// statementNode marks a [VarStatement] as an [Statement].
 func (v VarStatement) statementNode() {}
 
 // A PromptStatement is a single prompt declaration.
 type PromptStatement struct {
 	// Ident is the [Ident] node representing the identifier
 	// the prompt Value is being assigned to.
-	Ident Ident
+	Ident Ident `yaml:"ident"`
 
 	// Description is the [Text] node containing the description
 	// of the prompt.
-	Description TextLiteral
+	Description TextLiteral `yaml:"description"`
 
 	// At is the '@' token declaring the prompt.
-	At token.Token
+	At token.Token `yaml:"at"`
 
 	// Type is the kind of the node, in this case
 	// [KindPromptStatement].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token in a PromptStatement, which is
@@ -88,19 +88,19 @@ func (p PromptStatement) Kind() Kind {
 	return p.Type
 }
 
-// statementNode marks a [PromptStatement] as an [ast.Statement].
+// statementNode marks a [PromptStatement] as an [Statement].
 func (p PromptStatement) statementNode() {}
 
 // Comment represents a single line comment.
 type Comment struct {
 	// Text is the test contained in the comment.
-	Text string
+	Text string `yaml:"text"`
 
 	// Token is the [token.Comment] beginning the line comment.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindComment].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the [token.Comment].
@@ -118,16 +118,16 @@ func (c Comment) Kind() Kind {
 	return c.Type
 }
 
-// statementNode marks a [Comment] as an [ast.Statement].
+// statementNode marks a [Comment] as an [Statement].
 func (c Comment) statementNode() {}
 
 // Method represents a HTTP method.
 type Method struct {
 	// Token is the method token e.g. [token.MethodGet].
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindMethod].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the method token.
@@ -145,40 +145,44 @@ func (m Method) Kind() Kind {
 	return m.Type
 }
 
-// statementNode marks a [Method] as an [ast.Statement].
+// statementNode marks a [Method] as an [Statement].
 func (m Method) statementNode() {}
 
 // Request is a single HTTP request.
 type Request struct {
 	// URL is the expression that when evaluated, returns the URL
 	// for the request. May be a [TextLiteral] or an [Interp].
-	URL Expression
+	URL Expression `yaml:"url"`
 
 	// Body is the body expression.
-	Body Expression
+	Body Expression `yaml:"body"`
+
+	// ResponseRedirect is the optional response redirect statement
+	// provided for the request.
+	ResponseRedirect *ResponseRedirect `yaml:"responseRedirect"`
+
+	// Comment is the optional [Comment] node attached to a request.
+	Comment *Comment `yaml:"comment"`
 
 	// Vars are any [VarStatement] nodes attached to the request defining
 	// local variables.
-	Vars []VarStatement
+	Vars []VarStatement `yaml:"vars"`
 
 	// Prompts are any [PromptStatement] nodes attached to the request
 	// defining local prompted variables.
-	Prompts []PromptStatement
+	Prompts []PromptStatement `yaml:"prompts"`
 
 	// Headers are the [HeaderStatement] nodes attached to the request
-	Headers []Header
-
-	// Comment is the optional [Comment] node attached to a request.
-	Comment Comment
+	Headers []Header `yaml:"headers"`
 
 	// Method is the [Method] node.
-	Method Method
+	Method Method `yaml:"method"`
 
 	// Sep is the [token.Separator] immediately before the request.
-	Sep token.Token
+	Sep token.Token `yaml:"sep"`
 
 	// Type is [KindRequest].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token associated with the [Request],
@@ -190,8 +194,16 @@ func (r Request) Start() token.Token {
 // End returns the last token associated with the [Request].
 func (r Request) End() token.Token {
 	// TODO(@FollowTheProcess): The response file redirect or response ref should be last
+	if r.ResponseRedirect != nil {
+		return r.ResponseRedirect.End()
+	}
+
 	if r.Body != nil {
 		return r.Body.End()
+	}
+
+	if r.URL != nil {
+		return r.URL.End()
 	}
 
 	return r.Method.End()
@@ -202,22 +214,22 @@ func (r Request) Kind() Kind {
 	return r.Type
 }
 
-// statementNode marks a [Request] as an [ast.Statement].
+// statementNode marks a [Request] as an [Statement].
 func (r Request) statementNode() {}
 
 // Header is a HTTP header node.
 type Header struct {
 	// Value is the value expression of the header.
-	Value Expression
+	Value Expression `yaml:"value"`
 
 	// Key is the string containing the header key.
-	Key string
+	Key string `yaml:"key"`
 
 	// Token is the [token.Header] representing the header key.
-	Token token.Token
+	Token token.Token `yaml:"token"`
 
 	// Type is [KindHeader].
-	Type Kind
+	Type Kind `yaml:"type"`
 }
 
 // Start returns the first token associated with the header, in this
@@ -237,5 +249,41 @@ func (h Header) Kind() Kind {
 	return h.Type
 }
 
-// statementNode marks a [Header] as an [ast.Statement].
+// statementNode marks a [Header] as an [Statement].
 func (h Header) statementNode() {}
+
+// ResponseRedirect is a response redirection statement.
+type ResponseRedirect struct {
+	// File is the filepath to save the response body.
+	File Expression `yaml:"file"`
+
+	// Token is the [token.RightAngle] beginning the redirect statement.
+	Token token.Token `yaml:"token"`
+
+	// Type is [KindResponseRedirect].
+	Type Kind `yaml:"type"`
+}
+
+// Start returns the first token associated with the redirect, which
+// is the opening [token.RightAngle].
+func (r ResponseRedirect) Start() token.Token {
+	return r.Token
+}
+
+// End returns the last token associated with the redirect, which
+// is the final token in the File expression.
+func (r ResponseRedirect) End() token.Token {
+	if r.File != nil {
+		return r.File.End()
+	}
+
+	return r.Token
+}
+
+// Kind returns [KindResponseRedirect].
+func (r ResponseRedirect) Kind() Kind {
+	return r.Type
+}
+
+// statementNode marks a [ResponseRedirect] as a [Statement].
+func (r ResponseRedirect) statementNode() {}

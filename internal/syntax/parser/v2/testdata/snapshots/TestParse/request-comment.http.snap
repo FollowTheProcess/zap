@@ -11,9 +11,7 @@ statements:
         end: 37
       type: URL
     body: null
-    vars: []
-    prompts: []
-    headers: []
+    responseRedirect: null
     comment:
       text: A comment
       token:
@@ -21,6 +19,9 @@ statements:
         start: 4
         end: 13
       type: Comment
+    vars: []
+    prompts: []
+    headers: []
     method:
       token:
         kind: MethodGet

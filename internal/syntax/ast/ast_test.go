@@ -407,6 +407,32 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindBodyFile,
 		},
 		{
+			name: "response redirect",
+			node: ast.ResponseRedirect{
+				File: ast.TextLiteral{
+					Value: "response.json",
+					Token: token.Token{Kind: token.Text, Start: 34, End: 47},
+					Type:  ast.KindTextLiteral,
+				},
+				Type:  ast.KindResponseRedirect,
+				Token: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			},
+			start: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			end:   token.Token{Kind: token.Text, Start: 34, End: 47},
+			kind:  ast.KindResponseRedirect,
+		},
+		{
+			name: "response redirect no file",
+			node: ast.ResponseRedirect{
+				File:  nil,
+				Token: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+				Type:  ast.KindResponseRedirect,
+			},
+			start: token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			end:   token.Token{Kind: token.RightAngle, Start: 31, End: 32},
+			kind:  ast.KindResponseRedirect,
+		},
+		{
 			name:  "empty file",
 			node:  ast.File{Type: ast.KindFile},
 			start: token.Token{Kind: token.EOF},
