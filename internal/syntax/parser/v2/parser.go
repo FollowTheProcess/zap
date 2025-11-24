@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
@@ -64,6 +65,10 @@ func New(name string, r io.Reader, handler syntax.ErrorHandler) (*Parser, error)
 // the installed error handler passed to [New] will have the full detail and should
 // be preferred.
 func (p *Parser) Parse() (ast.File, error) {
+	if p == nil {
+		return ast.File{}, errors.New("Parse called on nil parser")
+	}
+
 	file := ast.File{
 		Name:       p.name,
 		Statements: make([]ast.Statement, 0),
@@ -453,6 +458,17 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 
 	result.URL = url
 
+	if p.next.Is(token.HTTPVersion) {
+		p.advance()
+
+		httpVersion, err := p.parseHTTPVersion()
+		if err != nil {
+			return result, err
+		}
+
+		result.HTTPVersion = httpVersion
+	}
+
 	for p.next.Is(token.Header) {
 		p.advance()
 
@@ -785,4 +801,24 @@ func (p *Parser) parseResponseReference() (*ast.ResponseReference, error) {
 	ref.File = file
 
 	return ref, nil
+}
+
+// parseHTTPVersion parses a http version statement.
+func (p *Parser) parseHTTPVersion() (*ast.HTTPVersion, error) {
+	version := &ast.HTTPVersion{
+		Token: p.current,
+		Type:  ast.KindHTTPVersion,
+	}
+
+	after, ok := strings.CutPrefix(p.text(), "HTTP/")
+	if !ok {
+		// Should basically never happen because the scanner would catch it
+		// but let's be safe.
+		p.errorf("bad HTTP version, missing 'HTTP/' prefix: %s", p.text())
+		return version, ErrParse
+	}
+
+	version.Version = after
+
+	return version, nil
 }

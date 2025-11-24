@@ -32,6 +32,7 @@ statements:
     body: null
     responseRedirect: null
     responseReference: null
+    httpVersion: null
     comment: null
     vars: []
     prompts: []

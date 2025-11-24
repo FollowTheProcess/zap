@@ -565,6 +565,17 @@ func TestNode(t *testing.T) {
 			end:   token.Token{Kind: token.ResponseRef, Start: 30, End: 32},
 			kind:  ast.KindResponseReference,
 		},
+		{
+			name: "http version",
+			node: ast.HTTPVersion{
+				Version: "1.2",
+				Token:   token.Token{Kind: token.HTTPVersion, Start: 1, End: 6},
+				Type:    ast.KindHTTPVersion,
+			},
+			start: token.Token{Kind: token.HTTPVersion, Start: 1, End: 6},
+			end:   token.Token{Kind: token.HTTPVersion, Start: 1, End: 6},
+			kind:  ast.KindHTTPVersion,
+		},
 	}
 
 	for _, tt := range tests {

@@ -1,34 +1,34 @@
 source: parser_test.go
 expression: parsed
 ---
-name: request-comment.http
+name: http-version.http
 statements:
   - url:
       value: https://example.com
       token:
         kind: URL
-        start: 18
-        end: 37
+        start: 8
+        end: 27
       type: URL
     body: null
     responseRedirect: null
     responseReference: null
-    httpVersion: null
-    comment:
-      text: A comment
+    httpVersion:
+      version: "1.2"
       token:
-        kind: Comment
-        start: 4
-        end: 13
-      type: Comment
+        kind: HTTPVersion
+        start: 28
+        end: 36
+      type: HTTPVersion
+    comment: null
     vars: []
     prompts: []
     headers: []
     method:
       token:
         kind: MethodGet
-        start: 14
-        end: 17
+        start: 4
+        end: 7
       type: Method
     sep:
       kind: Separator
