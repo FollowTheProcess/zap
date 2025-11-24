@@ -223,3 +223,39 @@ func (b Body) Kind() Kind {
 
 // expressionNode marks a [Body] as an [Expression].
 func (b Body) expressionNode() {}
+
+// BodyFile is a http body from a filepath.
+type BodyFile struct {
+	// Value is the expression of the filepath.
+	Value Expression
+
+	// Token is the [token.LeftAngle] token.
+	Token token.Token
+
+	// Type is [KindBodyFile].
+	Type Kind
+}
+
+// Start returns the first token associated with the BodyFile, which
+// is the [token.LeftAngle].
+func (b BodyFile) Start() token.Token {
+	return b.Token
+}
+
+// End returns the last token associated with the BodyFile, which is
+// the final token in the filepath expression.
+func (b BodyFile) End() token.Token {
+	if b.Value != nil {
+		return b.Value.End()
+	}
+
+	return b.Token
+}
+
+// Kind returns [KindBodyFile].
+func (b BodyFile) Kind() Kind {
+	return b.Type
+}
+
+// expressionNode marks a [BodyFile] as an [Expression].
+func (b BodyFile) expressionNode() {}

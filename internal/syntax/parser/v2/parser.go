@@ -464,7 +464,9 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		result.Headers = append(result.Headers, header)
 	}
 
-	if p.next.Is(token.Body) {
+	// Body or < <body file>
+	switch p.next.Kind {
+	case token.Body:
 		p.advance()
 
 		body, err := p.parseExpression(token.LowestPrecedence)
@@ -473,6 +475,17 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		}
 
 		result.Body = body
+	case token.LeftAngle:
+		p.advance()
+
+		bodyFile, err := p.parseBodyFile()
+		if err != nil {
+			return result, err
+		}
+
+		result.Body = bodyFile
+	default:
+		// Nothing, not all requests have a body
 	}
 
 	return result, nil
@@ -542,21 +555,13 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	//
 	// In our case the Interp is the operator and carries the highest precedence.
 
-	for p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) && precedence < p.next.Precedence() {
+	for p.next.Is(token.OpenInterp) && precedence < p.next.Precedence() {
 		p.advance()
 
 		switch p.current.Kind {
 		case token.OpenInterp:
 			// It's an interpolated expression where we already know the left hand side
 			expr, err = p.parseInterpolatedExpression(expr)
-		case token.Text:
-			expr, err = p.parseTextLiteral()
-		case token.Ident:
-			expr, err = p.parseIdent()
-		case token.URL:
-			expr, err = p.parseURL()
-		case token.Body:
-			expr, err = p.parseBody()
 		default:
 			p.errorf("parseExpression: unexpected token: %s", p.current.Kind)
 		}
@@ -695,4 +700,25 @@ func (p *Parser) parseBody() (ast.Body, error) {
 	}
 
 	return body, nil
+}
+
+// parseBodyFile parses a body file expression.
+func (p *Parser) parseBodyFile() (ast.BodyFile, error) {
+	bodyFile := ast.BodyFile{
+		Token: p.current,
+		Type:  ast.KindBodyFile,
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return bodyFile, err
+	}
+
+	value, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return bodyFile, err
+	}
+
+	bodyFile.Value = value
+
+	return bodyFile, nil
 }

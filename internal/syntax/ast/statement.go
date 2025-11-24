@@ -189,9 +189,9 @@ func (r Request) Start() token.Token {
 
 // End returns the last token associated with the [Request].
 func (r Request) End() token.Token {
-	// TODO(@FollowTheProcess): There's more that can come after this like body, response ref etc.
-	if r.URL != nil {
-		return r.URL.End()
+	// TODO(@FollowTheProcess): The response file redirect or response ref should be last
+	if r.Body != nil {
+		return r.Body.End()
 	}
 
 	return r.Method.End()
