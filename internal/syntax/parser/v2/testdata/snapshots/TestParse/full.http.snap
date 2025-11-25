@@ -48,7 +48,12 @@ statements:
         start: 142
         end: 175
       type: URL
-    body: null
+    body:
+      token:
+        kind: Body
+        start: 296
+        end: 454
+      type: Body
     responseRedirect: null
     responseReference: null
     httpVersion:
@@ -198,12 +203,7 @@ statements:
               start: 276
               end: 283
             type: TextLiteral
-          right:
-            token:
-              kind: Body
-              start: 296
-              end: 454
-            type: Body
+          right: null
           interp:
             expr:
               name: token
