@@ -143,9 +143,15 @@ func BenchmarkParser(b *testing.B) {
 
 func FuzzParser(f *testing.F) {
 	// Get all the .http source from testdata for the corpus
-	pattern := filepath.Join("testdata", "valid", "*.http")
-	files, err := filepath.Glob(pattern)
+	validPattern := filepath.Join("testdata", "valid", "*.http")
+	validFiles, err := filepath.Glob(validPattern)
 	test.Ok(f, err)
+
+	invalidPattern := filepath.Join("testdata", "invalid", "*.http")
+	invalidFiles, err := filepath.Glob(invalidPattern)
+	test.Ok(f, err)
+
+	files := slices.Concat(validFiles, invalidFiles)
 
 	defer goleak.VerifyNone(f)
 
