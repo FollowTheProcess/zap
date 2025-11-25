@@ -1,0 +1,7 @@
+### Read the body from ./input.json
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+< input.json
+
+> response.json

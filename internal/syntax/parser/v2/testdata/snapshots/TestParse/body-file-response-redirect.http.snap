@@ -1,0 +1,75 @@
+source: parser_test.go
+expression: parsed
+---
+name: body-file-response-redirect.http
+statements:
+  - url:
+      value: https://api.somewhere.com/items/1
+      token:
+        kind: URL
+        start: 41
+        end: 74
+      type: URL
+    body:
+      value:
+        value: input.json
+        token:
+          kind: Text
+          start: 109
+          end: 119
+        type: TextLiteral
+      token:
+        kind: LeftAngle
+        start: 107
+        end: 108
+      type: BodyFile
+    responseRedirect:
+      file:
+        value: response.json
+        token:
+          kind: Text
+          start: 123
+          end: 136
+        type: TextLiteral
+      token:
+        kind: RightAngle
+        start: 121
+        end: 122
+      type: ResponseRedirect
+    responseReference: null
+    httpVersion: null
+    comment:
+      text: Read the body from ./input.json
+      token:
+        kind: Comment
+        start: 4
+        end: 35
+      type: Comment
+    vars: []
+    prompts: []
+    headers:
+      - value:
+          value: application/json
+          token:
+            kind: Text
+            start: 89
+            end: 105
+          type: TextLiteral
+        key: Content-Type
+        token:
+          kind: Header
+          start: 75
+          end: 87
+        type: Header
+    method:
+      token:
+        kind: MethodPost
+        start: 36
+        end: 40
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File
