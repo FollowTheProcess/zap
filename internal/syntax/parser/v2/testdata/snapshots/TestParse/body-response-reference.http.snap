@@ -1,0 +1,55 @@
+source: parser_test.go
+expression: parsed
+---
+name: body-response-reference.http
+statements:
+  - url:
+      value: https://api.somewhere.com/items/1
+      token:
+        kind: URL
+        start: 14
+        end: 47
+      type: URL
+    body:
+      token:
+        kind: Body
+        start: 49
+        end: 76
+      type: Body
+    responseRedirect: null
+    responseReference:
+      file:
+        value: response.json
+        token:
+          kind: Text
+          start: 79
+          end: 92
+        type: TextLiteral
+      token:
+        kind: ResponseRef
+        start: 76
+        end: 78
+      type: ResponseReference
+    httpVersion: null
+    comment:
+      text: Body
+      token:
+        kind: Comment
+        start: 4
+        end: 8
+      type: Comment
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodPost
+        start: 9
+        end: 13
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File
