@@ -628,7 +628,7 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 
 	precedence := p.current.Precedence()
 
-	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) {
+	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) && p.shouldParseRHS(left) {
 		p.advance()
 
 		right, err := p.parseExpression(precedence)
@@ -640,6 +640,45 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 	}
 
 	return expr, nil
+}
+
+// shouldParseRHS reports whether we should parse the right hand side of an expression,
+// given the incoming token and the left hand side of that expression.
+//
+// Without this, the parser will eagerly consume e.g. a Body as the right hand side of
+// an interpolated header value.
+//
+// For example:
+//
+//	Authorization: Bearer {{ token }}
+//
+//	{ "body": "here" }
+//
+// The header Authorization would have an InterpolatedExpression as it's value, the
+// left hand side of which would be "Bearer ", the interp in the middle would of course
+// be "{{ token }}", but the body would be consumed as the right hand side of this expression
+// which is obviously incorrect.
+//
+// In general, we only parse the right hand side if it's the same type of expression as the left.
+func (p *Parser) shouldParseRHS(left ast.Expression) bool {
+	if left == nil {
+		// No information to tell otherwise so go ahead and
+		// parse the right hand side
+		return true
+	}
+
+	switch left.Kind() {
+	case ast.KindTextLiteral:
+		return p.next.Is(token.Text)
+	case ast.KindIdent:
+		return p.next.Is(token.Ident)
+	case ast.KindURL:
+		return p.next.Is(token.URL)
+	case ast.KindBody:
+		return p.next.Is(token.Body)
+	default:
+		return false
+	}
 }
 
 // parseTextLiteral parses a TextLiteral.

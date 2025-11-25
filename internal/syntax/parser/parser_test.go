@@ -155,11 +155,6 @@ func TestInvalid(t *testing.T) {
 }
 
 func BenchmarkParser(b *testing.B) {
-	// TODO(@FollowTheProcess): Investigate if turning ast nodes into pointers can speed this up
-	//
-	// Most AST implementations I've seen use pointers for ast nodes, but most of the nodes
-	// in here are not pointers, now I have a complete parser and a benchmark I should be able
-	// to reliably determine if "pointerising" an AST makes a performance impact
 	file := filepath.Join("testdata", "valid", "full.txtar")
 	archive, err := txtar.ParseFile(file)
 	test.Ok(b, err)
