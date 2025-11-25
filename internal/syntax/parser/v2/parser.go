@@ -628,6 +628,15 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 
 	precedence := p.current.Precedence()
 
+	// FIXME: This will sponge up *anything* on the right hand side
+	// e.g. a header that ends in an interp, will consume the body as
+	// the right hand side of the interp
+	//
+	// See testdata/valid/interp-before-body.http
+	//
+	// We should only parse the RHS of the expression if the incoming token
+	// makes sense as the RHS of what we're currently parsing
+
 	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) {
 		p.advance()
 

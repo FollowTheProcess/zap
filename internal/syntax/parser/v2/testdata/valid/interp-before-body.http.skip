@@ -2,10 +2,7 @@
 
 ###
 POST https://example.com
-Accept: */*
-Content-Type: application/json
 Authorization: Bearer {{ token }}
-X-Api-Key: something
 
 {
   "body": "here"

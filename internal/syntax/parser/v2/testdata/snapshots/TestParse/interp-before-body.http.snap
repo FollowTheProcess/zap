@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interpolated-headers.http
+name: interp-before-body.http
 statements:
   - value:
       value: shhh
@@ -32,8 +32,8 @@ statements:
     body:
       token:
         kind: Body
-        start: 143
-        end: 164
+        start: 79
+        end: 100
       type: Body
     responseRedirect: null
     responseReference: null
@@ -43,38 +43,12 @@ statements:
     prompts: []
     headers:
       - value:
-          value: '*/*'
-          token:
-            kind: Text
-            start: 52
-            end: 55
-          type: TextLiteral
-        key: Accept
-        token:
-          kind: Header
-          start: 44
-          end: 50
-        type: Header
-      - value:
-          value: application/json
-          token:
-            kind: Text
-            start: 70
-            end: 86
-          type: TextLiteral
-        key: Content-Type
-        token:
-          kind: Header
-          start: 56
-          end: 68
-        type: Header
-      - value:
           left:
-            value: 'Bearer '
+            value: "Bearer "
             token:
               kind: Text
-              start: 102
-              end: 109
+              start: 59
+              end: 66
             type: TextLiteral
           right: null
           interp:
@@ -82,37 +56,24 @@ statements:
               name: token
               token:
                 kind: Ident
-                start: 112
-                end: 117
+                start: 69
+                end: 74
               type: Ident
             open:
               kind: OpenInterp
-              start: 109
-              end: 111
+              start: 66
+              end: 68
             close:
               kind: CloseInterp
-              start: 118
-              end: 120
+              start: 75
+              end: 77
             type: Interp
           type: InterpolatedExpression
         key: Authorization
         token:
           kind: Header
-          start: 87
-          end: 100
-        type: Header
-      - value:
-          value: something
-          token:
-            kind: Text
-            start: 132
-            end: 141
-          type: TextLiteral
-        key: X-Api-Key
-        token:
-          kind: Header
-          start: 121
-          end: 130
+          start: 44
+          end: 57
         type: Header
     method:
       token:
