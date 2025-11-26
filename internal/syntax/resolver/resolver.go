@@ -12,13 +12,9 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
 )
 
-// ErrResolve is a generic resolving error, details on the error are passed
-// to the resolver's [resolver.ErrorHandler] at the moment it occurs.
+// ErrResolve is a generic resolving error, details on the error are provided through
+// a [Diagnostic].
 var ErrResolve = errors.New("resolve error")
-
-// ErrorHandler is a resolve error handler, it is called with an [ast.Node] and a message
-// at the moment the resolver raises an error.
-type ErrorHandler func(node ast.Node, msg string)
 
 // Resolver is the ast resolver for http files.
 //
@@ -26,20 +22,22 @@ type ErrorHandler func(node ast.Node, msg string)
 // parsing URLs and durations, and otherwise validating and checking the parse tree
 // along the way.
 type Resolver struct {
-	handler   ErrorHandler // The installed error handler.
-	name      string       // The name of the file being resolved.
-	hadErrors bool         // Whether we encountered resolver errors, allows multiple to be reported.
+	name        string       // The name of the file being resolved.
+	diagnostics []Diagnostic // Diagnostics collected during resolving.
+	hadErrors   bool         // Whether we encountered resolver errors.
 }
 
 // New returns a new [Resolver].
-func New(name string, handler ErrorHandler) *Resolver {
+func New(name string) *Resolver {
 	return &Resolver{
-		handler: handler,
-		name:    name,
+		name: name,
 	}
 }
 
 // Resolve resolves an [ast.File] into a concrete [spec.File].
+//
+// In the presence of an error, Resolve will return [ErrResolve], for more detailed
+// inspection of resolution errors, call [Resolver.Diagnostics].
 func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 	result := spec.File{
 		Name:     in.Name,
@@ -47,10 +45,6 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 		Prompts:  make(map[string]spec.Prompt),
 		Requests: []spec.Request{},
 	}
-
-	// TODO(@FollowTheProcess): We should do some really nice error reporting here as we have
-	// all the position info from the ast, we should probably do similar to what the parser does
-	// and have a struct that takes in an error handler.
 
 	for _, statement := range in.Statements {
 		switch stmt := statement.(type) {
@@ -74,15 +68,22 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 	return result, nil
 }
 
-// error triggers a resolve error with a fixed message.
+// Diagnostics returns the diagnostics gathered during resolving.
+func (r *Resolver) Diagnostics() []Diagnostic {
+	return r.diagnostics
+}
+
+// error reports a resolve error with a fixed message.
 func (r *Resolver) error(node ast.Node, msg string) {
 	r.hadErrors = true
 
-	if r.handler == nil {
-		return
+	diag := Diagnostic{
+		File:      r.name,
+		Msg:       msg,
+		Highlight: Span{Start: node.Start().Start, End: node.End().End},
 	}
 
-	r.handler(node, msg)
+	r.diagnostics = append(r.diagnostics, diag)
 }
 
 // errorf calls error with a formatted message.
