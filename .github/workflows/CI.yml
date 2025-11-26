@@ -18,8 +18,6 @@ jobs:
     permissions:
       contents: read
     uses: FollowTheProcess/ci/.github/workflows/Go.yml@v3
-    with:
-      linter: golangci-lint
 
   bats:
     name: Bats Tests
