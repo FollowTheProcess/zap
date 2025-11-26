@@ -49,6 +49,10 @@ func TestResolver(t *testing.T) {
 			res := resolver.New(name)
 
 			resolved, err := res.Resolve(parsed)
+			if err != nil {
+				t.Logf("%+v\n", res.Diagnostics())
+			}
+
 			test.Ok(t, err, test.Context("unexpected resolver error"))
 
 			test.Equal(t, len(res.Diagnostics()), 0)

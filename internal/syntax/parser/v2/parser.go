@@ -252,6 +252,10 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 
 // parseVarStatement parses a variable declaration statement.
 func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
+	if p.next.Is(token.NoRedirect) {
+		return p.parseNoRedirect()
+	}
+
 	result := ast.VarStatement{
 		At:   p.current,
 		Type: ast.KindVarStatement,

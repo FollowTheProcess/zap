@@ -1,0 +1,19 @@
+source: parser_test.go
+expression: parsed
+---
+name: global-no-redirect.http
+statements:
+  - value: null
+    ident:
+      name: no-redirect
+      token:
+        kind: NoRedirect
+        start: 1
+        end: 12
+      type: Ident
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: VarStatement
+type: File

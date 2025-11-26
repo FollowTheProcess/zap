@@ -7,9 +7,11 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
+	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
 // ErrResolve is a generic resolving error, details on the error are provided through
@@ -39,22 +41,22 @@ func New(name string) *Resolver {
 // In the presence of an error, Resolve will return [ErrResolve], for more detailed
 // inspection of resolution errors, call [Resolver.Diagnostics].
 func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
-	result := spec.File{
+	file := spec.File{
 		Name:     in.Name,
 		Vars:     make(map[string]string),
 		Prompts:  make(map[string]spec.Prompt),
 		Requests: []spec.Request{},
 	}
 
+	var err error
+
 	for _, statement := range in.Statements {
 		switch stmt := statement.(type) {
 		case ast.VarStatement:
-			key, value, err := r.resolveVarStatement(stmt)
+			file, err = r.resolveGlobalVarStatement(file, stmt)
 			if err != nil {
 				return spec.File{}, ErrResolve
 			}
-
-			result.Vars[key] = value
 
 		default:
 			return spec.File{}, fmt.Errorf("unhandled ast statement: %T", stmt)
@@ -65,7 +67,7 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 		return spec.File{}, ErrResolve
 	}
 
-	return result, nil
+	return file, nil
 }
 
 // Diagnostics returns the diagnostics gathered during resolving.
@@ -91,17 +93,55 @@ func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
 	r.error(node, fmt.Sprintf(format, a...))
 }
 
-// resolveVarStatement resolves a variable declaration.
-func (r *Resolver) resolveVarStatement(statement ast.VarStatement) (key, value string, err error) {
-	key = statement.Ident.Name
+// resolveGlobalVarStatement resolves a variable declaration in the global scope, storing it in the file
+// and returning the modified file.
+func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarStatement) (spec.File, error) {
+	key := statement.Ident.Name
 
-	value, err = r.resolveExpression(statement.Value)
-	if err != nil {
-		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
-		return "", "", ErrResolve
+	kind, isKeyword := token.Keyword(key)
+	if isKeyword && kind == token.NoRedirect {
+		// @no-redirect has no value expression, simply setting it is enough
+		file.NoRedirect = true
+		return file, nil
 	}
 
-	return key, value, nil
+	value, err := r.resolveExpression(statement.Value)
+	if err != nil {
+		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
+		return spec.File{}, ErrResolve
+	}
+
+	if !isKeyword {
+		// Normal var
+		file.Vars[key] = value
+		return file, nil
+	}
+
+	// Otherwise, handle the specific keyword by setting the right field
+	switch kind {
+	case token.Name:
+		file.Name = value
+	case token.Timeout:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			r.errorf(statement.Value, "invalid timeout value: %v", err)
+			return spec.File{}, ErrResolve
+		}
+
+		file.Timeout = duration
+	case token.ConnectionTimeout:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
+			return spec.File{}, ErrResolve
+		}
+
+		file.ConnectionTimeout = duration
+	default:
+		return spec.File{}, fmt.Errorf("unhandled keyword: %s", kind)
+	}
+
+	return file, nil
 }
 
 // resolveExpression resolves an [ast.Expression].

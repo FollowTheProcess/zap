@@ -1,0 +1,17 @@
+# All the global keywords and some vars to make sure we distinguish
+
+-- src.http --
+@timeout = 30s
+@connection-timeout = 10s
+@no-redirect
+@normal-var = test
+-- want.json --
+{
+  "name": "global-keywords.txtar",
+  "vars": {
+    "normal-var": "test"
+  },
+  "timeout": 30000000000,
+  "connectionTimeout": 10000000000,
+  "noRedirect": true
+}
