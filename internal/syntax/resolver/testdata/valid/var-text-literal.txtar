@@ -1,0 +1,11 @@
+# Simple var declaration with a TextLiteral as the expression
+
+-- src.http --
+@something = text
+-- want.json --
+{
+  "name": "var-text-literal.txtar",
+  "vars": {
+    "something": "text"
+  }
+}
