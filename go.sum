@@ -30,8 +30,8 @@ github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86 h1:JSt3B+U9
 github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86/go.mod h1:2P0UgXMEa6TsToMSuFqKFQR+fZTO9CNGUNokkPatT/0=
 github.com/charmbracelet/x/exp/golden v0.0.0-20241011142426-46044092ad91 h1:payRxjMjKgx2PaCWLZ4p3ro9y97+TVLZNaRZgJwSVDQ=
 github.com/charmbracelet/x/exp/golden v0.0.0-20241011142426-46044092ad91/go.mod h1:wDlXFlCrmJ8J+swcL/MnGUuYnqgQdW9rhSD61oNMb6U=
-github.com/charmbracelet/x/exp/strings v0.0.0-20251118172736-77d017256798 h1:g0RVaqkUdTikWLqrBdk2ZvJ9oTQOS0HZlYjYE8Tu7yg=
-github.com/charmbracelet/x/exp/strings v0.0.0-20251118172736-77d017256798/go.mod h1:/ehtMPNh9K4odGFkqYJKpIYyePhdp1hLBRvyY4bWkH8=
+github.com/charmbracelet/x/exp/strings v0.0.0-20251125134817-d85927d7854b h1:Mam4StHlLqjRhgH8dtfqCwS7MbmI4kpaEKLndspnsYk=
+github.com/charmbracelet/x/exp/strings v0.0.0-20251125134817-d85927d7854b/go.mod h1:/ehtMPNh9K4odGFkqYJKpIYyePhdp1hLBRvyY4bWkH8=
 github.com/charmbracelet/x/term v0.2.2 h1:xVRT/S2ZcKdhhOuSP4t5cLi5o+JxklsoEObBSgfgZRk=
 github.com/charmbracelet/x/term v0.2.2/go.mod h1:kF8CY5RddLWrsgVwpw4kAa6TESp6EB5y3uxGLeCqzAI=
 github.com/charmbracelet/x/termios v0.1.1 h1:o3Q2bT8eqzGnGPOYheoYS8eEleT5ZVNYNy8JawjaNZY=
@@ -90,6 +90,8 @@ go.followtheprocess.codes/snapshot v0.9.1 h1:q90k4ZsV4WNrJkAXo6gLqYLgE3RipnzSOXU
 go.followtheprocess.codes/snapshot v0.9.1/go.mod h1:IKWetABJnYaG6rZAsINXAc6rB0TxoxdysBC3R2HvwWo=
 go.followtheprocess.codes/test v1.1.0 h1:1v2JyMd3STr7dIXzcHEhct2qvS8/mTtGYbSyhpReciI=
 go.followtheprocess.codes/test v1.1.0/go.mod h1:BHZi5SZahJw01xcuc7EgrlyzX7zJLXAWy11rOR9geVw=
+go.followtheprocess.codes/txtar v0.8.0 h1:vQJbo/asKBpuzub+Wok6vKr9lPt+Q8qdY7mPEPYZbHg=
+go.followtheprocess.codes/txtar v0.8.0/go.mod h1:hi6y/ZExrTIZ7BzydWIIdsxrWd1WX0cY3a7c+ibLl5E=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 go.yaml.in/yaml/v4 v4.0.0-rc.3 h1:3h1fjsh1CTAPjW7q/EMe+C8shx5d8ctzZTrLcs/j8Go=

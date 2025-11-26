@@ -1,7 +1,6 @@
 package parser_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,10 +13,10 @@ import (
 	"testing"
 
 	"go.followtheprocess.codes/test"
+	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.uber.org/goleak"
-	"golang.org/x/tools/txtar"
 )
 
 var update = flag.Bool("update", false, "Update snapshots and testdata")
@@ -41,29 +40,13 @@ func TestValid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(
-				t,
-				len(archive.Files),
-				2,
-				test.Context("%s should contain 2 files, got %d", file, len(archive.Files)),
-			)
-			test.Equal(
-				t,
-				archive.Files[0].Name,
-				"src.http",
-				test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-			)
-			test.Equal(
-				t,
-				archive.Files[1].Name,
-				"want.json",
-				test.Context("second file should be named 'want.json', got %q", archive.Files[1].Name),
-			)
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("%s missing src.http", file))
 
-			src := archive.Files[0].Data
-			want := archive.Files[1].Data
+			want, ok := archive.Read("want.json")
+			test.True(t, ok, test.Context("%s missing want.json", file))
 
-			parser, err := parser.New(name, bytes.NewReader(src), testFailHandler(t))
+			parser, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
 			test.Ok(t, err)
 
 			got, err := parser.Parse()
@@ -75,15 +58,16 @@ func TestValid(t *testing.T) {
 			gotJSON = append(gotJSON, '\n') // MarshalIndent doesn't do newlines at the end
 
 			if *update {
-				archive.Files[1].Data = gotJSON
+				err := archive.Write("want.json", string(gotJSON))
+				test.Ok(t, err)
 
-				err := os.WriteFile(file, txtar.Format(archive), 0o644)
+				err = txtar.DumpFile(file, archive)
 				test.Ok(t, err)
 
 				return
 			}
 
-			test.DiffBytes(t, gotJSON, want)
+			test.DiffBytes(t, gotJSON, []byte(want))
 		})
 	}
 }
@@ -108,31 +92,15 @@ func TestInvalid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(
-				t,
-				len(archive.Files),
-				2,
-				test.Context("%s should contain 2 files, got %d", file, len(archive.Files)),
-			)
-			test.Equal(
-				t,
-				archive.Files[0].Name,
-				"src.http",
-				test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-			)
-			test.Equal(
-				t,
-				archive.Files[1].Name,
-				"want.txt",
-				test.Context("second file should be named 'want.txt', got %q", archive.Files[1].Name),
-			)
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("%s missing src.http", file))
 
-			src := archive.Files[0].Data
-			want := archive.Files[1].Data
+			want, ok := archive.Read("want.txt")
+			test.True(t, ok, test.Context("%s missing want.txt", file))
 
 			collector := &errorCollector{}
 
-			parser, err := parser.New(name, bytes.NewReader(src), collector.handler())
+			parser, err := parser.New(name, strings.NewReader(src), collector.handler())
 			test.Ok(t, err)
 
 			_, err = parser.Parse()
@@ -141,15 +109,16 @@ func TestInvalid(t *testing.T) {
 			got := collector.String()
 
 			if *update {
-				archive.Files[1].Data = []byte(got)
+				err := archive.Write("want.txt", got)
+				test.Ok(t, err)
 
-				err := os.WriteFile(file, txtar.Format(archive), 0o644)
+				err = txtar.DumpFile(file, archive)
 				test.Ok(t, err)
 
 				return
 			}
 
-			test.DiffBytes(t, []byte(got), want)
+			test.Diff(t, got, want)
 		})
 	}
 }
@@ -163,22 +132,11 @@ func BenchmarkParser(b *testing.B) {
 		b.Fatal("txtar.ParseFile returned nil archive")
 	}
 
-	test.True(
-		b,
-		len(archive.Files) > 1,
-		test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)),
-	)
-	test.Equal(
-		b,
-		archive.Files[0].Name,
-		"src.http",
-		test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-	)
-
-	src := archive.Files[0].Data
+	src, ok := archive.Read("src.http")
+	test.True(b, ok, test.Context("%s missing src.http", file))
 
 	for b.Loop() {
-		p, err := parser.New("bench", bytes.NewReader(src), testFailHandler(b))
+		p, err := parser.New("bench", strings.NewReader(src), testFailHandler(b))
 		test.Ok(b, err)
 
 		_, err = p.Parse()
@@ -200,30 +158,19 @@ func FuzzParser(f *testing.F) {
 			f.Fatal("txtar.ParseFile returned nil archive")
 		}
 
-		test.True(
-			f,
-			len(archive.Files) > 1,
-			test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)),
-		)
-		test.Equal(
-			f,
-			archive.Files[0].Name,
-			"src.http",
-			test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-		)
-
-		src := archive.Files[0].Data
+		src, ok := archive.Read("src.http")
+		test.True(f, ok, test.Context("%s missing src.http", file))
 
 		f.Add(src)
 	}
 
 	// Property: The parser never panics or loops indefinitely, fuzz by default
 	// will catch both of these
-	f.Fuzz(func(t *testing.T, src []byte) {
+	f.Fuzz(func(t *testing.T, src string) {
 		// Note: no ErrorHandler installed, because if we let it report errors
 		// it would kill the fuzz test straight away e.g. on the first invalid
 		// utf-8 char
-		parser, err := parser.New("fuzz", bytes.NewReader(src), nil)
+		parser, err := parser.New("fuzz", strings.NewReader(src), nil)
 		test.Ok(t, err)
 
 		file, err := parser.Parse()
