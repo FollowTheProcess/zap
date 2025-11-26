@@ -53,16 +53,16 @@ type File struct {
 	// The provided values will then be stored in Vars.
 	Prompts map[string]Prompt `json:"prompts,omitempty" toml:"prompts,omitempty" yaml:"prompts,omitempty"`
 
-	// The HTTP requests described in the file
+	// The HTTP requests described in the file.
 	Requests []Request `json:"requests,omitempty" toml:"requests,omitempty" yaml:"requests,omitempty"`
 
-	// Global timeout for all requests
+	// Global timeout for all requests.
 	Timeout time.Duration `json:"timeout,omitempty" toml:"timeout,omitempty" yaml:"timeout,omitempty"`
 
-	// Global connection timeout for all requests
+	// Global connection timeout for all requests.
 	ConnectionTimeout time.Duration `json:"connectionTimeout,omitempty" toml:"connectionTimeout,omitempty" yaml:"connectionTimeout,omitempty"`
 
-	// Disable following redirects globally across all requests
+	// Disable following redirects globally across all requests.
 	NoRedirect bool `json:"noRedirect,omitempty" toml:"noRedirect,omitempty" yaml:"noRedirect,omitempty"`
 }
 

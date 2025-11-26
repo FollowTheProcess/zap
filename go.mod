@@ -12,10 +12,10 @@ require (
 	go.followtheprocess.codes/msg v1.9.2
 	go.followtheprocess.codes/snapshot v0.9.1
 	go.followtheprocess.codes/test v1.1.0
+	go.followtheprocess.codes/txtar v0.8.0
 	go.uber.org/goleak v1.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
 	golang.org/x/sync v0.18.0
-	golang.org/x/tools v0.39.0
 )
 
 require (
@@ -28,7 +28,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.11.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
-	github.com/charmbracelet/x/exp/strings v0.0.0-20251118172736-77d017256798 // indirect
+	github.com/charmbracelet/x/exp/strings v0.0.0-20251125134817-d85927d7854b // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.6.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
@@ -49,4 +49,5 @@ require (
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/term v0.37.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/tools v0.39.0 // indirect
 )

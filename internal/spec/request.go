@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -77,7 +78,12 @@ func (b Body) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements [encoding.TextUnmarshaler] for [Body].
 func (b *Body) UnmarshalText(text []byte) error {
+	if b == nil {
+		return errors.New("Body.UnmarshalText called with a nil receiver")
+	}
+
 	*b = append((*b)[:0], text...)
+
 	return nil
 }
 

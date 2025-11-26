@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"go.followtheprocess.codes/test"
+	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/scanner"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 	"go.uber.org/goleak"
-	"golang.org/x/tools/txtar"
 )
 
 var update = flag.Bool("update", false, "Update snapshots and testdata")
@@ -332,29 +332,13 @@ func TestValid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(
-				t,
-				len(archive.Files),
-				2,
-				test.Context("%s should contain 2 files, got %d", file, len(archive.Files)),
-			)
-			test.Equal(
-				t,
-				archive.Files[0].Name,
-				"src.http",
-				test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-			)
-			test.Equal(
-				t,
-				archive.Files[1].Name,
-				"tokens.txt",
-				test.Context("second file should be named 'tokens.txt', got %q", archive.Files[1].Name),
-			)
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("%s missing src.http", file))
 
-			src := archive.Files[0].Data
-			want := archive.Files[1].Data
+			want, ok := archive.Read("tokens.txt")
+			test.True(t, ok, test.Context("%s missing tokens.txt", file))
 
-			scanner := scanner.New(name, src, testFailHandler(t))
+			scanner := scanner.New(name, []byte(src), testFailHandler(t))
 
 			var tokens []token.Token
 
@@ -376,16 +360,16 @@ func TestValid(t *testing.T) {
 			got := formattedTokens.String()
 
 			if *update {
-				// Update the expected with what's actually been seen
-				archive.Files[1].Data = []byte(got)
+				err := archive.Write("tokens.txt", got)
+				test.Ok(t, err)
 
-				err := os.WriteFile(file, txtar.Format(archive), 0o644)
+				err = txtar.DumpFile(file, archive)
 				test.Ok(t, err)
 
 				return
 			}
 
-			test.DiffBytes(t, []byte(got), want)
+			test.Diff(t, got, want)
 		})
 	}
 }
@@ -406,38 +390,18 @@ func TestInvalid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(
-				t,
-				len(archive.Files),
-				3,
-				test.Context("%s should contain 3 files, got %d", file, len(archive.Files)),
-			)
-			test.Equal(
-				t,
-				archive.Files[0].Name,
-				"src.http",
-				test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-			)
-			test.Equal(
-				t,
-				archive.Files[1].Name,
-				"tokens.txt",
-				test.Context("second file should be named 'tokens.txt', got %q", archive.Files[1].Name),
-			)
-			test.Equal(
-				t,
-				archive.Files[2].Name,
-				"errors.txt",
-				test.Context("second file should be named 'errors.txt', got %q", archive.Files[2].Name),
-			)
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("%s missing src.http", file))
 
-			src := archive.Files[0].Data
-			want := archive.Files[1].Data
-			errs := archive.Files[2].Data
+			want, ok := archive.Read("tokens.txt")
+			test.True(t, ok, test.Context("%s missing tokens.txt", file))
+
+			errs, ok := archive.Read("errors.txt")
+			test.True(t, ok, test.Context("%s missing errors.txt", file))
 
 			collector := &errorCollector{}
 
-			scanner := scanner.New(name, src, collector.handler())
+			scanner := scanner.New(name, []byte(src), collector.handler())
 
 			var tokens []token.Token
 
@@ -460,20 +424,22 @@ func TestInvalid(t *testing.T) {
 			gotErrs := collector.String()
 
 			if *update {
-				// Update the expected with what's actually been seen
-				archive.Files[1].Data = []byte(got)
-				archive.Files[2].Data = []byte(gotErrs)
+				err := archive.Write("tokens.txt", got)
+				test.Ok(t, err)
 
-				err := os.WriteFile(file, txtar.Format(archive), 0o644)
+				err = archive.Write("errors.txt", gotErrs)
+				test.Ok(t, err)
+
+				err = txtar.DumpFile(file, archive)
 				test.Ok(t, err)
 
 				return
 			}
 
-			test.DiffBytes(t, []byte(got), want)
+			test.Diff(t, got, want)
 
-			test.DiffBytes(t, []byte(got), want)
-			test.DiffBytes(t, []byte(gotErrs), errs)
+			test.Diff(t, got, want)
+			test.Diff(t, gotErrs, errs)
 		})
 	}
 }
@@ -492,30 +458,19 @@ func FuzzScanner(f *testing.F) {
 			f.Fatal("txtar.ParseFile returned nil archive")
 		}
 
-		test.True(
-			f,
-			len(archive.Files) > 1,
-			test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)),
-		)
-		test.Equal(
-			f,
-			archive.Files[0].Name,
-			"src.http",
-			test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-		)
-
-		src := archive.Files[0].Data
+		src, ok := archive.Read("src.http")
+		test.True(f, ok, test.Context("%s missing src.http", file))
 
 		f.Add(src)
 	}
 
 	// Property: The scanner never panics or loops indefinitely, fuzz
 	// by default will catch both of these
-	f.Fuzz(func(t *testing.T, src []byte) {
+	f.Fuzz(func(t *testing.T, src string) {
 		// Note: no ErrorHandler installed, because if we let the scanner report syntax
 		// errors it would kill the fuzz test straight away e.g. on the first invalid
 		// utf-8 char
-		scanner := scanner.New("fuzz", src, nil)
+		scanner := scanner.New("fuzz", []byte(src), nil)
 
 		for {
 			tok := scanner.Scan()
@@ -549,22 +504,11 @@ func BenchmarkScanner(b *testing.B) {
 		b.Fatal("txtar.ParseFile returned nil archive")
 	}
 
-	test.True(
-		b,
-		len(archive.Files) > 1,
-		test.Context("%s should contain at least 1 file, got %d", file, len(archive.Files)),
-	)
-	test.Equal(
-		b,
-		archive.Files[0].Name,
-		"src.http",
-		test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-	)
-
-	src := archive.Files[0].Data
+	src, ok := archive.Read("src.http")
+	test.True(b, ok, test.Context("%s missing src.http", file))
 
 	for b.Loop() {
-		s := scanner.New("bench", src, testFailHandler(b))
+		s := scanner.New("bench", []byte(src), testFailHandler(b))
 
 		for {
 			tok := s.Scan()
