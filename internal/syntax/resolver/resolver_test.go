@@ -11,6 +11,7 @@ import (
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/zap/internal/syntax/ast"
 	"go.followtheprocess.codes/zap/internal/syntax/parser/v2"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 	"go.uber.org/goleak"
@@ -40,13 +41,15 @@ func TestResolver(t *testing.T) {
 			want, ok := archive.Read("want.json")
 			test.True(t, ok, test.Context("%s missing want.json", file))
 
-			p, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
+			p, err := parser.New(name, strings.NewReader(src), testFailSyntaxHandler(t))
 			test.Ok(t, err)
 
 			parsed, err := p.Parse()
 			test.Ok(t, err, test.Context("unexpected parser error"))
 
-			resolved, err := resolver.ResolveFile(parsed)
+			res := resolver.New(name, testFailResolveHandler(t))
+
+			resolved, err := res.Resolve(parsed)
 			test.Ok(t, err, test.Context("unexpected resolver error"))
 
 			resolvedJSON, err := json.MarshalIndent(resolved, "", "  ")
@@ -73,7 +76,19 @@ func TestResolver(t *testing.T) {
 
 // testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
 // the enclosing test.
-func testFailHandler(tb testing.TB) syntax.ErrorHandler {
+func testFailResolveHandler(tb testing.TB) resolver.ErrorHandler {
+	tb.Helper()
+
+	return func(node ast.Node, msg string) {
+		// TODO(@FollowTheProcess): We should maybe add a Pos method on ast.Node that returns
+		// a syntax.Position
+		tb.Fatalf("%d: %s", node.Start().Start, msg)
+	}
+}
+
+// testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
+// the enclosing test.
+func testFailSyntaxHandler(tb testing.TB) syntax.ErrorHandler {
 	tb.Helper()
 
 	return func(pos syntax.Position, msg string) {
