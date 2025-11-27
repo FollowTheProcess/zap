@@ -153,7 +153,12 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 
 	if !isKeyword {
 		// Normal var
+		if file.Vars == nil {
+			file.Vars = make(map[string]string)
+		}
+
 		file.Vars[key] = value
+
 		return file, nil
 	}
 
@@ -239,6 +244,13 @@ func (r *Resolver) resolveRequestStatement(in ast.Request) (spec.Request, error)
 		URL:    rawURL,
 	}
 
+	for _, varStatement := range in.Vars {
+		request, err = r.resolveRequestVarStatement(request, varStatement)
+		if err != nil {
+			return spec.Request{}, err
+		}
+	}
+
 	return request, nil
 }
 
@@ -279,4 +291,60 @@ func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
 		r.error(method, "invalid HTTP method")
 		return "", errors.New("invalid HTTP method")
 	}
+}
+
+// resolveRequestVarStatement resolves a variable declaration in the request scope,
+// storing it in the request and returning the modified request.
+func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement ast.VarStatement) (spec.Request, error) {
+	key := statement.Ident.Name
+
+	kind, isKeyword := token.Keyword(key)
+	if isKeyword && kind == token.NoRedirect {
+		// @no-redirect has no value expression, simply setting it is enough
+		request.NoRedirect = true
+		return request, nil
+	}
+
+	value, err := r.resolveExpression(statement.Value)
+	if err != nil {
+		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
+		return spec.Request{}, err
+	}
+
+	if !isKeyword {
+		// Normal var
+		if request.Vars == nil {
+			request.Vars = make(map[string]string)
+		}
+
+		request.Vars[key] = value
+
+		return request, nil
+	}
+
+	// Otherwise, handle the specific keyword by setting the right field
+	switch kind {
+	case token.Name:
+		request.Name = value
+	case token.Timeout:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			r.errorf(statement.Value, "invalid timeout value: %v", err)
+			return spec.Request{}, err
+		}
+
+		request.Timeout = duration
+	case token.ConnectionTimeout:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
+			return spec.Request{}, err
+		}
+
+		request.ConnectionTimeout = duration
+	default:
+		return spec.Request{}, fmt.Errorf("unhandled keyword: %s", kind)
+	}
+
+	return request, nil
 }
