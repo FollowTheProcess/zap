@@ -1,0 +1,16 @@
+# A single, minimal HTTP request
+
+-- src.http --
+###
+GET https://example.com
+-- want.json --
+{
+  "name": "minimal-request.txtar",
+  "requests": [
+    {
+      "name": "#1",
+      "method": "GET",
+      "url": "https://example.com"
+    }
+  ]
+}

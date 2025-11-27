@@ -7,6 +7,8 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"time"
 
 	"go.followtheprocess.codes/zap/internal/spec"
@@ -48,11 +50,14 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 		Requests: []spec.Request{},
 	}
 
+	var errs []error
+
 	for _, statement := range in.Statements {
 		newFile, err := r.resolveFileStatement(file, statement)
 		if err != nil {
 			// If we can't resolve this one, try carrying on. This ensures we provide
 			// multiple diagnostics for the user rather than one at a time
+			errs = append(errs, err)
 			continue
 		}
 
@@ -60,10 +65,9 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 		file = newFile
 	}
 
-	// We've had diagnostics reported somewhere during resolving so correctly
-	// return an error now.
+	// We've had diagnostics reported during resolving so just bubble up a top level error
 	if r.hadErrors {
-		return spec.File{}, ErrResolve
+		return spec.File{}, fmt.Errorf("%w: %w", ErrResolve, errors.Join(errs...))
 	}
 
 	return file, nil
@@ -101,16 +105,29 @@ func (r *Resolver) resolveFileStatement(file spec.File, statement ast.Statement)
 	case ast.VarStatement:
 		file, err = r.resolveGlobalVarStatement(file, stmt)
 		if err != nil {
-			return spec.File{}, ErrResolve
+			return spec.File{}, err
 		}
 	case ast.PromptStatement:
 		file, err = r.resolveGlobalPromptStatement(file, stmt)
 		if err != nil {
-			return spec.File{}, ErrResolve
+			return spec.File{}, err
+		}
+	case ast.Request:
+		request, err := r.resolveRequestStatement(stmt)
+		if err != nil {
+			return spec.File{}, err
 		}
 
+		// If it doesn't have a name set, give it a numerical name based
+		// on it's position in the file e.g. "#1", "#2" etc.
+		if request.Name == "" {
+			request.Name = fmt.Sprintf("#%d", len(file.Requests)+1)
+		}
+
+		file.Requests = append(file.Requests, request)
+
 	default:
-		return file, fmt.Errorf("unhandled ast statement: %T", stmt)
+		return file, fmt.Errorf("unexpected global statement: %T", stmt)
 	}
 
 	return file, nil
@@ -131,12 +148,17 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 	value, err := r.resolveExpression(statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
-		return spec.File{}, ErrResolve
+		return spec.File{}, err
 	}
 
 	if !isKeyword {
 		// Normal var
+		if file.Vars == nil {
+			file.Vars = make(map[string]string)
+		}
+
 		file.Vars[key] = value
+
 		return file, nil
 	}
 
@@ -148,7 +170,7 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 		duration, err := time.ParseDuration(value)
 		if err != nil {
 			r.errorf(statement.Value, "invalid timeout value: %v", err)
-			return spec.File{}, ErrResolve
+			return spec.File{}, err
 		}
 
 		file.Timeout = duration
@@ -156,7 +178,7 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 		duration, err := time.ParseDuration(value)
 		if err != nil {
 			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
-			return spec.File{}, ErrResolve
+			return spec.File{}, err
 		}
 
 		file.ConnectionTimeout = duration
@@ -179,7 +201,7 @@ func (r *Resolver) resolveGlobalPromptStatement(file spec.File, statement ast.Pr
 
 	if _, exists := file.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
-		return spec.File{}, ErrResolve
+		return spec.File{}, fmt.Errorf("prompt %s already declared", name)
 	}
 
 	// Shouldn't need this because file is declared top level with all this
@@ -193,12 +215,136 @@ func (r *Resolver) resolveGlobalPromptStatement(file spec.File, statement ast.Pr
 	return file, nil
 }
 
+// resolveRequestStatement resolves an [ast.Request] into a [spec.Request].
+func (r *Resolver) resolveRequestStatement(in ast.Request) (spec.Request, error) {
+	rawURL, err := r.resolveExpression(in.URL)
+	if err != nil {
+		r.errorf(in.URL, "failed to resolve URL expression: %v", err)
+		return spec.Request{}, err
+	}
+
+	// TODO(@FollowTheProcess): Should the spec.Request store the URL as *url.URL?
+	//
+	// This is probably one to change once parser v2 has been swapped in
+
+	// Validate the URL here
+	_, err = url.ParseRequestURI(rawURL)
+	if err != nil {
+		r.errorf(in.URL, "invalid URL %s: %v", rawURL, err)
+		return spec.Request{}, err
+	}
+
+	method, err := r.resolveHTTPMethod(in.Method)
+	if err != nil {
+		return spec.Request{}, err
+	}
+
+	request := spec.Request{
+		Method: method,
+		URL:    rawURL,
+	}
+
+	for _, varStatement := range in.Vars {
+		request, err = r.resolveRequestVarStatement(request, varStatement)
+		if err != nil {
+			return spec.Request{}, err
+		}
+	}
+
+	return request, nil
+}
+
 // resolveExpression resolves an [ast.Expression].
 func (r *Resolver) resolveExpression(expression ast.Expression) (string, error) {
 	switch expr := expression.(type) {
 	case ast.TextLiteral:
 		return expr.Value, nil
+	case ast.URL:
+		return expr.Value, nil
 	default:
 		return "", fmt.Errorf("unhandled ast expression: %T", expr)
 	}
+}
+
+// resolveHTTPMethod resolves an [ast.Method].
+func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
+	switch method.Token.Kind {
+	case token.MethodGet:
+		return http.MethodGet, nil
+	case token.MethodHead:
+		return http.MethodHead, nil
+	case token.MethodPost:
+		return http.MethodPost, nil
+	case token.MethodPut:
+		return http.MethodPut, nil
+	case token.MethodDelete:
+		return http.MethodDelete, nil
+	case token.MethodConnect:
+		return http.MethodConnect, nil
+	case token.MethodPatch:
+		return http.MethodPatch, nil
+	case token.MethodOptions:
+		return http.MethodOptions, nil
+	case token.MethodTrace:
+		return http.MethodTrace, nil
+	default:
+		r.error(method, "invalid HTTP method")
+		return "", errors.New("invalid HTTP method")
+	}
+}
+
+// resolveRequestVarStatement resolves a variable declaration in the request scope,
+// storing it in the request and returning the modified request.
+func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement ast.VarStatement) (spec.Request, error) {
+	key := statement.Ident.Name
+
+	kind, isKeyword := token.Keyword(key)
+	if isKeyword && kind == token.NoRedirect {
+		// @no-redirect has no value expression, simply setting it is enough
+		request.NoRedirect = true
+		return request, nil
+	}
+
+	value, err := r.resolveExpression(statement.Value)
+	if err != nil {
+		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
+		return spec.Request{}, err
+	}
+
+	if !isKeyword {
+		// Normal var
+		if request.Vars == nil {
+			request.Vars = make(map[string]string)
+		}
+
+		request.Vars[key] = value
+
+		return request, nil
+	}
+
+	// Otherwise, handle the specific keyword by setting the right field
+	switch kind {
+	case token.Name:
+		request.Name = value
+	case token.Timeout:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			r.errorf(statement.Value, "invalid timeout value: %v", err)
+			return spec.Request{}, err
+		}
+
+		request.Timeout = duration
+	case token.ConnectionTimeout:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
+			return spec.Request{}, err
+		}
+
+		request.ConnectionTimeout = duration
+	default:
+		return spec.Request{}, fmt.Errorf("unhandled keyword: %s", kind)
+	}
+
+	return request, nil
 }
