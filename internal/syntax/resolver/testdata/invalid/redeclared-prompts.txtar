@@ -1,0 +1,27 @@
+# Declaring prompts multiple times with the same id is an error.
+
+-- src.http --
+@prompt id User id
+@prompt id A different id
+@prompt other Something else
+@prompt no-description
+@prompt other Something else again
+-- diagnostics.json --
+[
+  {
+    "file": "redeclared-prompts.txtar",
+    "msg": "prompt id already declared",
+    "highlight": {
+      "start": 19,
+      "end": 44
+    }
+  },
+  {
+    "file": "redeclared-prompts.txtar",
+    "msg": "prompt other already declared",
+    "highlight": {
+      "start": 97,
+      "end": 131
+    }
+  }
+]

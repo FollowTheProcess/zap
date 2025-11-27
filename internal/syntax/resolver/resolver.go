@@ -48,15 +48,16 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 		Requests: []spec.Request{},
 	}
 
-	var err error
-
 	for _, statement := range in.Statements {
-		file, err = r.resolveStatement(file, statement)
+		newFile, err := r.resolveFileStatement(file, statement)
 		if err != nil {
 			// If we can't resolve this one, try carrying on. This ensures we provide
 			// multiple diagnostics for the user rather than one at a time
 			continue
 		}
+
+		// Update the file
+		file = newFile
 	}
 
 	// We've had diagnostics reported somewhere during resolving so correctly
@@ -93,7 +94,7 @@ func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
 
 // resolveStatement resolves a generic [ast.Statement], modifying the file and returning
 // the new version.
-func (r *Resolver) resolveStatement(file spec.File, statement ast.Statement) (spec.File, error) {
+func (r *Resolver) resolveFileStatement(file spec.File, statement ast.Statement) (spec.File, error) {
 	var err error
 
 	switch stmt := statement.(type) {
@@ -102,9 +103,14 @@ func (r *Resolver) resolveStatement(file spec.File, statement ast.Statement) (sp
 		if err != nil {
 			return spec.File{}, ErrResolve
 		}
+	case ast.PromptStatement:
+		file, err = r.resolveGlobalPromptStatement(file, stmt)
+		if err != nil {
+			return spec.File{}, ErrResolve
+		}
 
 	default:
-		return spec.File{}, fmt.Errorf("unhandled ast statement: %T", stmt)
+		return file, fmt.Errorf("unhandled ast statement: %T", stmt)
 	}
 
 	return file, nil
@@ -157,6 +163,32 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 	default:
 		return spec.File{}, fmt.Errorf("unhandled keyword: %s", kind)
 	}
+
+	return file, nil
+}
+
+// resolveGlobalPromptStatement resolves a top level file @prompt statement and
+// adds it to the file, returning the new file containing the prompt.
+func (r *Resolver) resolveGlobalPromptStatement(file spec.File, statement ast.PromptStatement) (spec.File, error) {
+	name := statement.Ident.Name
+
+	prompt := spec.Prompt{
+		Name:        name,
+		Description: statement.Description.Value,
+	}
+
+	if _, exists := file.Prompts[name]; exists {
+		r.errorf(statement, "prompt %s already declared", name)
+		return spec.File{}, ErrResolve
+	}
+
+	// Shouldn't need this because file is declared top level with all this
+	// initialised but let's not panic if we can help it
+	if file.Prompts == nil {
+		file.Prompts = make(map[string]spec.Prompt)
+	}
+
+	file.Prompts[statement.Ident.Name] = prompt
 
 	return file, nil
 }
