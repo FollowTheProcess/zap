@@ -1,0 +1,23 @@
+# Top level prompts
+
+-- src.http --
+@prompt id User id
+@prompt other Something else
+@prompt no-description
+-- want.json --
+{
+  "name": "global-prompts.txtar",
+  "prompts": {
+    "id": {
+      "name": "id",
+      "description": "User id"
+    },
+    "no-description": {
+      "name": "no-description"
+    },
+    "other": {
+      "name": "other",
+      "description": "Something else"
+    }
+  }
+}

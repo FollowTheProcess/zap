@@ -5,11 +5,14 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
+	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser/v2"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
@@ -142,4 +145,61 @@ func testFailHandler(tb testing.TB) syntax.ErrorHandler {
 	return func(pos syntax.Position, msg string) {
 		tb.Fatalf("%s: %s", pos, msg)
 	}
+}
+
+// TODO(@FollowTheProcess): Benchmark the resolver once it's complete, use the same full.http file
+// as the parser benchmark.
+
+func FuzzResolver(f *testing.F) {
+	// Get all valid .http source from testdata for the corpus
+	validPattern := filepath.Join("testdata", "valid", "*.txtar")
+	validFiles, err := filepath.Glob(validPattern)
+	test.Ok(f, err)
+
+	// Invalid ones too!
+	invalidPattern := filepath.Join("testdata", "invalid", "*.txtar")
+	invalidFiles, err := filepath.Glob(invalidPattern)
+	test.Ok(f, err)
+
+	files := slices.Concat(validFiles, invalidFiles)
+
+	defer goleak.VerifyNone(f)
+
+	for _, file := range files {
+		archive, err := txtar.ParseFile(file)
+		test.Ok(f, err)
+
+		src, ok := archive.Read("src.http")
+		test.True(f, ok, test.Context("%s missing src.http", file))
+
+		// Add the src to the fuzz corpus
+		f.Add(src)
+	}
+
+	// This also fuzzes the parser (again) but realistically there's no way around that. It's also
+	// not a bad thing as the parser produces partial trees in error cases to aid error reporting
+	// so we need to be able to handle these.
+
+	// Property: The resolver never panics or loops indefinitely, fuzz by default will
+	// catch both of these
+	f.Fuzz(func(t *testing.T, src string) {
+		parser, err := parser.New("fuzz", strings.NewReader(src), nil)
+		test.Ok(t, err)
+
+		parsed, _ := parser.Parse() //nolint:errcheck // Just checking for panics and infinite loops
+
+		res := resolver.New(parsed.Name)
+
+		resolved, err := res.Resolve(parsed)
+		// Property: If there is an error, the file should be the zero spec.File{}
+		if err != nil {
+			if !reflect.DeepEqual(resolved, spec.File{}) {
+				// Marshal it as JSON for readability
+				resolvedJSON, err := json.MarshalIndent(resolved, "", "  ")
+				test.Ok(t, err)
+
+				t.Fatalf("got a non-zero spec.File{} in err != nil case:\n\n%s\n\n", resolvedJSON)
+			}
+		}
+	})
 }
