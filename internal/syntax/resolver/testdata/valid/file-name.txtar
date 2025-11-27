@@ -1,0 +1,8 @@
+# Uses @name to set the name of the file.
+
+-- src.http --
+@name = test
+-- want.json --
+{
+  "name": "test"
+}

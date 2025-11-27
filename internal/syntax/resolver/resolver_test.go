@@ -18,7 +18,7 @@ import (
 
 var update = flag.Bool("update", false, "Update testdata")
 
-func TestResolver(t *testing.T) {
+func TestValid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
@@ -66,6 +66,61 @@ func TestResolver(t *testing.T) {
 
 			if *update {
 				err := archive.Write("want.json", got)
+				test.Ok(t, err)
+
+				err = txtar.DumpFile(file, archive)
+				test.Ok(t, err)
+
+				return
+			}
+
+			test.Diff(t, got, want)
+		})
+	}
+}
+
+func TestInvalid(t *testing.T) {
+	// Force colour for diffs but only locally
+	test.ColorEnabled(os.Getenv("CI") == "")
+
+	pattern := filepath.Join("testdata", "invalid", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	for _, file := range files {
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
+			archive, err := txtar.ParseFile(file)
+			test.Ok(t, err)
+
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("%s missing src.http", file))
+
+			want, ok := archive.Read("diagnostics.json")
+			test.True(t, ok, test.Context("%s missing diagnostics.json", file))
+
+			p, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
+			test.Ok(t, err)
+
+			parsed, err := p.Parse()
+			test.Ok(t, err, test.Context("unexpected parser error"))
+
+			res := resolver.New(name)
+
+			_, err = res.Resolve(parsed)
+			test.Err(t, err, test.Context("resolved did not return an error but should have"))
+
+			diagnosticJSON, err := json.MarshalIndent(res.Diagnostics(), "", "  ")
+			test.Ok(t, err)
+
+			diagnosticJSON = append(diagnosticJSON, '\n') // MarshalIndent doesn't do a final newline
+
+			got := string(diagnosticJSON)
+
+			if *update {
+				err := archive.Write("diagnostics.json", got)
 				test.Ok(t, err)
 
 				err = txtar.DumpFile(file, archive)

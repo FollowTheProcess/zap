@@ -51,18 +51,16 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 	var err error
 
 	for _, statement := range in.Statements {
-		switch stmt := statement.(type) {
-		case ast.VarStatement:
-			file, err = r.resolveGlobalVarStatement(file, stmt)
-			if err != nil {
-				return spec.File{}, ErrResolve
-			}
-
-		default:
-			return spec.File{}, fmt.Errorf("unhandled ast statement: %T", stmt)
+		file, err = r.resolveStatement(file, statement)
+		if err != nil {
+			// If we can't resolve this one, try carrying on. This ensures we provide
+			// multiple diagnostics for the user rather than one at a time
+			continue
 		}
 	}
 
+	// We've had diagnostics reported somewhere during resolving so correctly
+	// return an error now.
 	if r.hadErrors {
 		return spec.File{}, ErrResolve
 	}
@@ -91,6 +89,25 @@ func (r *Resolver) error(node ast.Node, msg string) {
 // errorf calls error with a formatted message.
 func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
 	r.error(node, fmt.Sprintf(format, a...))
+}
+
+// resolveStatement resolves a generic [ast.Statement], modifying the file and returning
+// the new version.
+func (r *Resolver) resolveStatement(file spec.File, statement ast.Statement) (spec.File, error) {
+	var err error
+
+	switch stmt := statement.(type) {
+	case ast.VarStatement:
+		file, err = r.resolveGlobalVarStatement(file, stmt)
+		if err != nil {
+			return spec.File{}, ErrResolve
+		}
+
+	default:
+		return spec.File{}, fmt.Errorf("unhandled ast statement: %T", stmt)
+	}
+
+	return file, nil
 }
 
 // resolveGlobalVarStatement resolves a variable declaration in the global scope, storing it in the file
