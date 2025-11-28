@@ -1,0 +1,4 @@
+@base = https://example.com
+@endpoint = users
+@version = v1
+@fullURL = {{ base }}/{{ version }}/{{ endpoint }}

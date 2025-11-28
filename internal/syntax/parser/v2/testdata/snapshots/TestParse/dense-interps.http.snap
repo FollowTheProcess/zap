@@ -1,0 +1,148 @@
+source: parser_test.go
+expression: parsed
+---
+name: dense-interps.http
+statements:
+  - value:
+      value: https://example.com
+      token:
+        kind: URL
+        start: 8
+        end: 27
+      type: URL
+    ident:
+      name: base
+      token:
+        kind: Ident
+        start: 1
+        end: 5
+      type: Ident
+    at:
+      kind: At
+      start: 0
+      end: 1
+    type: VarStatement
+  - value:
+      value: users
+      token:
+        kind: Text
+        start: 40
+        end: 45
+      type: TextLiteral
+    ident:
+      name: endpoint
+      token:
+        kind: Ident
+        start: 29
+        end: 37
+      type: Ident
+    at:
+      kind: At
+      start: 28
+      end: 29
+    type: VarStatement
+  - value:
+      value: v1
+      token:
+        kind: Text
+        start: 57
+        end: 59
+      type: TextLiteral
+    ident:
+      name: version
+      token:
+        kind: Ident
+        start: 47
+        end: 54
+      type: Ident
+    at:
+      kind: At
+      start: 46
+      end: 47
+    type: VarStatement
+  - value:
+      left: null
+      right:
+        left:
+          value: /
+          token:
+            kind: Text
+            start: 81
+            end: 82
+          type: TextLiteral
+        right:
+          left:
+            value: /
+            token:
+              kind: Text
+              start: 95
+              end: 96
+            type: TextLiteral
+          right: null
+          interp:
+            expr:
+              name: endpoint
+              token:
+                kind: Ident
+                start: 99
+                end: 107
+              type: Ident
+            open:
+              kind: OpenInterp
+              start: 96
+              end: 98
+            close:
+              kind: CloseInterp
+              start: 108
+              end: 110
+            type: Interp
+          type: InterpolatedExpression
+        interp:
+          expr:
+            name: version
+            token:
+              kind: Ident
+              start: 85
+              end: 92
+            type: Ident
+          open:
+            kind: OpenInterp
+            start: 82
+            end: 84
+          close:
+            kind: CloseInterp
+            start: 93
+            end: 95
+          type: Interp
+        type: InterpolatedExpression
+      interp:
+        expr:
+          name: base
+          token:
+            kind: Ident
+            start: 74
+            end: 78
+          type: Ident
+        open:
+          kind: OpenInterp
+          start: 71
+          end: 73
+        close:
+          kind: CloseInterp
+          start: 79
+          end: 81
+        type: Interp
+      type: InterpolatedExpression
+    ident:
+      name: fullURL
+      token:
+        kind: Ident
+        start: 61
+        end: 68
+      type: Ident
+    at:
+      kind: At
+      start: 60
+      end: 61
+    type: VarStatement
+type: File

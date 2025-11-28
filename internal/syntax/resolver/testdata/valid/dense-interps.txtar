@@ -1,0 +1,17 @@
+# Using a series of dense interps in one variable
+
+-- src.http --
+@base = https://example.com
+@endpoint = users
+@version = v1
+@fullURL = {{ base }}/{{ version }}/{{ endpoint }}
+-- want.json --
+{
+  "name": "global-interps.txtar",
+  "vars": {
+    "base": "https://example.com"
+    "endpoint": "users",
+    "version": "v1",
+    "fullURL": "https://example.com/v1/users"
+  }
+}
