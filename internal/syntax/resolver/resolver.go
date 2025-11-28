@@ -465,9 +465,15 @@ func (r *Resolver) resolveIdent(file *spec.File, request *spec.Request, ident as
 
 	// TODO(@FollowTheProcess): This is inefficient
 	//
-	// Making a new map every time we resolve an ident isn't ideal. We should create a global
-	// scope object and pass that around, adding to it and removing as necessary. Do some research
-	// and see how languages handle this, crafting interpreters is a good place
+	// Making a new map every time we resolve an ident isn't ideal. We should create an Environment object that can
+	// be enclosed by another (via pointer to another Environment)
+	// initialise a global one for the file, populate it with globals as we resolve them.
+	//
+	// Then when we resolve requests, we pass a copy of that global environment in, and add to it when
+	// we resolve request variables.
+	//
+	// Two methods: Define and Get. Define adds the variable to the inner most scope, Get walks up
+	// the tree of environments.
 
 	requestVarsLen := 0
 	if request != nil {
