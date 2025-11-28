@@ -9,7 +9,7 @@
 -- diagnostics.json --
 [
   {
-    "file": "redeclared-prompts.txtar",
+    "file": "redeclared-global-prompts.txtar",
     "msg": "prompt id already declared",
     "highlight": {
       "start": 19,
@@ -17,7 +17,7 @@
     }
   },
   {
-    "file": "redeclared-prompts.txtar",
+    "file": "redeclared-global-prompts.txtar",
     "msg": "prompt other already declared",
     "highlight": {
       "start": 97,

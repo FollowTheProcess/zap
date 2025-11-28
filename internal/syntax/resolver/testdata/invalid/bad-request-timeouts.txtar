@@ -1,0 +1,27 @@
+# A valid (from a parser perspective) timeout but the value expression
+# is not a valid duration
+
+-- src.http --
+###
+# @timeout = notaduration
+# @connection-timeout = meneither
+GET https://example.com
+-- diagnostics.json --
+[
+  {
+    "file": "bad-request-timeouts.txtar",
+    "msg": "invalid timeout value: time: invalid duration \"notaduration\"",
+    "highlight": {
+      "start": 17,
+      "end": 29
+    }
+  },
+  {
+    "file": "bad-request-timeouts.txtar",
+    "msg": "invalid connection-timeout value: time: invalid duration \"meneither\"",
+    "highlight": {
+      "start": 54,
+      "end": 63
+    }
+  }
+]
