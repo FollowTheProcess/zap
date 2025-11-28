@@ -53,16 +53,13 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 	var errs []error
 
 	for _, statement := range in.Statements {
-		newFile, err := r.resolveFileStatement(file, statement)
+		err := r.resolveFileStatement(&file, statement)
 		if err != nil {
 			// If we can't resolve this one, try carrying on. This ensures we provide
 			// multiple diagnostics for the user rather than one at a time
 			errs = append(errs, err)
 			continue
 		}
-
-		// Update the file
-		file = newFile
 	}
 
 	// We've had diagnostics reported during resolving so just bubble up a top level error
@@ -96,26 +93,27 @@ func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
 	r.error(node, fmt.Sprintf(format, a...))
 }
 
-// resolveStatement resolves a generic [ast.Statement], modifying the file and returning
-// the new version.
-func (r *Resolver) resolveFileStatement(file spec.File, statement ast.Statement) (spec.File, error) {
-	var err error
-
+// resolveStatement resolves a generic [ast.Statement], adding the fields to
+// the file as it goes.
+//
+// The file passed in is mutated only in the happy path, if err != nil, the file is
+// left untouched.
+func (r *Resolver) resolveFileStatement(file *spec.File, statement ast.Statement) error {
 	switch stmt := statement.(type) {
 	case ast.VarStatement:
-		file, err = r.resolveGlobalVarStatement(file, stmt)
+		err := r.resolveGlobalVarStatement(file, stmt)
 		if err != nil {
-			return spec.File{}, err
+			return err
 		}
 	case ast.PromptStatement:
-		file, err = r.resolveGlobalPromptStatement(file, stmt)
+		err := r.resolveGlobalPromptStatement(file, stmt)
 		if err != nil {
-			return spec.File{}, err
+			return err
 		}
 	case ast.Request:
 		request, err := r.resolveRequestStatement(stmt)
 		if err != nil {
-			return spec.File{}, err
+			return err
 		}
 
 		// If it doesn't have a name set, give it a numerical name based
@@ -127,28 +125,30 @@ func (r *Resolver) resolveFileStatement(file spec.File, statement ast.Statement)
 		file.Requests = append(file.Requests, request)
 
 	default:
-		return file, fmt.Errorf("unexpected global statement: %T", stmt)
+		return fmt.Errorf("unexpected global statement: %T", stmt)
 	}
 
-	return file, nil
+	return nil
 }
 
 // resolveGlobalVarStatement resolves a variable declaration in the global scope, storing it in the file
-// and returning the modified file.
-func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarStatement) (spec.File, error) {
+// passed to it.
+//
+// The file is only mutated in the happy path.
+func (r *Resolver) resolveGlobalVarStatement(file *spec.File, statement ast.VarStatement) error {
 	key := statement.Ident.Name
 
 	kind, isKeyword := token.Keyword(key)
 	if isKeyword && kind == token.NoRedirect {
 		// @no-redirect has no value expression, simply setting it is enough
 		file.NoRedirect = true
-		return file, nil
+		return nil
 	}
 
 	value, err := r.resolveExpression(statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
-		return spec.File{}, err
+		return err
 	}
 
 	if !isKeyword {
@@ -159,7 +159,7 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 
 		file.Vars[key] = value
 
-		return file, nil
+		return nil
 	}
 
 	// Otherwise, handle the specific keyword by setting the right field
@@ -170,7 +170,7 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 		duration, err := time.ParseDuration(value)
 		if err != nil {
 			r.errorf(statement.Value, "invalid timeout value: %v", err)
-			return spec.File{}, err
+			return err
 		}
 
 		file.Timeout = duration
@@ -178,20 +178,20 @@ func (r *Resolver) resolveGlobalVarStatement(file spec.File, statement ast.VarSt
 		duration, err := time.ParseDuration(value)
 		if err != nil {
 			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
-			return spec.File{}, err
+			return err
 		}
 
 		file.ConnectionTimeout = duration
 	default:
-		return spec.File{}, fmt.Errorf("unhandled keyword: %s", kind)
+		return fmt.Errorf("unhandled keyword: %s", kind)
 	}
 
-	return file, nil
+	return nil
 }
 
 // resolveGlobalPromptStatement resolves a top level file @prompt statement and
 // adds it to the file, returning the new file containing the prompt.
-func (r *Resolver) resolveGlobalPromptStatement(file spec.File, statement ast.PromptStatement) (spec.File, error) {
+func (r *Resolver) resolveGlobalPromptStatement(file *spec.File, statement ast.PromptStatement) error {
 	name := statement.Ident.Name
 
 	prompt := spec.Prompt{
@@ -201,7 +201,7 @@ func (r *Resolver) resolveGlobalPromptStatement(file spec.File, statement ast.Pr
 
 	if _, exists := file.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
-		return spec.File{}, fmt.Errorf("prompt %s already declared", name)
+		return fmt.Errorf("prompt %s already declared", name)
 	}
 
 	// Shouldn't need this because file is declared top level with all this
@@ -212,7 +212,7 @@ func (r *Resolver) resolveGlobalPromptStatement(file spec.File, statement ast.Pr
 
 	file.Prompts[statement.Ident.Name] = prompt
 
-	return file, nil
+	return nil
 }
 
 // resolveRequestStatement resolves an [ast.Request] into a [spec.Request].
@@ -247,24 +247,20 @@ func (r *Resolver) resolveRequestStatement(in ast.Request) (spec.Request, error)
 	var errs []error
 
 	for _, varStatement := range in.Vars {
-		newRequest, err := r.resolveRequestVarStatement(request, varStatement)
+		err = r.resolveRequestVarStatement(&request, varStatement)
 		if err != nil {
 			// So we can report as many diagnostics in one pass as possible
 			errs = append(errs, err)
 			continue
 		}
-
-		request = newRequest
 	}
 
 	for _, promptStatement := range in.Prompts {
-		newRequest, err := r.resolveRequestPromptStatement(request, promptStatement)
+		err = r.resolveRequestPromptStatement(&request, promptStatement)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-
-		request = newRequest
 	}
 
 	err = errors.Join(errs...)
@@ -315,21 +311,23 @@ func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
 }
 
 // resolveRequestVarStatement resolves a variable declaration in the request scope,
-// storing it in the request and returning the modified request.
-func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement ast.VarStatement) (spec.Request, error) {
+// storing it in the request, mutating it in place.
+//
+// The request is only mutated in the happy path.
+func (r *Resolver) resolveRequestVarStatement(request *spec.Request, statement ast.VarStatement) error {
 	key := statement.Ident.Name
 
 	kind, isKeyword := token.Keyword(key)
 	if isKeyword && kind == token.NoRedirect {
 		// @no-redirect has no value expression, simply setting it is enough
 		request.NoRedirect = true
-		return request, nil
+		return nil
 	}
 
 	value, err := r.resolveExpression(statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
-		return spec.Request{}, err
+		return err
 	}
 
 	if !isKeyword {
@@ -340,7 +338,7 @@ func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement as
 
 		request.Vars[key] = value
 
-		return request, nil
+		return nil
 	}
 
 	// Otherwise, handle the specific keyword by setting the right field
@@ -351,7 +349,7 @@ func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement as
 		duration, err := time.ParseDuration(value)
 		if err != nil {
 			r.errorf(statement.Value, "invalid timeout value: %v", err)
-			return spec.Request{}, err
+			return err
 		}
 
 		request.Timeout = duration
@@ -359,23 +357,20 @@ func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement as
 		duration, err := time.ParseDuration(value)
 		if err != nil {
 			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
-			return spec.Request{}, err
+			return err
 		}
 
 		request.ConnectionTimeout = duration
 	default:
-		return spec.Request{}, fmt.Errorf("unhandled keyword: %s", kind)
+		return fmt.Errorf("unhandled keyword: %s", kind)
 	}
 
-	return request, nil
+	return nil
 }
 
 // resolveRequestPromptStatement resolves a request level @prompt statement and
 // adds it to the request, returning the new request containing the prompt.
-func (r *Resolver) resolveRequestPromptStatement(
-	request spec.Request,
-	statement ast.PromptStatement,
-) (spec.Request, error) {
+func (r *Resolver) resolveRequestPromptStatement(request *spec.Request, statement ast.PromptStatement) error {
 	name := statement.Ident.Name
 
 	prompt := spec.Prompt{
@@ -385,7 +380,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 
 	if _, exists := request.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
-		return spec.Request{}, fmt.Errorf("prompt %s already declared", name)
+		return fmt.Errorf("prompt %s already declared", name)
 	}
 
 	// Shouldn't need this because request is declared top level with all this
@@ -396,5 +391,5 @@ func (r *Resolver) resolveRequestPromptStatement(
 
 	request.Prompts[statement.Ident.Name] = prompt
 
-	return request, nil
+	return nil
 }
