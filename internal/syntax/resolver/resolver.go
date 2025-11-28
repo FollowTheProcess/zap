@@ -244,11 +244,32 @@ func (r *Resolver) resolveRequestStatement(in ast.Request) (spec.Request, error)
 		URL:    rawURL,
 	}
 
+	var errs []error
+
 	for _, varStatement := range in.Vars {
-		request, err = r.resolveRequestVarStatement(request, varStatement)
+		newRequest, err := r.resolveRequestVarStatement(request, varStatement)
 		if err != nil {
-			return spec.Request{}, err
+			// So we can report as many diagnostics in one pass as possible
+			errs = append(errs, err)
+			continue
 		}
+
+		request = newRequest
+	}
+
+	for _, promptStatement := range in.Prompts {
+		newRequest, err := r.resolveRequestPromptStatement(request, promptStatement)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		request = newRequest
+	}
+
+	err = errors.Join(errs...)
+	if err != nil {
+		return spec.Request{}, err
 	}
 
 	return request, nil
@@ -345,6 +366,35 @@ func (r *Resolver) resolveRequestVarStatement(request spec.Request, statement as
 	default:
 		return spec.Request{}, fmt.Errorf("unhandled keyword: %s", kind)
 	}
+
+	return request, nil
+}
+
+// resolveRequestPromptStatement resolves a request level @prompt statement and
+// adds it to the request, returning the new request containing the prompt.
+func (r *Resolver) resolveRequestPromptStatement(
+	request spec.Request,
+	statement ast.PromptStatement,
+) (spec.Request, error) {
+	name := statement.Ident.Name
+
+	prompt := spec.Prompt{
+		Name:        name,
+		Description: statement.Description.Value,
+	}
+
+	if _, exists := request.Prompts[name]; exists {
+		r.errorf(statement, "prompt %s already declared", name)
+		return spec.Request{}, fmt.Errorf("prompt %s already declared", name)
+	}
+
+	// Shouldn't need this because request is declared top level with all this
+	// initialised but let's not panic if we can help it
+	if request.Prompts == nil {
+		request.Prompts = make(map[string]spec.Prompt)
+	}
+
+	request.Prompts[statement.Ident.Name] = prompt
 
 	return request, nil
 }
