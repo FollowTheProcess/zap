@@ -7,11 +7,11 @@
 @fullURL = {{ base }}/{{ version }}/{{ endpoint }}
 -- want.json --
 {
-  "name": "global-interps.txtar",
+  "name": "dense-interps.txtar",
   "vars": {
-    "base": "https://example.com"
+    "base": "https://example.com",
     "endpoint": "users",
-    "version": "v1",
-    "fullURL": "https://example.com/v1/users"
+    "fullURL": "https://example.com/v1/users",
+    "version": "v1"
   }
 }

@@ -7,6 +7,7 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"time"
@@ -111,7 +112,7 @@ func (r *Resolver) resolveFileStatement(file *spec.File, statement ast.Statement
 			return err
 		}
 	case ast.Request:
-		request, err := r.resolveRequestStatement(stmt)
+		request, err := r.resolveRequestStatement(file, stmt)
 		if err != nil {
 			return err
 		}
@@ -145,7 +146,7 @@ func (r *Resolver) resolveGlobalVarStatement(file *spec.File, statement ast.VarS
 		return nil
 	}
 
-	value, err := r.resolveExpression(statement.Value)
+	value, err := r.resolveExpression(file, nil, statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
 		return err
@@ -216,8 +217,41 @@ func (r *Resolver) resolveGlobalPromptStatement(file *spec.File, statement ast.P
 }
 
 // resolveRequestStatement resolves an [ast.Request] into a [spec.Request].
-func (r *Resolver) resolveRequestStatement(in ast.Request) (spec.Request, error) {
-	rawURL, err := r.resolveExpression(in.URL)
+func (r *Resolver) resolveRequestStatement(file *spec.File, in ast.Request) (spec.Request, error) {
+	request := spec.Request{
+		Vars:    make(map[string]string),
+		Headers: make(http.Header),
+		Prompts: make(map[string]spec.Prompt),
+	}
+
+	// Resolve vars and prompts first so we have access to be able to do
+	// interpolations etc.
+
+	var errs []error
+
+	for _, varStatement := range in.Vars {
+		err := r.resolveRequestVarStatement(file, &request, varStatement)
+		if err != nil {
+			// So we can report as many diagnostics in one pass as possible
+			errs = append(errs, err)
+			continue
+		}
+	}
+
+	for _, promptStatement := range in.Prompts {
+		err := r.resolveRequestPromptStatement(&request, promptStatement)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+
+	err := errors.Join(errs...)
+	if err != nil {
+		return spec.Request{}, err
+	}
+
+	rawURL, err := r.resolveExpression(file, &request, in.URL)
 	if err != nil {
 		r.errorf(in.URL, "failed to resolve URL expression: %v", err)
 		return spec.Request{}, err
@@ -234,50 +268,47 @@ func (r *Resolver) resolveRequestStatement(in ast.Request) (spec.Request, error)
 		return spec.Request{}, err
 	}
 
+	request.URL = rawURL
+
 	method, err := r.resolveHTTPMethod(in.Method)
 	if err != nil {
 		return spec.Request{}, err
 	}
 
-	request := spec.Request{
-		Method: method,
-		URL:    rawURL,
-	}
-
-	var errs []error
-
-	for _, varStatement := range in.Vars {
-		err = r.resolveRequestVarStatement(&request, varStatement)
-		if err != nil {
-			// So we can report as many diagnostics in one pass as possible
-			errs = append(errs, err)
-			continue
-		}
-	}
-
-	for _, promptStatement := range in.Prompts {
-		err = r.resolveRequestPromptStatement(&request, promptStatement)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-	}
-
-	err = errors.Join(errs...)
-	if err != nil {
-		return spec.Request{}, err
-	}
+	request.Method = method
 
 	return request, nil
 }
 
 // resolveExpression resolves an [ast.Expression].
-func (r *Resolver) resolveExpression(expression ast.Expression) (string, error) {
+//
+// The [spec.File] and [spec.Request] are passed in as to resolve interpolation expressions we need
+// access to the global and local scopes for variables, prompts etc.
+func (r *Resolver) resolveExpression(
+	file *spec.File,
+	request *spec.Request,
+	expression ast.Expression,
+) (string, error) {
+	if expression == nil {
+		// Nil expressions are okay, e.g. in the this interp:
+		// Authorization: Bearer {{ token }}
+		// Left: "Bearer " (TextLiteral)
+		// Interp: {{ token }}
+		// Right: nil
+		return "", nil
+	}
+
 	switch expr := expression.(type) {
 	case ast.TextLiteral:
 		return expr.Value, nil
 	case ast.URL:
 		return expr.Value, nil
+	case ast.Ident:
+		return r.resolveIdent(file, request, expr)
+	case ast.InterpolatedExpression:
+		return r.resolveInterpolatedExpression(file, request, expr)
+	case ast.Interp:
+		return r.resolveExpression(file, request, expr.Expr)
 	default:
 		return "", fmt.Errorf("unhandled ast expression: %T", expr)
 	}
@@ -314,7 +345,11 @@ func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
 // storing it in the request, mutating it in place.
 //
 // The request is only mutated in the happy path.
-func (r *Resolver) resolveRequestVarStatement(request *spec.Request, statement ast.VarStatement) error {
+func (r *Resolver) resolveRequestVarStatement(
+	file *spec.File,
+	request *spec.Request,
+	statement ast.VarStatement,
+) error {
 	key := statement.Ident.Name
 
 	kind, isKeyword := token.Keyword(key)
@@ -324,7 +359,7 @@ func (r *Resolver) resolveRequestVarStatement(request *spec.Request, statement a
 		return nil
 	}
 
-	value, err := r.resolveExpression(statement.Value)
+	value, err := r.resolveExpression(file, request, statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
 		return err
@@ -392,4 +427,68 @@ func (r *Resolver) resolveRequestPromptStatement(request *spec.Request, statemen
 	request.Prompts[statement.Ident.Name] = prompt
 
 	return nil
+}
+
+// resolveInterpolatedExpression resolves an [ast.InterpolatedExpression] node into
+// it's concrete string.
+func (r *Resolver) resolveInterpolatedExpression(
+	file *spec.File,
+	request *spec.Request,
+	expr ast.InterpolatedExpression,
+) (string, error) {
+	leftResolved, err := r.resolveExpression(file, request, expr.Left)
+	if err != nil {
+		return "", err
+	}
+
+	interpResolved, err := r.resolveExpression(file, request, expr.Interp)
+	if err != nil {
+		return "", err
+	}
+
+	rightResolved, err := r.resolveExpression(file, request, expr.Right)
+	if err != nil {
+		return "", err
+	}
+
+	return leftResolved + interpResolved + rightResolved, nil
+}
+
+// resolveIdent resolves an [ast.Ident] into the concrete value it refers to.
+//
+// The [spec.File] and [spec.Request] are passed in as we need access to the global
+// and local scopes.
+func (r *Resolver) resolveIdent(file *spec.File, request *spec.Request, ident ast.Ident) (string, error) {
+	if file == nil {
+		return "", errors.New("resolveIdent: file was nil")
+	}
+
+	// TODO(@FollowTheProcess): This is inefficient
+	//
+	// Making a new map every time we resolve an ident isn't ideal. We should create a global
+	// scope object and pass that around, adding to it and removing as necessary. Do some research
+	// and see how languages handle this, crafting interpreters is a good place
+
+	requestVarsLen := 0
+	if request != nil {
+		requestVarsLen = len(request.Vars)
+	}
+
+	// Create a unified variables map where local (request) variables override globals (file)
+	vars := make(map[string]string, len(file.Vars)+requestVarsLen)
+
+	maps.Copy(vars, file.Vars) // Inserts the globals as a baseline
+
+	if request != nil {
+		maps.Copy(vars, request.Vars) // Adds locals, overwriting globals of the same name
+	}
+
+	value, ok := vars[ident.Name]
+	if !ok {
+		// TODO(@FollowTheProcess): Can we combine the ideas of r.errorf and returning an error?
+		r.errorf(ident, "use of undeclared variable %s", ident.Name)
+		return "", fmt.Errorf("use of undeclared variable %s", ident.Name)
+	}
+
+	return value, nil
 }
