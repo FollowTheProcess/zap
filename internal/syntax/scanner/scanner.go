@@ -36,7 +36,7 @@ const (
 	bufferSize = 32       // benchmarks suggest this is the optimum token channel buffer size
 )
 
-// TODO(@FollowTheProcess): Allow interp in body file, so < {{ ident }} and response redirect
+// TODO(@FollowTheProcess): Allow interp in body file, so < {{ ident }} and response redirect/reference
 
 // scanFn represents the state of the scanner as a function that does the work
 // associated with the current state, then returns the next state.
@@ -485,6 +485,11 @@ func scanText(s *Scanner) scanFn {
 		return scanURL
 	}
 
+	// There might be another interp on this line
+	if s.restHasPrefix("{{") {
+		return scanInterp
+	}
+
 	return scanStart
 }
 
@@ -818,7 +823,7 @@ func isAlphaNumeric(r rune) bool {
 
 // isText reports whether r is valid in a continuous string of text.
 func isText(r rune) bool {
-	return !unicode.IsSpace(r) && r != eof
+	return !unicode.IsSpace(r) && r != eof && r != '{' && r != '}'
 }
 
 // isFilePath reports whether r could be a valid first character in a filepath.
