@@ -269,11 +269,7 @@ func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
 		return result, err
 	}
 
-	result.Ident = ast.Ident{
-		Name:  p.text(),
-		Token: p.current,
-		Type:  ast.KindIdent,
-	}
+	result.Ident = p.parseIdent()
 
 	// Optional '='
 	if p.next.Is(token.Eq) {
@@ -304,11 +300,7 @@ func (p *Parser) parseNoRedirect() (ast.VarStatement, error) {
 		return result, err
 	}
 
-	result.Ident = ast.Ident{
-		Name:  p.text(),
-		Token: p.current,
-		Type:  ast.KindIdent,
-	}
+	result.Ident = p.parseIdent()
 
 	return result, nil
 }
@@ -328,22 +320,12 @@ func (p *Parser) parsePrompt() (ast.PromptStatement, error) {
 		return result, err
 	}
 
-	ident, err := p.parseIdent()
-	if err != nil {
-		return result, err
-	}
-
-	result.Ident = ident
+	result.Ident = p.parseIdent()
 
 	if p.next.Is(token.Text) {
 		p.advance()
 
-		text, err := p.parseTextLiteral()
-		if err != nil {
-			return result, err
-		}
-
-		result.Description = text
+		result.Description = p.parseTextLiteral()
 	}
 
 	return result, nil
@@ -554,15 +536,15 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 
 	switch p.current.Kind {
 	case token.Text:
-		expr, err = p.parseTextLiteral()
+		expr = p.parseTextLiteral()
 	case token.OpenInterp:
 		// If the expression begins with an open interp '{{' it's an interpolated
 		// expression with no left hand side, hence nil
 		expr, err = p.parseInterpolatedExpression(nil)
 	case token.Ident:
-		expr, err = p.parseIdent()
+		expr = p.parseIdent()
 	case token.URL:
-		expr, err = p.parseURL()
+		expr = p.parseURL()
 	case token.Body:
 		expr, err = p.parseBody()
 	default:
@@ -686,25 +668,25 @@ func (p *Parser) shouldParseRHS(left ast.Expression) bool {
 }
 
 // parseTextLiteral parses a TextLiteral.
-func (p *Parser) parseTextLiteral() (ast.TextLiteral, error) {
+func (p *Parser) parseTextLiteral() ast.TextLiteral {
 	text := ast.TextLiteral{
 		Value: p.text(),
 		Token: p.current,
 		Type:  ast.KindTextLiteral,
 	}
 
-	return text, nil
+	return text
 }
 
 // parseURL parses a URL literal.
-func (p *Parser) parseURL() (ast.URL, error) {
+func (p *Parser) parseURL() ast.URL {
 	result := ast.URL{
 		Value: p.text(),
 		Token: p.current,
 		Type:  ast.KindURL,
 	}
 
-	return result, nil
+	return result
 }
 
 // parseHeader parses a Header statement.
@@ -734,14 +716,14 @@ func (p *Parser) parseHeader() (ast.Header, error) {
 }
 
 // parseIdent parses an Ident.
-func (p *Parser) parseIdent() (ast.Ident, error) {
+func (p *Parser) parseIdent() ast.Ident {
 	ident := ast.Ident{
-		Name:  p.text(),
+		Name:  strings.TrimSpace(p.text()),
 		Token: p.current,
 		Type:  ast.KindIdent,
 	}
 
-	return ident, nil
+	return ident
 }
 
 // parseInterp parses an interpolation expression, i.e.
