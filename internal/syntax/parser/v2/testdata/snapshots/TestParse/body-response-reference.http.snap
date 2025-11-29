@@ -11,6 +11,11 @@ statements:
         end: 47
       type: URL
     body:
+      value: |+
+        {
+          "something": "here"
+        }
+
       token:
         kind: Body
         start: 49

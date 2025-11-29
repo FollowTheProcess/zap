@@ -28,7 +28,7 @@ Content-Type: application/json
       "comment": "Body",
       "method": "POST",
       "url": "https://api.somewhere.com/items/1",
-      "body": "ewogICJib2R5IjogImhlcmUiCiAgInllcyI6IHsKICAgICJmdWxsIjogWyJqc29uIiwgInN5bnRheCJdCiAgfQp9Cg=="
+      "body": "{\n  \"body\": \"here\"\n  \"yes\": {\n    \"full\": [\"json\", \"syntax\"]\n  }\n}\n"
     }
   ]
 }

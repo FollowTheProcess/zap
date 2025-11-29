@@ -235,6 +235,7 @@ func TestNode(t *testing.T) {
 			node: ast.Request{
 				Body: ast.Body{
 					Token: token.Token{Kind: token.Body, Start: 30, End: 110},
+					Value: `{"some": ["stuff", "here"]}`,
 					Type:  ast.KindBody,
 				},
 				URL: ast.TextLiteral{

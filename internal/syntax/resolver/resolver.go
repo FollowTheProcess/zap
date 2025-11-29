@@ -363,12 +363,15 @@ func (r *Resolver) resolveExpression(env *environment, expression ast.Expression
 		return expr.Value, nil
 	case ast.URL:
 		return expr.Value, nil
+	case ast.Body:
+		return expr.Value, nil
 	case ast.Ident:
 		return r.resolveIdent(env, expr)
 	case ast.InterpolatedExpression:
 		return r.resolveInterpolatedExpression(env, expr)
 	case ast.Interp:
 		return r.resolveExpression(env, expr.Expr)
+
 	default:
 		return "", fmt.Errorf("unhandled ast expression: %T", expr)
 	}
