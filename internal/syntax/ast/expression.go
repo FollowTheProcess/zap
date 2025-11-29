@@ -195,6 +195,8 @@ func (i InterpolatedExpression) Kind() Kind {
 // expressionNode marks an [InterpolatedExpression] as an [Expression].
 func (i InterpolatedExpression) expressionNode() {}
 
+// TODO(@FollowTheProcess): Body needs it's contents in the node
+
 // Body is the http body expression.
 type Body struct {
 	// Token is the [token.Body] token.
