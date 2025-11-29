@@ -529,16 +529,19 @@ func (r *Resolver) resolveHeader(env *environment, in ast.Header) (key, value st
 func (r *Resolver) resolveInterpolatedExpression(env *environment, expr ast.InterpolatedExpression) (string, error) {
 	leftResolved, err := r.resolveExpression(env, expr.Left)
 	if err != nil {
+		r.errorf(expr, "could not resolve LHS of interpolated expression: %v", err)
 		return "", err
 	}
 
 	interpResolved, err := r.resolveExpression(env, expr.Interp)
 	if err != nil {
+		r.errorf(expr, "could not resolve interp of interpolated expression: %v", err)
 		return "", err
 	}
 
 	rightResolved, err := r.resolveExpression(env, expr.Right)
 	if err != nil {
+		r.errorf(expr, "could not resolve RHS of interpolated expression: %v", err)
 		return "", err
 	}
 
