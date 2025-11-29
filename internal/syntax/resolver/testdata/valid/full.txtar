@@ -1,4 +1,7 @@
 -- src.http --
+@base = https://example.com
+@timeout = 1m
+
 ###
 // @name Everything
 # @timeout 30s
@@ -25,8 +28,42 @@ Authorization: Bearer {{ token }}
   },
   "some": "stuff"
 }
+
+### Body
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here"
+}
+
+###
+# @something = value
+# @interp = {{ something }}
+# @prompt id User ID
+# @timeout = 30s
+# @connection-timeout = 10s
+# @no-redirect
+GET https://example.com
+
+### Read the body from ./input.json
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+< input.json
+
+###
+GET {{ base }}/items/1
+
+###
+GET https://example.com
+Accept: */*
+Content-Type: application/json
+X-Api-Key: something
+Authorization: Bearer somesecret token
 -- want.yaml --
 name: full.txtar
+vars:
+  base: https://example.com
 requests:
   - vars:
       token: shhh
@@ -43,7 +80,7 @@ requests:
     method: PUT
     url: https://api.somewhere.com/items/1
     httpVersion: "2"
-    body: |
+    body: |+
       {
         "here": [
           "arbitrary",
@@ -58,6 +95,53 @@ requests:
         },
         "some": "stuff"
       }
+
     timeout: 30s
     connectionTimeout: 10s
     noRedirect: true
+  - name: '#2'
+    comment: Body
+    method: POST
+    url: https://api.somewhere.com/items/1
+    body: |+
+      {
+        "something": "here"
+      }
+
+  - vars:
+      interp: value
+      something: value
+    prompts:
+      id:
+        name: id
+        description: User ID
+    name: '#3'
+    method: GET
+    url: https://example.com
+    timeout: 30s
+    connectionTimeout: 10s
+    noRedirect: true
+  - headers:
+      Content-Type:
+        - application/json
+    name: '#4'
+    comment: Read the body from ./input.json
+    method: POST
+    url: https://api.somewhere.com/items/1
+    bodyFile: input.json
+  - name: '#5'
+    method: GET
+    url: https://example.com/items/1
+  - headers:
+      Accept:
+        - '*/*'
+      Authorization:
+        - Bearer somesecret token
+      Content-Type:
+        - application/json
+      X-Api-Key:
+        - something
+    name: '#6'
+    method: GET
+    url: https://example.com
+timeout: 1m0s

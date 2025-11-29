@@ -1,15 +1,20 @@
 package syntax_test
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"go.followtheprocess.codes/snapshot"
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/zap/internal/syntax/parser"
+	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 )
 
 var (
@@ -386,4 +391,34 @@ func FuzzPosition(f *testing.F) {
 		want := fmt.Sprintf("%s:%d:%d-%d", name, line, startCol, endCol)
 		test.Equal(t, got, want)
 	})
+}
+
+// A benchmark for the entire parsing pipeline.
+func BenchmarkEntireParse(b *testing.B) {
+	file := filepath.Join("testdata", "benchmarks", "full.http")
+
+	src, err := os.ReadFile(file)
+	test.Ok(b, err)
+
+	for b.Loop() {
+		p, err := parser.New(file, bytes.NewReader(src), testFailHandler(b))
+		test.Ok(b, err)
+
+		parsed, err := p.Parse()
+		test.Ok(b, err)
+
+		res := resolver.New(file)
+		_, err = res.Resolve(parsed)
+		test.Ok(b, err)
+	}
+}
+
+// testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
+// the enclosing test.
+func testFailHandler(tb testing.TB) syntax.ErrorHandler {
+	tb.Helper()
+
+	return func(pos syntax.Position, msg string) {
+		tb.Fatalf("%s: %s", pos, msg)
+	}
 }

@@ -151,8 +151,27 @@ func testFailHandler(tb testing.TB) syntax.ErrorHandler {
 	}
 }
 
-// TODO(@FollowTheProcess): Benchmark the resolver once it's complete, use the same full.http file
-// as the parser benchmark.
+func BenchmarkResolver(b *testing.B) {
+	file := filepath.Join("testdata", "valid", "full.txtar")
+
+	archive, err := txtar.ParseFile(file)
+	test.Ok(b, err)
+
+	src, ok := archive.Read("src.http")
+	test.True(b, ok, test.Context("%s missing src.http", file))
+
+	p, err := parser.New(file, strings.NewReader(src), testFailHandler(b))
+	test.Ok(b, err)
+
+	parsed, err := p.Parse()
+	test.Ok(b, err)
+
+	for b.Loop() {
+		res := resolver.New(file)
+		_, err = res.Resolve(parsed)
+		test.Ok(b, err)
+	}
+}
 
 func FuzzResolver(f *testing.F) {
 	// Get all valid .http source from testdata for the corpus
