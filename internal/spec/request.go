@@ -65,6 +65,11 @@ type Request struct {
 	NoRedirect bool `json:"noRedirect,omitempty" toml:"noRedirect,omitempty" yaml:"noRedirect,omitempty"`
 }
 
+// TODO(@FollowTheProcess): We don't need spec.Body anymore
+//
+// It was originally created to better serialise []byte but resolveExpression returns a string now so
+// this is no longer needed. Replace this when the v2 parser/resolver becomes the default
+
 // Body is a HTTP request body.
 //
 // It is equivalent to a []byte but has a custom implementation of

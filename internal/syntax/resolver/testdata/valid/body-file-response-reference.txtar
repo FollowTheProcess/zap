@@ -1,28 +1,20 @@
 -- src.http --
-### Body
+### Read the body from ./input.json
 POST https://api.somewhere.com/items/1
 Content-Type: application/json
 
-{
-  "body": "here"
-  "yes": {
-    "full": ["json", "syntax"]
-  }
-}
+< ./input.json
+
+<> output.json
 -- want.yaml --
-name: body.txtar
+name: body-file-response-reference.txtar
 requests:
   - headers:
       Content-Type:
         - application/json
     name: '#1'
-    comment: Body
+    comment: Read the body from ./input.json
     method: POST
     url: https://api.somewhere.com/items/1
-    body: |
-      {
-        "body": "here"
-        "yes": {
-          "full": ["json", "syntax"]
-        }
-      }
+    bodyFile: ./input.json
+    responseRef: output.json

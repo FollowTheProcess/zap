@@ -325,16 +325,33 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 		request.Headers.Add(key, value)
 	}
 
-	body, err := r.resolveExpression(env, in.Body)
-	if err != nil {
+	if err = r.resolveBody(env, &request, in.Body); err != nil {
 		return spec.Request{}, fmt.Errorf("could not resolve request body: %w", err)
 	}
 
-	// TODO(@FollowTheProcess): We don't need spec.Body anymore
-	//
-	// It was originally created to better serialise []byte but resolveExpression returns a string now so
-	// this is no longer needed. Replace this when the v2 parser/resolver becomes the default
-	request.Body = spec.Body([]byte(body))
+	if in.ResponseRedirect != nil {
+		var redirect string
+
+		redirect, err = r.resolveExpression(env, in.ResponseRedirect.File)
+		if err != nil {
+			r.errorf(in.ResponseRedirect, "invalid response redirect expression: %v", err)
+			return spec.Request{}, err
+		}
+
+		request.ResponseFile = redirect
+	}
+
+	if in.ResponseReference != nil {
+		var reference string
+
+		reference, err = r.resolveExpression(env, in.ResponseReference.File)
+		if err != nil {
+			r.errorf(in.ResponseReference, "invalid response reference expression: %v", err)
+			return spec.Request{}, err
+		}
+
+		request.ResponseRef = reference
+	}
 
 	// Bubble up all the errors at once
 	err = errors.Join(errs...)
@@ -371,7 +388,8 @@ func (r *Resolver) resolveExpression(env *environment, expression ast.Expression
 		return r.resolveInterpolatedExpression(env, expr)
 	case ast.Interp:
 		return r.resolveExpression(env, expr.Expr)
-
+	case ast.BodyFile:
+		return r.resolveExpression(env, expr.Value)
 	default:
 		return "", fmt.Errorf("unhandled ast expression: %T", expr)
 	}
@@ -525,6 +543,43 @@ func (r *Resolver) resolveHeader(env *environment, in ast.Header) (key, value st
 	}
 
 	return in.Key, value, nil
+}
+
+// resolveBody resolves a HTTP request body, the input expression may be an [ast.Body]
+// or an [ast.BodyFile].
+//
+// Because the body expression may be multiple types, resolveBody mutates the correct field
+// on the [spec.Request] in place.
+func (r *Resolver) resolveBody(env *environment, request *spec.Request, expression ast.Expression) error {
+	if expression == nil {
+		// It's okay for body expressions to be nil, it just means
+		// the HTTP request has no body.
+		return nil
+	}
+
+	switch expr := expression.(type) {
+	case ast.Body, ast.InterpolatedExpression:
+		value, err := r.resolveExpression(env, expr)
+		if err != nil {
+			return err
+		}
+
+		// TODO(@FollowTheProcess): Get rid of spec.Body
+		request.Body = spec.Body([]byte(value))
+
+		return nil
+	case ast.BodyFile:
+		value, err := r.resolveExpression(env, expr)
+		if err != nil {
+			return err
+		}
+
+		request.BodyFile = value
+
+		return nil
+	default:
+		return fmt.Errorf("resolveBody: unhandled expression: %T", expression)
+	}
 }
 
 // resolveInterpolatedExpression resolves an [ast.InterpolatedExpression] node into
