@@ -1,0 +1,24 @@
+-- src.http --
+### Body
+# @response_file = response.json
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here"
+}
+
+> {{ response_file }}
+-- want.yaml --
+name: response-redirect-interpolated.txtar
+requests:
+  - vars:
+      response_file: response.json
+    name: '#1'
+    comment: Body
+    method: POST
+    url: https://api.somewhere.com/items/1
+    responseFile: response.json
+    body: |-
+      {
+        "something": "here"
+      }

@@ -310,17 +310,14 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 		return spec.Request{}, err
 	}
 
-	// TODO(@FollowTheProcess): Should the spec.Request store the URL as *url.URL?
-	//
-	// This is probably one to change once parser v2 has been swapped in
-
 	// Validate the URL here
-	if _, err = url.ParseRequestURI(rawURL); err != nil {
+	parsed, err := url.ParseRequestURI(rawURL)
+	if err != nil {
 		r.errorf(in.URL, "invalid URL %s: %v", rawURL, err)
 		return spec.Request{}, err
 	}
 
-	request.URL = rawURL
+	request.URL = parsed.String()
 
 	// HTTP Headers
 	for _, header := range in.Headers {
