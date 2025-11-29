@@ -80,7 +80,7 @@ requests:
     method: PUT
     url: https://api.somewhere.com/items/1
     httpVersion: "2"
-    body: |+
+    body: |-
       {
         "here": [
           "arbitrary",
@@ -95,7 +95,6 @@ requests:
         },
         "some": "stuff"
       }
-
     timeout: 30s
     connectionTimeout: 10s
     noRedirect: true
@@ -103,11 +102,10 @@ requests:
     comment: Body
     method: POST
     url: https://api.somewhere.com/items/1
-    body: |+
+    body: |-
       {
         "something": "here"
       }
-
   - vars:
       interp: value
       something: value

@@ -30,7 +30,7 @@ statements:
         end: 43
       type: URL
     body:
-      value: |
+      value: |-
         {
           "body": "here"
         }

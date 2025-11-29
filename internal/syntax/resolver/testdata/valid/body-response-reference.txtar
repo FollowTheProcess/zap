@@ -18,7 +18,7 @@ requests:
     method: POST
     url: https://api.somewhere.com/items/1
     responseRef: output.json
-    body: |
+    body: |-
       {
         "body": "here"
       }

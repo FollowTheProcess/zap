@@ -44,7 +44,7 @@ Authorization: Bearer {{ token }}
       "method": "PUT",
       "url": "https://api.somewhere.com/items/1",
       "httpVersion": "2",
-      "body": "{\"stuff\": \"here\"}\n",
+      "body": "{\"stuff\": \"here\"}",
       "timeout": 30000000000,
       "connectionTimeout": 10000000000,
       "noRedirect": true

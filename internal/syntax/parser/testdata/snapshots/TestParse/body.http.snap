@@ -11,7 +11,7 @@ statements:
         end: 47
       type: URL
     body:
-      value: |
+      value: |-
         {
           "something": "here"
         }

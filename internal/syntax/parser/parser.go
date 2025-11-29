@@ -777,7 +777,7 @@ func (p *Parser) parseInterp() (ast.Interp, error) {
 func (p *Parser) parseBody() (ast.Body, error) {
 	body := ast.Body{
 		Token: p.current,
-		Value: p.text(),
+		Value: strings.TrimSpace(p.text()),
 		Type:  ast.KindBody,
 	}
 

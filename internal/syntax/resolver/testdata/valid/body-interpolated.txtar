@@ -22,7 +22,7 @@ requests:
     comment: Body
     method: POST
     url: https://api.somewhere.com/items/1
-    body: |
+    body: |-
       {
         "body": "here"
         "yes": {
