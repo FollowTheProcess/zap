@@ -1,6 +1,7 @@
 -- src.http --
 ### BadTimeout
-# @timeout = amillionyears
+# @timeout = %^&*(
 GET https://github.com/api
 -- want.txt --
-bad-timeout.txtar:2:14-27: bad timeout value: time: invalid duration "amillionyears"
+bad-timeout.txtar:2:15: parseExpression: unexpected token Error
+bad-timeout.txtar:2:15: unrecognised character: '%'

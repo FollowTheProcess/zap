@@ -1,7 +1,0 @@
--- src.http --
-### BadTimeout
-# @timeout = %^&*(
-GET https://github.com/api
--- want.txt --
-bad-timeout.txtar:2:15: parseExpression: unexpected token Error
-bad-timeout.txtar:2:15: unrecognised character: '%'

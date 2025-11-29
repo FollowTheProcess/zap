@@ -10,4 +10,4 @@ DESTROY https://api.something.com/v1
 ### Okay
 GET https://api.somethingelse.com/v1
 -- want.txt --
-bad-method.txtar:2:1-8: request separators must be followed by either a comment or a HTTP method, got Text: "DESTROY"
+bad-method.txtar:1:5-14: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got Text

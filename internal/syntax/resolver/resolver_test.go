@@ -15,7 +15,7 @@ import (
 	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
-	"go.followtheprocess.codes/zap/internal/syntax/parser/v2"
+	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 	"go.uber.org/goleak"
 	"go.yaml.in/yaml/v4"

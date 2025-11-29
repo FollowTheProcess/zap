@@ -1,6 +1,0 @@
--- src.http --
-### MyRequest
-@something !@£$%^&*()
--- want.txt --
-unexpected-request-vars.txtar:2:13: parseExpression: unexpected token Error
-unexpected-request-vars.txtar:2:13: unrecognised character: '!'

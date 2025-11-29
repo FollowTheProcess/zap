@@ -2,3 +2,4 @@
 @base = @£$%^&*()
 -- want.txt --
 unexpected-global.txtar:1:12: unrecognised character: '£'
+unexpected-global.txtar:1:9-10: parseExpression: unexpected token At

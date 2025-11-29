@@ -1,17 +1,24 @@
-// Package parser implements the .http file parser.
+// Package parser implements the a .http file parser.
+//
+// The parser parses a stream of tokens from the scanner into ast nodes, if
+// a parse error occurs, partial nodes may be returned rather than the idiomatic
+// Go norm of <zero value>, error. This is intentional both to aid error reporting and
+// to increase the fault tolerance of the parser for use in e.g. language servers that
+// commonly parse incomplete or incorrect code and require a best effort partial AST
+// to function in these scenarios.
+//
+// Once parsed, the abstract syntax tree is resolved which is where variable interpolation,
+// and more thorough validation happen.
 package parser
 
 import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
-	"net/http"
-	"net/url"
 	"strings"
-	"time"
 
 	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/zap/internal/syntax/ast"
 	"go.followtheprocess.codes/zap/internal/syntax/scanner"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
@@ -33,7 +40,6 @@ type Parser struct {
 
 // New initialises and returns a new [Parser] that reads from r.
 func New(name string, r io.Reader, handler syntax.ErrorHandler) (*Parser, error) {
-	// .http files are small, it's okay to read the whole thing
 	src, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from input: %w", err)
@@ -53,53 +59,44 @@ func New(name string, r io.Reader, handler syntax.ErrorHandler) (*Parser, error)
 	return p, nil
 }
 
-// Parse parses the file to completion returning a [syntax.File] and any parsing errors.
+// Parse parses the file to completion returning an [ast.File] and any parsing errors.
 //
 // The returned error will simply signify whether or not there were parse errors,
 // the installed error handler passed to [New] will have the full detail and should
 // be preferred.
-func (p *Parser) Parse() (syntax.File, error) {
+func (p *Parser) Parse() (ast.File, error) {
 	if p == nil {
-		return syntax.File{}, errors.New("Parse: nil parse receiver")
+		return ast.File{}, errors.New("Parse called on nil parser")
 	}
 
-	file := syntax.File{
-		Name: p.name,
+	file := ast.File{
+		Name:       p.name,
+		Statements: make([]ast.Statement, 0),
+		Type:       ast.KindFile,
 	}
-
-	// Parse any global at the top of the file
-	file = p.parseGlobals(file)
 
 	for !p.current.Is(token.EOF) {
 		if p.current.Is(token.Error) {
 			// An error from the scanner
-			return syntax.File{}, ErrParse
-		}
-
-		request, err := p.parseRequest(file)
-		if err != nil {
-			// If we couldn't parse that request for whatever reason, let's try and
-			// recover the parser state by skipping through tokens until we see the next
-			// request and try again. This means the parser is somewhat resilient to localised
-			// syntax errors
 			p.synchronise()
-
-			// Next up should be '###' or EOF, either way we're back in sync
 			continue
 		}
 
-		// If it's name is missing, name it after it's position in the file (1 indexed)
-		if request.Name == "" {
-			request.Name = fmt.Sprintf("#%d", 1+len(file.Requests))
+		statement, err := p.parseStatement()
+		if err != nil {
+			p.synchronise()
+			continue
 		}
 
-		file.Requests = append(file.Requests, request)
+		if statement != nil {
+			file.Statements = append(file.Statements, statement)
+		}
 
 		p.advance()
 	}
 
 	if p.hadErrors {
-		return syntax.File{}, ErrParse
+		return file, ErrParse
 	}
 
 	return file, nil
@@ -115,30 +112,35 @@ func (p *Parser) advance() {
 //
 // The parser is advanced only if the next token is of one of these kinds such that after returning
 // p.current will be one of the kinds.
-func (p *Parser) expect(kinds ...token.Kind) {
+//
+// It returns an [ErrParse] is the expectation is violated, nil otherwise.
+func (p *Parser) expect(kinds ...token.Kind) error {
 	if p.next.Is(token.Error) {
+		p.error("Error token from scanner")
 		// Nobody expects an error!
 		// But seriously, this means the scanner has emitted an error and has already
 		// passed it to the error handler
-		return
+		return ErrParse
 	}
 
 	switch len(kinds) {
 	case 0:
-		return
+		return nil
 	case 1:
 		if !p.next.Is(kinds[0]) {
 			p.errorf("expected %s, got %s", kinds[0], p.next.Kind)
-			return
+			return ErrParse
 		}
 	default:
 		if !p.next.Is(kinds...) {
 			p.errorf("expected one of %v, got %s", kinds, p.next.Kind)
-			return
+			return ErrParse
 		}
 	}
 
 	p.advance()
+
+	return nil
 }
 
 // position returns the parser's current position in the input as a [syntax.Position].
@@ -229,438 +231,638 @@ func (p *Parser) synchronise() {
 	}
 }
 
-// parseGlobals parses a run of variable declarations at the top of the file, returning
-// the modified [syntax.File].
-//
-// If p.current is anything other than '@', the input file is returned as is.
-func (p *Parser) parseGlobals(file syntax.File) syntax.File {
-	if !p.current.Is(token.At) {
-		return file
+// parseStatement parses a statement.
+func (p *Parser) parseStatement() (ast.Statement, error) {
+	switch p.current.Kind {
+	case token.At:
+		if p.next.Is(token.Prompt) {
+			return p.parsePrompt()
+		}
+
+		return p.parseVarStatement()
+	case token.Comment:
+		return p.parseComment()
+	case token.Separator:
+		return p.parseRequest()
+	default:
+		p.errorf("parseStatement: unrecognised token: %s", p.current.Kind)
+		return nil, ErrParse
+	}
+}
+
+// parseVarStatement parses a variable declaration statement.
+func (p *Parser) parseVarStatement() (ast.VarStatement, error) {
+	if p.next.Is(token.NoRedirect) {
+		return p.parseNoRedirect()
 	}
 
-	for p.current.Is(token.At) {
+	result := ast.VarStatement{
+		At:   p.current,
+		Type: ast.KindVarStatement,
+	}
+
+	// All keywords like @timeout, @name etc. get parsed in here as they
+	// are structurally identical, they are all effectively a variable declaration, just their
+	// variables are "special". During resolution they get mapped into dedicated fields in the
+	// resulting spec.File.
+	if err := p.expect(token.Name, token.Timeout, token.ConnectionTimeout, token.Ident); err != nil {
+		return result, err
+	}
+
+	result.Ident = ast.Ident{
+		Name:  p.text(),
+		Token: p.current,
+		Type:  ast.KindIdent,
+	}
+
+	// Optional '='
+	if p.next.Is(token.Eq) {
+		p.advance()
+	}
+
+	p.advance()
+
+	value, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return result, err
+	}
+
+	result.Value = value
+
+	return result, nil
+}
+
+// parseNoRedirect parses a @no-redirect variable declaration, it is a special case
+// of [parseVarStatement] that does not require a value expression.
+func (p *Parser) parseNoRedirect() (ast.VarStatement, error) {
+	result := ast.VarStatement{
+		At:   p.current,
+		Type: ast.KindVarStatement,
+	}
+
+	if err := p.expect(token.NoRedirect); err != nil {
+		return result, err
+	}
+
+	result.Ident = ast.Ident{
+		Name:  p.text(),
+		Token: p.current,
+		Type:  ast.KindIdent,
+	}
+
+	return result, nil
+}
+
+// parsePrompt parses a prompt.
+func (p *Parser) parsePrompt() (ast.PromptStatement, error) {
+	result := ast.PromptStatement{
+		At:   p.current,
+		Type: ast.KindPrompt,
+	}
+
+	if err := p.expect(token.Prompt); err != nil {
+		return result, err
+	}
+
+	if err := p.expect(token.Ident); err != nil {
+		return result, err
+	}
+
+	ident, err := p.parseIdent()
+	if err != nil {
+		return result, err
+	}
+
+	result.Ident = ident
+
+	if p.next.Is(token.Text) {
+		p.advance()
+
+		text, err := p.parseTextLiteral()
+		if err != nil {
+			return result, err
+		}
+
+		result.Description = text
+	}
+
+	return result, nil
+}
+
+// parseComment parses a line comment.
+//
+// Comments are parsed into ast nodes so that comments above requests may
+// be used as their "docstring". Similar to how doc comments are attached
+// to ast nodes in Go.
+func (p *Parser) parseComment() (*ast.Comment, error) {
+	result := &ast.Comment{
+		Token: p.current,
+		Type:  ast.KindComment,
+		Text:  p.text(),
+	}
+
+	return result, nil
+}
+
+// parseRequest parses a single http request.
+func (p *Parser) parseRequest() (ast.Request, error) {
+	result := ast.Request{
+		Sep:  p.current,
+		Type: ast.KindRequest,
+	}
+
+	// Optional comment
+	if p.next.Is(token.Comment) {
+		p.advance()
+
+		comment, err := p.parseComment()
+		if err != nil {
+			return result, err
+		}
+
+		result.Comment = comment
+	}
+
+	for p.next.Is(token.At) {
+		p.advance()
+
 		switch p.next.Kind {
-		case token.Timeout:
-			file.Timeout = p.parseDuration()
-		case token.ConnectionTimeout:
-			file.ConnectionTimeout = p.parseDuration()
+		// All keywords like @timeout, @no-redirect etc. get parsed in here as they
+		// are structurally identical, they are all effectively a variable declaration, just their
+		// variables are "special". During resolution they get mapped into dedicated fields in the
+		// resulting spec.File.
+		case token.Name, token.Timeout, token.ConnectionTimeout, token.Ident:
+			varStatement, err := p.parseVarStatement()
+			if err != nil {
+				return result, err
+			}
+
+			result.Vars = append(result.Vars, varStatement)
 		case token.NoRedirect:
-			p.advance() // Advance because there's no value, @no-redirect is enough
+			// @no-redirect is a special case because it does not take a value, simply specifying
+			// it is enough to disable redirects
+			noRedirect, err := p.parseNoRedirect()
+			if err != nil {
+				return result, err
+			}
 
-			file.NoRedirect = true
-		case token.Name:
-			file.Name = p.parseName()
+			result.Vars = append(result.Vars, noRedirect)
 		case token.Prompt:
-			prompt := p.parsePrompt()
-
-			if file.Prompts == nil {
-				file.Prompts = make(map[string]syntax.Prompt)
+			prompt, err := p.parsePrompt()
+			if err != nil {
+				return result, err
 			}
 
-			file.Prompts[prompt.Name] = prompt
-		case token.Ident:
-			key, value := p.parseVar(file, syntax.Request{})
-
-			if file.Vars == nil {
-				file.Vars = make(map[string]string)
-			}
-
-			file.Vars[key] = value
+			result.Prompts = append(result.Prompts, prompt)
 		default:
-			p.expect(
+			// Use expect for the free error message
+			if err := p.expect(token.Name,
 				token.Timeout,
 				token.ConnectionTimeout,
 				token.NoRedirect,
-				token.Name,
-				token.Prompt,
 				token.Ident,
-			)
+				token.Prompt,
+			); err != nil {
+				return result, err
+			}
 		}
-
-		p.advance()
 	}
 
-	return file
-}
-
-// parseRequest parses a single request in a http file.
-func (p *Parser) parseRequest(file syntax.File) (syntax.Request, error) {
-	if !p.current.Is(token.Separator) {
-		p.errorf("expected %s, got %s", token.Separator, p.current.Kind)
-		return syntax.Request{}, ErrParse
+	// Now must be a HTTP method
+	err := p.expect(
+		token.MethodConnect,
+		token.MethodDelete,
+		token.MethodGet,
+		token.MethodHead,
+		token.MethodOptions,
+		token.MethodPatch,
+		token.MethodPost,
+		token.MethodPut,
+		token.MethodTrace,
+	)
+	if err != nil {
+		return result, err
 	}
 
-	request := syntax.Request{
-		// Vars and Prompts are lazily initialised as it's not obvious that all requests will have those.
-		//
-		// Headers on the other hand every request will have so we initialise the map here always.
-		Headers: make(http.Header),
+	method, err := p.parseMethod()
+	if err != nil {
+		return result, err
 	}
 
-	// Does it have a comment as in "### [comment]"
-	if p.next.Is(token.Comment) {
-		p.advance()
-		request.Comment = p.text()
+	result.Method = method
+
+	if err = p.expect(token.URL, token.OpenInterp); err != nil {
+		return result, err
 	}
 
-	p.advance()
-	request = p.parseRequestVars(file, request)
-
-	if !token.IsMethod(p.current.Kind) {
-		p.errorf(
-			"request separators must be followed by either a comment or a HTTP method, got %s: %q",
-			p.current.Kind,
-			p.text(),
-		)
-
-		return syntax.Request{}, ErrParse
+	url, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return result, err
 	}
 
-	request.Method = p.text()
-
-	request = p.parseRequestURL(file, request)
+	result.URL = url
 
 	if p.next.Is(token.HTTPVersion) {
 		p.advance()
-		request.HTTPVersion = p.text()
-	}
 
-	request = p.parseRequestHeaders(file, request)
-
-	request = p.parseRequestBody(file, request)
-
-	// Might be a '< ./body.json'
-	if p.next.Is(token.LeftAngle) {
-		p.advance()
-		p.expect(token.Text)
-		request.BodyFile = p.text()
-	}
-
-	// We could now also have a response redirect
-	// e.g '> ./response.json'
-	if p.next.Is(token.RightAngle) {
-		p.advance()
-		p.expect(token.Text)
-		request.ResponseFile = p.text()
-	}
-
-	// Or finally, a response ref '<> response.json'
-	if p.next.Is(token.ResponseRef) {
-		p.advance()
-		p.expect(token.Text)
-		request.ResponseRef = p.text()
-	}
-
-	return request, nil
-}
-
-// parseDuration parses a duration declaration e.g. in a global or request variable.
-func (p *Parser) parseDuration() time.Duration {
-	p.advance()
-	// Can either be @timeout = 20s or @timeout 20s
-	if p.next.Is(token.Eq) {
-		p.advance()
-	}
-
-	p.expect(token.Text)
-
-	duration, err := time.ParseDuration(p.text())
-	if err != nil {
-		p.errorf("bad timeout value: %v", err)
-	}
-
-	return duration
-}
-
-// parseName parses a name declaration e.g. in a global or request variable.
-func (p *Parser) parseName() string {
-	p.advance()
-	// Can either be @name = MyName or @name MyName
-	if p.next.Is(token.Eq) {
-		p.advance()
-	}
-
-	p.expect(token.Text)
-
-	return p.text()
-}
-
-// parsePrompt parses a prompt declaration e.g. in a global or request variable.
-func (p *Parser) parsePrompt() syntax.Prompt {
-	p.advance()
-
-	p.expect(token.Ident)
-	name := p.text()
-
-	p.expect(token.Text)
-	description := p.text()
-
-	prompt := syntax.Prompt{
-		Name:        name,
-		Description: description,
-	}
-
-	return prompt
-}
-
-// parseVar parses a generic '@ident = <value>' in either global or request scope.
-func (p *Parser) parseVar(file syntax.File, request syntax.Request) (key, value string) {
-	p.advance()
-	key = p.text()
-	// Can either be @ident = value or @ident value
-	if p.next.Is(token.Eq) {
-		p.advance()
-	}
-
-	// Can be one of:
-	// 1) Text/URL and have no interpolation inside it - easy
-	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
-	// 3) Start as OpenInterp but have one or more instances of Text/URL afterwards, or maybe even more interpolations
-	//
-	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
-	// as we go
-	builder := &strings.Builder{}
-
-	var isURL bool
-
-	for p.next.Is(token.Text, token.URL, token.OpenInterp) {
-		switch kind := p.next.Kind; kind {
-		case token.Text:
-			p.advance()
-			builder.WriteString(p.text())
-		case token.URL:
-			isURL = true
-
-			p.advance()
-			builder.WriteString(p.text())
-		case token.OpenInterp:
-			p.parseInterp(builder, file, request)
-		default:
-			continue
-		}
-	}
-
-	result := builder.String()
-
-	// If it's a URL, let's make a best effort at validating it
-	if isURL {
-		_, err := url.ParseRequestURI(result)
+		httpVersion, err := p.parseHTTPVersion()
 		if err != nil {
-			p.errorf("invalid URL: %v", err)
-		}
-	}
-
-	return key, result
-}
-
-// parseRequestVars parses a run of variable declarations in a request. Returning
-// the modified [syntax.Request].
-//
-// If p.current is anything other than '@', the request is returned as is.
-func (p *Parser) parseRequestVars(file syntax.File, request syntax.Request) syntax.Request {
-	if !p.current.Is(token.At) {
-		return request
-	}
-
-	for p.current.Is(token.At) {
-		switch p.next.Kind {
-		case token.Timeout:
-			request.Timeout = p.parseDuration()
-		case token.ConnectionTimeout:
-			request.ConnectionTimeout = p.parseDuration()
-		case token.NoRedirect:
-			p.advance()
-
-			request.NoRedirect = true
-		case token.Name:
-			request.Name = p.parseName()
-		case token.Prompt:
-			prompt := p.parsePrompt()
-
-			if request.Prompts == nil {
-				request.Prompts = make(map[string]syntax.Prompt)
-			}
-
-			request.Prompts[prompt.Name] = prompt
-		case token.Ident:
-			key, value := p.parseVar(file, request)
-
-			if request.Vars == nil {
-				request.Vars = make(map[string]string)
-			}
-
-			request.Vars[key] = value
-		default:
-			// Always make progress
-			p.advance()
+			return result, err
 		}
 
-		p.advance()
+		result.HTTPVersion = httpVersion
 	}
 
-	return request
-}
-
-// parseRequestURL parses a URL following a HTTP method in a single request, returning
-// the modified [syntax.Request].
-//
-// Interpolation is evaluated and replaced on the fly.
-func (p *Parser) parseRequestURL(file syntax.File, request syntax.Request) syntax.Request {
-	// Can be one of:
-	// 1) Text/URL and have no interpolation inside it - easy
-	// 2) Start as Text/URL but have one or more interpolation blocks with or without additional Text/URL afterwards
-	// 3) Start as OpenInterp but have one or more instances of Text/URL afterwards, or maybe even more interpolations
-	//
-	// So we actually need to loop continuously until we see a non Text/URL/Interp appending to a string
-	// as we go
-	builder := &strings.Builder{}
-
-	for p.next.Is(token.URL, token.Text, token.OpenInterp) {
-		switch kind := p.next.Kind; kind {
-		case token.URL, token.Text:
-			p.advance()
-			builder.WriteString(p.text())
-		case token.OpenInterp:
-			p.parseInterp(builder, file, request)
-		default:
-			// Always make progress
-			p.advance()
-		}
-	}
-
-	result := builder.String()
-
-	_, err := url.ParseRequestURI(result)
-	if err != nil {
-		p.errorf("invalid URL: %v", err)
-		return syntax.Request{}
-	}
-
-	request.URL = result
-
-	return request
-}
-
-// parseInterp parses and evaluates a templated interpolation.
-//
-// Variables that exist in either global (file) or local (request) scope are substituted
-// at parse time. Prompts are replaced with a placeholder of `zap::prompt::<ident>` as we cannot know their value
-// until the file or request is run and the user provides an input.
-//
-// It takes a *strings.Builder as an input and write its evaluated results to that builder. The caller
-// is responsible for creating the builder and using its results.
-func (p *Parser) parseInterp(builder *strings.Builder, file syntax.File, request syntax.Request) {
-	p.advance()
-	// TODO(@FollowTheProcess): Same comment about expecting more than Ident
-	p.expect(token.Ident)
-	ident := p.text()
-	p.expect(token.CloseInterp)
-
-	localVal, isLocal := request.Vars[ident]
-	globalVal, isGlobal := file.Vars[ident]
-
-	allPrompts := make(map[string]syntax.Prompt, len(request.Prompts)+len(file.Prompts))
-	maps.Copy(allPrompts, request.Prompts)
-	maps.Copy(allPrompts, file.Prompts)
-
-	_, isPrompt := allPrompts[ident]
-
-	switch {
-	case isLocal:
-		builder.WriteString(localVal)
-	case isGlobal:
-		builder.WriteString(globalVal)
-	case isPrompt:
-		// We resolve these later when we ask the user, they cannot be
-		// resolved at parse time
-		builder.WriteString("zap::prompt::" + ident)
-	default:
-		p.errorf("use of undefined variable %q", ident)
-	}
-}
-
-// parseRequestHeaders parses a run of request headers, returning the modified
-// request.
-//
-// Interpolation is evaluated and replaced on the fly.
-func (p *Parser) parseRequestHeaders(file syntax.File, request syntax.Request) syntax.Request {
 	for p.next.Is(token.Header) {
 		p.advance()
-		key := p.text()
-		p.expect(token.Colon)
 
-		builder := &strings.Builder{}
-
-		for p.next.Is(token.Text, token.OpenInterp) {
-			switch kind := p.next.Kind; kind {
-			case token.Text:
-				p.advance()
-				builder.WriteString(p.text())
-			case token.OpenInterp:
-				p.parseInterp(builder, file, request)
-			default:
-				// Always make progress
-				p.advance()
-			}
+		header, err := p.parseHeader()
+		if err != nil {
+			return result, err
 		}
 
-		if request.Headers == nil {
-			request.Headers = make(http.Header)
-		}
-
-		request.Headers.Add(key, builder.String())
-		builder.Reset() // Reset for the next (outer) loop
+		result.Headers = append(result.Headers, header)
 	}
 
-	return request
+	// Body or < <body file>
+	switch p.next.Kind {
+	case token.Body:
+		p.advance()
+
+		body, err := p.parseExpression(token.LowestPrecedence)
+		if err != nil {
+			return result, err
+		}
+
+		result.Body = body
+	case token.LeftAngle:
+		p.advance()
+
+		bodyFile, err := p.parseBodyFile()
+		if err != nil {
+			return result, err
+		}
+
+		result.Body = bodyFile
+	default:
+		// Nothing, not all requests have a body
+	}
+
+	if p.next.Is(token.RightAngle) {
+		p.advance()
+
+		redirect, err := p.parseResponseRedirect()
+		if err != nil {
+			return result, err
+		}
+
+		result.ResponseRedirect = redirect
+	}
+
+	if p.next.Is(token.ResponseRef) {
+		p.advance()
+
+		responseRef, err := p.parseResponseReference()
+		if err != nil {
+			return result, err
+		}
+
+		result.ResponseReference = responseRef
+	}
+
+	return result, nil
 }
 
-// parseRequestBody parses a request body, returning the modified request.
-//
-// Interpolation is evaluated and replaced o the fly.
-func (p *Parser) parseRequestBody(file syntax.File, request syntax.Request) syntax.Request {
-	builder := &strings.Builder{}
+// parseMethod parses a http method.
+func (p *Parser) parseMethod() (ast.Method, error) {
+	result := ast.Method{
+		Token: p.current,
+		Type:  ast.KindMethod,
+	}
 
-	for p.next.Is(token.Body, token.OpenInterp) {
-		switch kind := p.next.Kind; kind {
-		case token.Body:
-			p.advance()
-			builder.Write(p.bytes())
+	return result, nil
+}
+
+// parseExpression parses an expression given a precedence level.
+func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
+	// Prefix expressions, when the expression begins with one of these tokens, analogous
+	// to prefix expressions like -5, !true or 'text literal'
+	var (
+		expr ast.Expression
+		err  error
+	)
+
+	switch p.current.Kind {
+	case token.Text:
+		expr, err = p.parseTextLiteral()
+	case token.OpenInterp:
+		// If the expression begins with an open interp '{{' it's an interpolated
+		// expression with no left hand side, hence nil
+		expr, err = p.parseInterpolatedExpression(nil)
+	case token.Ident:
+		expr, err = p.parseIdent()
+	case token.URL:
+		expr, err = p.parseURL()
+	case token.Body:
+		expr, err = p.parseBody()
+	default:
+		p.errorf("parseExpression: unexpected token %s", p.current.Kind)
+		return nil, ErrParse
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Now what happens if the tokens are found in the middle of the expression. Analogous
+	// to infix expressions like 5 + 5.
+	//
+	// Very similar to how programming languages parse binary expressions using operator precedence
+	// e.g. 'a + b / c' should be parsed as '(a + (b / c))' as '/' has a higher precedence or binding
+	// power than '+'.
+	//
+	// The equivalent for us is that {{ <ident> }} should have a higher precedence such that:
+	//
+	// 'https://example.com/{{ version }}/items/1'
+	//
+	// should be parsed as:
+	//
+	// '('https://example.com/(<version>)/items/1')'
+	//
+	// Where the '{{ version }}' is more deeply nested in the ast.
+	//
+	// This is done here with the [ast.InterpolatedExpression] node which represents an [ast.Interp]
+	// sandwiched between two arbitrary expressions. This is analogous to a binary expression node
+	// in most programming languages where two expressions are sandwiched between a binary operator.
+	//
+	// In our case the Interp is the operator and carries the highest precedence.
+
+	for p.next.Is(token.OpenInterp) && precedence < p.next.Precedence() {
+		p.advance()
+
+		switch p.current.Kind {
 		case token.OpenInterp:
-			p.advance()
-			p.expect(token.Ident)
-			ident := p.text()
-			p.expect(token.CloseInterp)
-
-			localVal, isLocal := request.Vars[ident]
-			globalVal, isGlobal := file.Vars[ident]
-
-			allPrompts := make(map[string]syntax.Prompt, len(request.Prompts)+len(file.Prompts))
-			maps.Copy(allPrompts, request.Prompts)
-			maps.Copy(allPrompts, file.Prompts)
-
-			_, isPrompt := allPrompts[ident]
-
-			switch {
-			case isLocal:
-				builder.WriteString(localVal)
-			case isGlobal:
-				builder.WriteString(globalVal)
-			case isPrompt:
-				// We resolve these later when we ask the user, they cannot be
-				// resolved at parse time
-				builder.WriteString("zap::prompt::" + ident)
-			default:
-				p.errorf("use of undefined variable %q", ident)
-			}
-
+			// It's an interpolated expression where we already know the left hand side
+			expr, err = p.parseInterpolatedExpression(expr)
 		default:
-			// Always make progress
-			p.advance()
+			p.errorf("parseExpression: unexpected token: %s", p.current.Kind)
+		}
+
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	request.Body = []byte(builder.String())
+	return expr, nil
+}
 
-	return request
+// parseInterpolatedExpression parses a composite interpolation expression.
+func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.InterpolatedExpression, error) {
+	expr := ast.InterpolatedExpression{
+		Left: left,
+		Type: ast.KindInterpolatedExpression,
+	}
+
+	interp, err := p.parseInterp()
+	if err != nil {
+		return expr, err
+	}
+
+	expr.Interp = interp
+
+	precedence := p.current.Precedence()
+
+	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) && p.shouldParseRHS(left) {
+		p.advance()
+
+		right, err := p.parseExpression(precedence)
+		if err != nil {
+			return expr, err
+		}
+
+		expr.Right = right
+	}
+
+	return expr, nil
+}
+
+// shouldParseRHS reports whether we should parse the right hand side of an expression,
+// given the incoming token and the left hand side of that expression.
+//
+// Without this, the parser will eagerly consume e.g. a Body as the right hand side of
+// an interpolated header value.
+//
+// For example:
+//
+//	Authorization: Bearer {{ token }}
+//
+//	{ "body": "here" }
+//
+// The header Authorization would have an InterpolatedExpression as it's value, the
+// left hand side of which would be "Bearer ", the interp in the middle would of course
+// be "{{ token }}", but the body would be consumed as the right hand side of this expression
+// which is obviously incorrect.
+//
+// In general, we only parse the right hand side if it's the same type of expression as the left.
+func (p *Parser) shouldParseRHS(left ast.Expression) bool {
+	if left == nil {
+		// No information to tell otherwise so go ahead and
+		// parse the right hand side
+		return true
+	}
+
+	switch left.Kind() {
+	case ast.KindTextLiteral:
+		return p.next.Is(token.Text)
+	case ast.KindIdent:
+		return p.next.Is(token.Ident)
+	case ast.KindURL:
+		return p.next.Is(token.URL)
+	case ast.KindBody:
+		return p.next.Is(token.Body)
+	default:
+		return false
+	}
+}
+
+// parseTextLiteral parses a TextLiteral.
+func (p *Parser) parseTextLiteral() (ast.TextLiteral, error) {
+	text := ast.TextLiteral{
+		Value: p.text(),
+		Token: p.current,
+		Type:  ast.KindTextLiteral,
+	}
+
+	return text, nil
+}
+
+// parseURL parses a URL literal.
+func (p *Parser) parseURL() (ast.URL, error) {
+	result := ast.URL{
+		Value: p.text(),
+		Token: p.current,
+		Type:  ast.KindURL,
+	}
+
+	return result, nil
+}
+
+// parseHeader parses a Header statement.
+func (p *Parser) parseHeader() (ast.Header, error) {
+	result := ast.Header{
+		Token: p.current,
+		Type:  ast.KindHeader,
+		Key:   p.text(),
+	}
+
+	if err := p.expect(token.Colon); err != nil {
+		return result, err
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return result, err
+	}
+
+	value, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return result, err
+	}
+
+	result.Value = value
+
+	return result, nil
+}
+
+// parseIdent parses an Ident.
+func (p *Parser) parseIdent() (ast.Ident, error) {
+	ident := ast.Ident{
+		Name:  p.text(),
+		Token: p.current,
+		Type:  ast.KindIdent,
+	}
+
+	return ident, nil
+}
+
+// parseInterp parses an interpolation expression, i.e.
+// '{{' <expr> '}}'.
+func (p *Parser) parseInterp() (ast.Interp, error) {
+	result := ast.Interp{
+		Open: p.current,
+		Type: ast.KindInterp,
+	}
+
+	// TODO(@FollowTheProcess): Just like the other parser, for now we'll assume only idents are allowed here
+	if err := p.expect(token.Ident); err != nil {
+		return result, err
+	}
+
+	expr, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return result, err
+	}
+
+	result.Expr = expr
+
+	if err := p.expect(token.CloseInterp); err != nil {
+		return result, err
+	}
+
+	result.Close = p.current
+
+	return result, nil
+}
+
+// parseBody parses a body expression.
+func (p *Parser) parseBody() (ast.Body, error) {
+	body := ast.Body{
+		Token: p.current,
+		Value: p.text(),
+		Type:  ast.KindBody,
+	}
+
+	return body, nil
+}
+
+// parseBodyFile parses a body file expression.
+func (p *Parser) parseBodyFile() (ast.BodyFile, error) {
+	bodyFile := ast.BodyFile{
+		Token: p.current,
+		Type:  ast.KindBodyFile,
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return bodyFile, err
+	}
+
+	value, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return bodyFile, err
+	}
+
+	bodyFile.Value = value
+
+	return bodyFile, nil
+}
+
+// parseResponseRedirect parses a response redirect statement.
+func (p *Parser) parseResponseRedirect() (*ast.ResponseRedirect, error) {
+	redirect := &ast.ResponseRedirect{
+		Token: p.current,
+		Type:  ast.KindResponseRedirect,
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return redirect, err
+	}
+
+	file, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return redirect, err
+	}
+
+	redirect.File = file
+
+	return redirect, nil
+}
+
+// parseResponseReference parses a response reference statement.
+func (p *Parser) parseResponseReference() (*ast.ResponseReference, error) {
+	ref := &ast.ResponseReference{
+		Token: p.current,
+		Type:  ast.KindResponseReference,
+	}
+
+	if err := p.expect(token.Text, token.OpenInterp); err != nil {
+		return ref, err
+	}
+
+	file, err := p.parseExpression(token.LowestPrecedence)
+	if err != nil {
+		return ref, err
+	}
+
+	ref.File = file
+
+	return ref, nil
+}
+
+// parseHTTPVersion parses a http version statement.
+func (p *Parser) parseHTTPVersion() (*ast.HTTPVersion, error) {
+	version := &ast.HTTPVersion{
+		Token: p.current,
+		Type:  ast.KindHTTPVersion,
+	}
+
+	after, ok := strings.CutPrefix(p.text(), "HTTP/")
+	if !ok {
+		// Should basically never happen because the scanner would catch it
+		// but let's be safe.
+		p.errorf("bad HTTP version, missing 'HTTP/' prefix: %s", p.text())
+		return version, ErrParse
+	}
+
+	version.Version = after
+
+	return version, nil
 }

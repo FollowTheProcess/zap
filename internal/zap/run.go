@@ -130,7 +130,7 @@ func (z Zap) Run(
 
 	logger := z.logger.Prefixed("run")
 
-	ctx, cancel := context.WithTimeout(ctx, DefaultOverallTimeout)
+	ctx, cancel := context.WithTimeout(ctx, options.OverallTimeout)
 	defer cancel()
 
 	if len(options.Requests) == 0 {

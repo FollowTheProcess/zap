@@ -1,34 +1,31 @@
 package parser_test
 
 import (
-	"encoding/json"
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/rogpeppe/go-internal/txtar"
+	"go.followtheprocess.codes/snapshot"
 	"go.followtheprocess.codes/test"
-	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.uber.org/goleak"
 )
 
-var update = flag.Bool("update", false, "Update snapshots and testdata")
+var (
+	update = flag.Bool("update", false, "Update snapshots")
+	clean  = flag.Bool("clean", false, "Erase and regenerate snapshots")
+)
 
-// TestValid is the primary parser test for valid syntax. It reads src http text from
-// a txtar archive in testdata/valid, parses it to completion, serialises that parsed result
-// to JSON then generates a pretty diff if it doesn't match.
-func TestValid(t *testing.T) {
-	// Force colour for diffs but only locally
-	test.ColorEnabled(os.Getenv("CI") == "")
-
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
+func TestParse(t *testing.T) {
+	pattern := filepath.Join("testdata", "valid", "*.http")
 	files, err := filepath.Glob(pattern)
 	test.Ok(t, err)
 
@@ -37,42 +34,30 @@ func TestValid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
-			archive, err := txtar.ParseFile(file)
+			snap := snapshot.New(
+				t,
+				snapshot.Update(*update),
+				snapshot.Clean(*clean),
+				snapshot.Color(os.Getenv("CI") == ""),
+			)
+
+			src, err := os.Open(file)
 			test.Ok(t, err)
 
-			src, ok := archive.Read("src.http")
-			test.True(t, ok, test.Context("%s missing src.http", file))
+			defer src.Close()
 
-			want, ok := archive.Read("want.json")
-			test.True(t, ok, test.Context("%s missing want.json", file))
-
-			parser, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
+			p, err := parser.New(name, src, testFailHandler(t))
 			test.Ok(t, err)
 
-			got, err := parser.Parse()
-			test.Ok(t, err, test.Context("unexpected parse error"))
+			parsed, err := p.Parse()
+			test.Ok(t, err)
 
-			gotJSON, err := json.MarshalIndent(got, "", "  ")
-			test.Ok(t, err, test.Context("could not marshal JSON"))
-
-			gotJSON = append(gotJSON, '\n') // MarshalIndent doesn't do newlines at the end
-
-			if *update {
-				err := archive.Write("want.json", string(gotJSON))
-				test.Ok(t, err)
-
-				err = txtar.DumpFile(file, archive)
-				test.Ok(t, err)
-
-				return
-			}
-
-			test.DiffBytes(t, gotJSON, []byte(want))
+			snap.Snap(parsed)
 		})
 	}
 }
 
-// TestInvalid is the primary test for invalid syntax. It does much the same as TestParseValid
+// TestInvalid is the primary test for invalid syntax. It does much the same as TestParse
 // but instead of failing tests if a syntax error is encounter, it fails if there is not any syntax errors.
 //
 // Additionally, the errors are compared against a reference.
@@ -92,15 +77,31 @@ func TestInvalid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			src, ok := archive.Read("src.http")
-			test.True(t, ok, test.Context("%s missing src.http", file))
+			test.Equal(
+				t,
+				len(archive.Files),
+				2,
+				test.Context("%s should contain 2 files, got %d", file, len(archive.Files)),
+			)
+			test.Equal(
+				t,
+				archive.Files[0].Name,
+				"src.http",
+				test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
+			)
+			test.Equal(
+				t,
+				archive.Files[1].Name,
+				"want.txt",
+				test.Context("second file should be named 'want.txt', got %q", archive.Files[1].Name),
+			)
 
-			want, ok := archive.Read("want.txt")
-			test.True(t, ok, test.Context("%s missing want.txt", file))
+			src := archive.Files[0].Data
+			want := archive.Files[1].Data
 
 			collector := &errorCollector{}
 
-			parser, err := parser.New(name, strings.NewReader(src), collector.handler())
+			parser, err := parser.New(name, bytes.NewReader(src), collector.handler())
 			test.Ok(t, err)
 
 			_, err = parser.Parse()
@@ -109,34 +110,27 @@ func TestInvalid(t *testing.T) {
 			got := collector.String()
 
 			if *update {
-				err := archive.Write("want.txt", got)
-				test.Ok(t, err)
+				archive.Files[1].Data = []byte(got)
 
-				err = txtar.DumpFile(file, archive)
+				err := os.WriteFile(file, txtar.Format(archive), 0o644)
 				test.Ok(t, err)
 
 				return
 			}
 
-			test.Diff(t, got, want)
+			test.DiffBytes(t, []byte(got), want)
 		})
 	}
 }
 
 func BenchmarkParser(b *testing.B) {
-	file := filepath.Join("testdata", "valid", "full.txtar")
-	archive, err := txtar.ParseFile(file)
+	file := filepath.Join("testdata", "valid", "full.http")
+
+	src, err := os.ReadFile(file)
 	test.Ok(b, err)
 
-	if archive == nil {
-		b.Fatal("txtar.ParseFile returned nil archive")
-	}
-
-	src, ok := archive.Read("src.http")
-	test.True(b, ok, test.Context("%s missing src.http", file))
-
 	for b.Loop() {
-		p, err := parser.New("bench", strings.NewReader(src), testFailHandler(b))
+		p, err := parser.New(file, bytes.NewReader(src), testFailHandler(b))
 		test.Ok(b, err)
 
 		_, err = p.Parse()
@@ -146,47 +140,36 @@ func BenchmarkParser(b *testing.B) {
 
 func FuzzParser(f *testing.F) {
 	// Get all the .http source from testdata for the corpus
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
-	files, err := filepath.Glob(pattern)
+	validPattern := filepath.Join("testdata", "valid", "*.http")
+	validFiles, err := filepath.Glob(validPattern)
 	test.Ok(f, err)
 
+	invalidPattern := filepath.Join("testdata", "invalid", "*.http")
+	invalidFiles, err := filepath.Glob(invalidPattern)
+	test.Ok(f, err)
+
+	files := slices.Concat(validFiles, invalidFiles)
+
+	defer goleak.VerifyNone(f)
+
 	for _, file := range files {
-		archive, err := txtar.ParseFile(file)
+		src, err := os.ReadFile(file)
 		test.Ok(f, err)
-
-		if archive == nil {
-			f.Fatal("txtar.ParseFile returned nil archive")
-		}
-
-		src, ok := archive.Read("src.http")
-		test.True(f, ok, test.Context("%s missing src.http", file))
 
 		f.Add(src)
 	}
 
 	// Property: The parser never panics or loops indefinitely, fuzz by default
 	// will catch both of these
-	f.Fuzz(func(t *testing.T, src string) {
-		// Note: no ErrorHandler installed, because if we let it report errors
-		// it would kill the fuzz test straight away e.g. on the first invalid
-		// utf-8 char
-		parser, err := parser.New("fuzz", strings.NewReader(src), nil)
+	f.Fuzz(func(t *testing.T, src []byte) {
+		parser, err := parser.New("fuzz", bytes.NewReader(src), nil)
 		test.Ok(t, err)
 
-		file, err := parser.Parse()
-
-		var zeroFile syntax.File
-
-		// Property: If the parser returned an error, then file must be empty
-		if err != nil {
-			if !reflect.DeepEqual(file, zeroFile) {
-				t.Fatalf("\nnon zero syntax.File returned when err != nil: %#v\n", file)
-			}
-		}
+		_, _ = parser.Parse() //nolint:errcheck // Just checking for panics and infinite loops
 	})
 }
 
-// testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
+// testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
 // the enclosing test.
 func testFailHandler(tb testing.TB) syntax.ErrorHandler {
 	tb.Helper()
