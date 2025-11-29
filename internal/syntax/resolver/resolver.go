@@ -211,14 +211,6 @@ func (r *Resolver) resolveGlobalPromptStatement(
 		Description: statement.Description.Value,
 	}
 
-	// TODO(@FollowTheProcess): Think about how prompts use the environment
-	//
-	// We don't know the variable at parse time because the user hasn't been prompted for it yet.
-	//
-	// Maybe fill in a placeholder for now? e.g. "zap::prompt::(global|local)::<ident>". Then
-	// when the file/request is invoked we prompt for <ident> and then do a replace for
-	// that placeholder string?
-
 	if _, exists := file.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
 		return fmt.Errorf("prompt %s already declared", name)
@@ -230,7 +222,23 @@ func (r *Resolver) resolveGlobalPromptStatement(
 		file.Prompts = make(map[string]spec.Prompt)
 	}
 
-	file.Prompts[statement.Ident.Name] = prompt
+	// We obviously don't know the value of the prompt yet, this comes later when the user actually
+	// runs the file and is prompted for the answer, so for now insert a unique placeholder for
+	// each prompt which we can easily swap out once prompts are resolved.
+	//
+	// This means that something like:
+	// @prompt id
+	//
+	// ###
+	// GET https://someurl.com/users/{{ id }}
+	//
+	// Won't think 'id' is missing and fail because it's not defined yet.
+	if err := env.Define(name, "zap::prompt::global::"+name); err != nil {
+		r.errorf(statement, "prompt %s shadows global variable of the same name: %v", name, err)
+		return err
+	}
+
+	file.Prompts[name] = prompt
 
 	return nil
 }
@@ -436,8 +444,6 @@ func (r *Resolver) resolveRequestPromptStatement(
 		Description: statement.Description.Value,
 	}
 
-	// TODO(@FollowTheProcess): Same comment as global, how do we use environments with prompts
-
 	if _, exists := request.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
 		return fmt.Errorf("prompt %s already declared", name)
@@ -449,7 +455,22 @@ func (r *Resolver) resolveRequestPromptStatement(
 		request.Prompts = make(map[string]spec.Prompt)
 	}
 
-	request.Prompts[statement.Ident.Name] = prompt
+	// We obviously don't know the value of the prompt yet, this comes later when the user actually
+	// runs the file and is prompted for the answer, so for now insert a unique placeholder for
+	// each prompt which we can easily swap out once prompts are resolved.
+	//
+	// This means that something like:
+	// ###
+	// @prompt id
+	// GET https://someurl.com/users/{{ id }}
+	//
+	// Won't think 'id' is missing and fail because it's not defined yet.
+	if err := env.Define(name, "zap::prompt::local::"+name); err != nil {
+		r.errorf(statement, "prompt %s shadows local variable of the same name: %v", name, err)
+		return err
+	}
+
+	request.Prompts[name] = prompt
 
 	return nil
 }

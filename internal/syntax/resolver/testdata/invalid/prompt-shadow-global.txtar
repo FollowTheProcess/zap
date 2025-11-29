@@ -1,0 +1,16 @@
+# Declaring a prompt that shadows an existing variable is an error.
+
+-- src.http --
+@id = 123
+@prompt id The user ID
+-- diagnostics.json --
+[
+  {
+    "file": "prompt-shadow-global.txtar",
+    "msg": "prompt id shadows global variable of the same name: variable id already defined",
+    "highlight": {
+      "start": 10,
+      "end": 32
+    }
+  }
+]

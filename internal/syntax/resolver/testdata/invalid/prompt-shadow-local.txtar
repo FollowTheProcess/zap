@@ -1,0 +1,18 @@
+# Declaring a prompt that shadows a local variable is also an issue.
+
+-- src.http --
+###
+# @id = 123
+# @prompt id The user id
+GET https://somewhere.com/{{ id }}
+-- diagnostics.json --
+[
+  {
+    "file": "prompt-shadow-local.txtar",
+    "msg": "prompt id shadows local variable of the same name: variable id already defined",
+    "highlight": {
+      "start": 18,
+      "end": 40
+    }
+  }
+]
