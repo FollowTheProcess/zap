@@ -16,30 +16,16 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"go.followtheprocess.codes/zap/internal/syntax"
 )
 
-// TODO(@FollowTheProcess): When parsing, we build up the half-baked version of File and Request
-// and then when evaluating, we resolve into one of these. So the prompts and variables should be evaluated
-// during the resolve phase, not during parsing as they are currently, so a few rhings will need to change
-// to support this.
+// File represents a single .http file.
 //
-// Basically the pattern will be the parser parses a raw file into a syntax.File, then we resolve it
-// into a spec.File, and that is the canonical representation. We can transform a spec.File into a
-// postman collection, a JSON document, a YAML document, a collection of curl snippets etc. and vice
-// versa for importing those formats.
+// Interpolation has been performed during resolution so this is a concrete representation
+// ready to use.
 //
-// I think to do this properly I might need an AST, that way I can properly pick apart templating
-// and e.g. resolve references from one requests response being used in another request's variables.
-
-// TODO(@FollowTheProcess): Comprehensive tests for resolving files, can do that when I move the eval
-// of templates to the resolve stage
-
-// File represents a single .http file as parsed.
-//
-// Interpolation has been performed on the fly during parsing so this
-// file is concrete with variables replaced.
+// The only exception are global prompts which do not have values yet. During resolution,
+// any prompts have had their idents declared in Vars with the value of "zap::prompt::local::<ident>",
+// to be replaced when the user is prompted for the values.
 type File struct {
 	// Name of the file (or @name in global scope if given)
 	Name string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
@@ -49,8 +35,6 @@ type File struct {
 
 	// Global prompts, the user will be asked to provide values for each of these each time the
 	// file is parsed.
-	//
-	// The provided values will then be stored in Vars.
 	Prompts map[string]Prompt `json:"prompts,omitempty" toml:"prompts,omitempty" yaml:"prompts,omitempty"`
 
 	// The HTTP requests described in the file.
@@ -117,67 +101,4 @@ func (f File) ContainsRequest(name string) bool {
 	}
 
 	return false
-}
-
-// ResolveFile resolves a [syntax.File], returning a [File].
-//
-// Currently this is a straight copy but I want to have this resolve
-// the templating etc. see the TODO at the top of this file.
-func ResolveFile(in syntax.File) (File, error) {
-	requests, err := resolveRequests(in.Requests)
-	if err != nil {
-		return File{}, fmt.Errorf("could not resolve request: %w", err)
-	}
-
-	out := File{
-		Name:              in.Name,
-		Vars:              in.Vars,
-		Prompts:           resolvePrompts(in.Prompts),
-		Requests:          requests,
-		Timeout:           in.Timeout,
-		ConnectionTimeout: in.ConnectionTimeout,
-		NoRedirect:        in.NoRedirect,
-	}
-
-	return out, nil
-}
-
-// resolvePrompts resolves the syntax prompts into spec prompts.
-func resolvePrompts(in map[string]syntax.Prompt) map[string]Prompt {
-	prompts := make(map[string]Prompt, len(in))
-	for name, prompt := range in {
-		prompts[name] = Prompt{
-			Name:        prompt.Name,
-			Description: prompt.Description,
-			Value:       prompt.Value,
-		}
-	}
-
-	return prompts
-}
-
-// resolveRequests resolves the syntax requests into spec requests.
-func resolveRequests(in []syntax.Request) ([]Request, error) {
-	requests := make([]Request, 0, len(in))
-	for _, request := range in {
-		requests = append(requests, Request{
-			Vars:              request.Vars,
-			Headers:           request.Headers,
-			Prompts:           resolvePrompts(request.Prompts),
-			Name:              request.Name,
-			Comment:           request.Comment,
-			Method:            request.Method,
-			URL:               request.URL,
-			HTTPVersion:       request.HTTPVersion,
-			BodyFile:          request.BodyFile,
-			ResponseFile:      request.ResponseFile,
-			ResponseRef:       request.ResponseRef,
-			Body:              request.Body,
-			Timeout:           request.Timeout,
-			ConnectionTimeout: request.ConnectionTimeout,
-			NoRedirect:        request.NoRedirect,
-		})
-	}
-
-	return requests, nil
 }

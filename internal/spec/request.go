@@ -1,7 +1,6 @@
 package spec
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -11,18 +10,20 @@ import (
 )
 
 // Request is a single HTTP request from a .http file as a canonical, fully resolved representation.
+//
+// All variable interpolations have been performed during resolving, the only thing that may be remaining
+// is prompts do not yet have values. During resolution, any prompts have had their idents declared
+// in Vars with the value of "zap::prompt::local::<ident>", to be replaced when the user is prompted
+// for the values.
 type Request struct {
 	// Request scoped variables
 	Vars map[string]string `json:"vars,omitempty" toml:"vars,omitempty" yaml:"vars,omitempty"`
 
-	// Request headers, may have variable interpolation in the values but not the keys
+	// Request headers.
 	Headers http.Header `json:"headers,omitempty" toml:"headers,omitempty" yaml:"headers,omitempty"`
 
 	// Request scoped prompts, the user will be asked to provide values for each of these
 	// whenever this particular request is invoked.
-	//
-	// The provided values will then be stored in Vars for future use e.g. as interpolation
-	// in the request body.
 	Prompts map[string]Prompt `json:"prompts,omitempty" toml:"prompts,omitempty" yaml:"prompts,omitempty"`
 
 	// Optional name, if empty request should be named after it's index e.g. "#1"
@@ -34,7 +35,7 @@ type Request struct {
 	// The HTTP method
 	Method string `json:"method,omitempty" toml:"method,omitempty" yaml:"method,omitempty"`
 
-	// The complete URL, may have variable interpolation and/or not be a valid URL
+	// The complete URL,
 	URL string `json:"url,omitempty" toml:"url,omitempty" yaml:"url,omitempty"`
 
 	// Version of the HTTP protocol to use e.g. "1.2"
@@ -52,8 +53,8 @@ type Request struct {
 	// with which to compare the current response (relative to the .http file)
 	ResponseRef string `json:"responseRef,omitempty" toml:"responseRef,omitempty" yaml:"responseRef,omitempty"`
 
-	// Request body, if provided inline. Again, may have variable interpolation still to perform
-	Body Body `json:"body,omitempty" toml:"body,omitempty" yaml:"body,omitempty"`
+	// Request body, if provided inline, all interpolations are done.
+	Body string `json:"body,omitempty" toml:"body,omitempty" yaml:"body,omitempty"`
 
 	// Request scoped timeout, overrides global if set
 	Timeout time.Duration `json:"timeout,omitempty" toml:"timeout,omitempty" yaml:"timeout,omitempty"`
@@ -63,38 +64,6 @@ type Request struct {
 
 	// Disable following redirects for this request, overrides global if set
 	NoRedirect bool `json:"noRedirect,omitempty" toml:"noRedirect,omitempty" yaml:"noRedirect,omitempty"`
-}
-
-// TODO(@FollowTheProcess): We don't need spec.Body anymore
-//
-// It was originally created to better serialise []byte but resolveExpression returns a string now so
-// this is no longer needed. Replace this when the v2 parser/resolver becomes the default
-
-// Body is a HTTP request body.
-//
-// It is equivalent to a []byte but has a custom implementation of
-// [encoding.TextMarshaler] allowing a nicer format for serialisation.
-type Body []byte //nolint:recvcheck // Receiver must differ to match encoding.TextMarshaler
-
-// MarshalText implements [encoding.TextMarshaler] for [Body].
-func (b Body) MarshalText() ([]byte, error) {
-	return b, nil
-}
-
-// UnmarshalText implements [encoding.TextUnmarshaler] for [Body].
-func (b *Body) UnmarshalText(text []byte) error {
-	if b == nil {
-		return errors.New("Body.UnmarshalText called with a nil receiver")
-	}
-
-	*b = append((*b)[:0], text...)
-
-	return nil
-}
-
-// String implements [fmt.Stringer] for [Body].
-func (b Body) String() string {
-	return string(b)
 }
 
 // String implements [fmt.Stringer] for a [Request] and formats
@@ -144,7 +113,7 @@ func (r Request) String() string {
 	_ = r.Headers.Write(builder) //nolint:errcheck // Not much we can do if it can't write headers
 
 	// Separate the body section
-	if r.Body != nil || r.BodyFile != "" || r.ResponseFile != "" {
+	if r.Body != "" || r.BodyFile != "" || r.ResponseFile != "" {
 		builder.WriteString("\n")
 	}
 
@@ -152,8 +121,8 @@ func (r Request) String() string {
 		fmt.Fprintf(builder, "< %s\n", r.BodyFile)
 	}
 
-	if r.Body != nil {
-		fmt.Fprintf(builder, "%s\n", r.Body.String())
+	if r.Body != "" {
+		fmt.Fprintf(builder, "%s\n", r.Body)
 	}
 
 	if r.ResponseFile != "" {

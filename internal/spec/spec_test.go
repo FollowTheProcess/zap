@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"go.followtheprocess.codes/snapshot"
-	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/spec"
-	"go.followtheprocess.codes/zap/internal/syntax"
 )
 
 var (
@@ -193,7 +191,7 @@ func TestFormat(t *testing.T) {
 						Name:   "Another Request",
 						Method: http.MethodPost,
 						URL:    "https://api.com/v1/items/123",
-						Body:   []byte(`{"some": "json", "here": "yes"}`),
+						Body:   `{"some": "json", "here": "yes"}`,
 					},
 				},
 			},
@@ -264,73 +262,6 @@ func TestFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			snap := snapshot.New(t, snapshot.Update(*update), snapshot.Clean(*clean))
 			snap.Snap(tt.file.String())
-		})
-	}
-}
-
-func TestResolve(t *testing.T) {
-	tests := []struct {
-		name    string      // Name of the test case
-		in      syntax.File // syntax.File being resolved
-		want    spec.File   // Expected spec.File out
-		wantErr bool        // Whether we wanted an error
-	}{
-		{
-			name:    "empty",
-			in:      syntax.File{},
-			want:    spec.File{},
-			wantErr: false,
-		},
-		{
-			name: "basic",
-			in: syntax.File{
-				Name: "test.http",
-				Requests: []syntax.Request{
-					{
-						Headers: http.Header{
-							"Accept": []string{"application/json"},
-						},
-						Prompts: map[string]syntax.Prompt{
-							"value": {
-								Name:        "value",
-								Description: "Give me a value",
-							},
-						},
-						Name:   "blah",
-						Method: http.MethodGet,
-						URL:    "https://doesntexit.com",
-					},
-				},
-			},
-			want: spec.File{
-				Name: "test.http",
-				Requests: []spec.Request{
-					{
-						Headers: http.Header{
-							"Accept": []string{"application/json"},
-						},
-						Prompts: map[string]spec.Prompt{
-							"value": {
-								Name:        "value",
-								Description: "Give me a value",
-							},
-						},
-						Name:   "blah",
-						Method: http.MethodGet,
-						URL:    "https://doesntexit.com",
-					},
-				},
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := spec.ResolveFile(tt.in)
-			test.WantErr(t, err, tt.wantErr)
-
-			test.Diff(t, got.String(), tt.want.String())
 		})
 	}
 }

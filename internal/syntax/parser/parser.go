@@ -752,7 +752,7 @@ func (p *Parser) parseInterp() (ast.Interp, error) {
 		Type: ast.KindInterp,
 	}
 
-	// TODO(@FollowTheProcess): Just like the other parser, for now we'll assume only idents are allowed here
+	// TODO(@FollowTheProcess): For now we'll assume only idents are allowed here
 	if err := p.expect(token.Ident); err != nil {
 		return result, err
 	}

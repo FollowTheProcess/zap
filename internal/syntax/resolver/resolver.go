@@ -16,6 +16,20 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
+const (
+	// PromptPlaceholderGlobal is the placeholder prefix for a global prompt variable.
+	//
+	// It should be concatenated at runtime with the name of the prompt variable to form
+	// a unique key with which to look up the prompt value.
+	PromptPlaceholderGlobal = "zap::prompt::global::"
+
+	// PromptPlaceholderLocal is the placeholder prefix for a local prompt variable.
+	//
+	// It should be concatenated at runtime with the name of the prompt variable to form
+	// a unique key with which to look up the prompt value.
+	PromptPlaceholderLocal = "zap::prompt::local::"
+)
+
 // ErrResolve is a generic resolving error, details on the error are provided through
 // a [Diagnostic].
 var ErrResolve = errors.New("resolve error")
@@ -233,7 +247,7 @@ func (r *Resolver) resolveGlobalPromptStatement(
 	// GET https://someurl.com/users/{{ id }}
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
-	if err := env.define(name, "zap::prompt::global::"+name); err != nil {
+	if err := env.define(name, PromptPlaceholderGlobal+name); err != nil {
 		r.errorf(statement, "prompt %s shadows global variable of the same name: %v", name, err)
 		return err
 	}
@@ -524,7 +538,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 	// GET https://someurl.com/users/{{ id }}
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
-	if err := env.define(name, "zap::prompt::local::"+name); err != nil {
+	if err := env.define(name, PromptPlaceholderLocal+name); err != nil {
 		r.errorf(statement, "prompt %s shadows local variable of the same name: %v", name, err)
 		return err
 	}
@@ -564,8 +578,7 @@ func (r *Resolver) resolveBody(env *environment, request *spec.Request, expressi
 			return err
 		}
 
-		// TODO(@FollowTheProcess): Get rid of spec.Body
-		request.Body = spec.Body([]byte(value))
+		request.Body = value
 
 		return nil
 	case ast.BodyFile:
