@@ -49,6 +49,5 @@
 # Bats tests
 !*.bats
 
-
 # ...even if they are in subdirectories
 !*/
