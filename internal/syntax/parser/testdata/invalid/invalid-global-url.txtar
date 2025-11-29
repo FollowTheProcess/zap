@@ -1,8 +1,0 @@
--- src.http --
-@base = https://notaurl%^&*6666----=
-
-### Broke
-GET {{ base }}£$%^&*
--- want.txt --
-invalid-global-url.txtar:1:9-37: invalid URL: parse "https://notaurl%^&*6666----=": invalid URL escape "%^&"
-invalid-global-url.txtar:4:22: invalid URL: parse "https://notaurl%^&*6666----=£$%^&*": invalid URL escape "%^&"

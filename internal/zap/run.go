@@ -1,7 +1,6 @@
 package zap
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -20,6 +19,7 @@ import (
 	"go.followtheprocess.codes/log"
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 )
 
 // Styles.
@@ -130,7 +130,7 @@ func (z Zap) Run(
 
 	logger := z.logger.Prefixed("run")
 
-	ctx, cancel := context.WithTimeout(ctx, DefaultOverallTimeout)
+	ctx, cancel := context.WithTimeout(ctx, options.OverallTimeout)
 	defer cancel()
 
 	if len(options.Requests) == 0 {
@@ -153,8 +153,6 @@ func (z Zap) Run(
 		slog.String("file", options.File),
 		slog.Duration("took", time.Since(start)),
 	)
-
-	// TODO(@FollowTheProcess): The below steps should happen in the resolving
 
 	client := NewHTTPClient(httpFile)
 
@@ -239,7 +237,7 @@ func (z Zap) doRequest(
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, request.Method, request.URL, bytes.NewReader(request.Body))
+	req, err := http.NewRequestWithContext(ctx, request.Method, request.URL, strings.NewReader(request.Body))
 	if err != nil {
 		return Response{}, fmt.Errorf("HTTP request %q is invalid: %w", request.Name, err)
 	}
@@ -279,7 +277,7 @@ func (z Zap) doRequest(
 		StatusCode:    res.StatusCode,
 		Proto:         res.Proto,
 		Header:        res.Header,
-		Body:          spec.Body(body),
+		Body:          body,
 		ContentLength: len(body),
 		Duration:      duration,
 	}
@@ -318,7 +316,7 @@ func (z Zap) showResponse(file string, request spec.Request, response Response, 
 		fmt.Fprintln(z.stdout) // Line space
 	}
 
-	fmt.Fprintln(z.stdout, response.Body.String())
+	fmt.Fprintln(z.stdout, string(response.Body))
 }
 
 // evaluateGlobalPrompts asks the user to provide values for prompts defined in the top level
@@ -347,10 +345,10 @@ func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file spec.File) (spec.Fil
 		}
 	}
 
-	// Go through everywhere that could hold a zap::prompt::<id> placeholder and replace it
+	// Go through everywhere that could hold a zap::prompt::global::<id> placeholder and replace it
 	// this is just the global vars in this case
 	for id, prompt := range file.Prompts {
-		replacer := strings.NewReplacer("zap::prompt::"+id, prompt.Value)
+		replacer := strings.NewReplacer(resolver.PromptPlaceholderGlobal+id, prompt.Value)
 
 		// Global variables
 		for name, variable := range file.Vars {
@@ -358,7 +356,7 @@ func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file spec.File) (spec.Fil
 			logger.Debug(
 				"Replacing prompted global variable",
 				slog.String("name", name),
-				slog.String("from", "zap::prompt::"+id),
+				slog.String("from", variable),
 				slog.String("to", replaced),
 			)
 			file.Vars[name] = replaced
@@ -409,15 +407,18 @@ func (z Zap) evaluateRequestPrompts(
 
 		// Go through everywhere that could hold a zap::prompt::<id> placeholder and replace it
 		for id, prompt := range allPrompts {
-			replacer := strings.NewReplacer("zap::prompt::"+id, prompt.Value)
+			replacer := strings.NewReplacer(
+				resolver.PromptPlaceholderLocal+id, prompt.Value,
+				resolver.PromptPlaceholderGlobal+id, prompt.Value,
+			)
 
 			// Request variables
 			for name, variable := range request.Vars {
 				replaced := replacer.Replace(variable)
 				logger.Debug(
-					"Replacing prompted global variable",
+					"Replacing prompted local variable",
 					slog.String("name", name),
-					slog.String("from", "zap::prompt::"+id),
+					slog.String("from", variable),
 					slog.String("to", replaced),
 				)
 				request.Vars[name] = replaced

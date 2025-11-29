@@ -52,7 +52,7 @@ type Response struct {
 	Header        http.Header   // Response headers
 	Status        string        // E.g. "200 OK"
 	Proto         string        // e.g. "HTTP/1.2"
-	Body          spec.Body     // The read body
+	Body          []byte        // The read body
 	StatusCode    int           // HTTP status code
 	ContentLength int           // len(Body)
 	Duration      time.Duration // Duration of the request/response round trip

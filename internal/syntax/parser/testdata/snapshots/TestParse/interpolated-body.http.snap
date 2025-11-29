@@ -22,7 +22,7 @@ statements:
           end: 102
         type: Body
       right:
-        value: |
+        value: |-
           ",
             "else": "more"
           }

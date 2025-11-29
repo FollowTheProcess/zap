@@ -2,6 +2,7 @@ package zap
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 	"go.followtheprocess.codes/msg"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
+	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -92,9 +94,20 @@ func (z Zap) checkFile(path string, handler syntax.ErrorHandler) error {
 		return fmt.Errorf("could not initialise the parser: %w", err)
 	}
 
-	// We don't actually care about the result, just that it parses
-	_, err = p.Parse()
+	parsed, err := p.Parse()
 	if err != nil {
+		return err
+	}
+
+	res := resolver.New(path)
+
+	_, err = res.Resolve(parsed)
+	if err != nil {
+		// TODO(@FollowTheProcess): Do something pretty with the diagnostics
+		if jsonErr := json.NewEncoder(z.stderr).Encode(res.Diagnostics()); jsonErr != nil {
+			return fmt.Errorf("unable to display diagnostics: %w", jsonErr)
+		}
+
 		return err
 	}
 

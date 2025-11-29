@@ -5,6 +5,7 @@ package zap
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
+	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 )
 
 // Zap represents the zap program.
@@ -73,8 +75,15 @@ func (z Zap) parseFile(file string, handler syntax.ErrorHandler) (spec.File, err
 		return spec.File{}, err
 	}
 
-	resolved, err := spec.ResolveFile(parsed)
+	res := resolver.New(file)
+
+	resolved, err := res.Resolve(parsed)
 	if err != nil {
+		// TODO(@FollowTheProcess): Do something pretty with the diagnostics
+		if jsonErr := json.NewEncoder(z.stderr).Encode(res.Diagnostics()); jsonErr != nil {
+			return spec.File{}, fmt.Errorf("unable to display diagnostics: %w", jsonErr)
+		}
+
 		return spec.File{}, err
 	}
 
@@ -93,7 +102,8 @@ func (z Zap) parseFile(file string, handler syntax.ErrorHandler) (spec.File, err
 // display on the terminal to a user.
 func PrettyConsoleHandler(w io.Writer) syntax.ErrorHandler {
 	// TODO(@FollowTheProcess): This currently reads the whole file every time it's called
-	// maybe we should gather up parse errors and then handle them "prettily" once at the end?
+	// maybe we should gather up parse errors and then handle them "prettily" once at the end? Kind of like
+	// the resolver diagnostics
 	return func(pos syntax.Position, msg string) {
 		fmt.Fprintf(w, "%s: %s\n\n", pos, msg)
 

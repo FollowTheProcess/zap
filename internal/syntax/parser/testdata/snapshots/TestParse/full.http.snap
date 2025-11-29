@@ -49,7 +49,7 @@ statements:
         end: 175
       type: URL
     body:
-      value: |+
+      value: |-
         {
           "here": [
             "arbitrary",
@@ -64,7 +64,6 @@ statements:
           },
           "some": "stuff"
         }
-
       token:
         kind: Body
         start: 296
@@ -263,11 +262,10 @@ statements:
         end: 501
       type: URL
     body:
-      value: |+
+      value: |-
         {
           "something": "here"
         }
-
       token:
         kind: Body
         start: 503

@@ -35,9 +35,8 @@ requests:
     name: Everything
     method: PUT
     url: https://api.somewhere.com/items/1
-    httpVersion: HTTP/2
-    body: |
-      {"stuff": "here"}
+    httpVersion: "2"
+    body: '{"stuff": "here"}'
     timeout: 30s
     connectionTimeout: 10s
     noRedirect: true

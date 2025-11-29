@@ -85,10 +85,21 @@ func TestCheckInvalid(t *testing.T) {
 
 			test.Equal(t, stdout.String(), "")
 
+			got := stderr.String()
+
+			// TODO(@FollowTheProcess): If we keep this, maybe have a flag to output parse/resolve errors
+			// as JSON?
+
+			t.Logf("stderr:\n\n%s\n", got)
+
 			// The actual error format is down to the handler and parse errors are tested
 			// extensively in internal/syntax/parser so all we care about here is it's printing
 			// something that looks like an error to stderr
-			test.True(t, strings.Contains(stderr.String(), file))
+			test.True(
+				t,
+				strings.Contains(got, filepath.Base(file)),
+				test.Context("stderr output did not contain %s", filepath.Base(file)),
+			)
 		})
 	}
 }

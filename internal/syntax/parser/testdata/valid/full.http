@@ -1,0 +1,61 @@
+@base = https://example.com
+@timeout = 1m
+
+###
+// @name Everything
+# @timeout 30s
+# @connection-timeout 10s
+// @no-redirect
+# @token shhh
+PUT https://api.somewhere.com/items/1 HTTP/2
+Content-Type: application/json
+Accept: application/json
+X-Something-Else: yes
+Authorization: Bearer {{ token }}
+
+{
+  "here": [
+    "arbitrary",
+    "json"
+  ],
+  "is_allowed": {
+    "including": {
+      "nested": [
+        "lists"
+      ]
+    }
+  },
+  "some": "stuff"
+}
+
+### Body
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here"
+}
+
+###
+# @something = value
+# @interp = {{ something }}
+# @prompt id User ID
+# @timeout = 30s
+# @connection-timeout = 10s
+# @no-redirect
+GET https://example.com
+
+### Read the body from ./input.json
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+< input.json
+
+###
+GET {{ base }}/items/1
+
+###
+GET https://example.com
+Accept: */*
+Content-Type: application/json
+X-Api-Key: something
+Authorization: Bearer somesecret token

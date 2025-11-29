@@ -89,7 +89,7 @@ func TestCurlExporter(t *testing.T) {
 					{
 						Method: http.MethodPost,
 						URL:    "https://somewhere.org/api/items/1",
-						Body:   []byte(`{"stuff":"here"}`),
+						Body:   `{"stuff":"here"}`,
 					},
 				},
 			},
@@ -158,7 +158,7 @@ func TestCurlExporter(t *testing.T) {
 					{
 						Method: http.MethodPost,
 						URL:    "https://somewhere.org/api/items/1",
-						Body:   []byte(`{"stuff":"here"}`),
+						Body:   `{"stuff":"here"}`,
 					},
 					{
 						Method:   http.MethodPost,

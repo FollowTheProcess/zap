@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: body-response-reference.http
+name: body.http
 statements:
   - url:
       value: https://api.somewhere.com/items/1
@@ -11,30 +11,17 @@ statements:
         end: 47
       type: URL
     body:
-      value: |+
+      value: |-
         {
           "something": "here"
         }
-
       token:
         kind: Body
         start: 49
-        end: 76
+        end: 75
       type: Body
     responseRedirect: null
-    responseReference:
-      file:
-        value: response.json
-        token:
-          kind: Text
-          start: 79
-          end: 92
-        type: TextLiteral
-      token:
-        kind: ResponseRef
-        start: 76
-        end: 78
-      type: ResponseReference
+    responseReference: null
     httpVersion: null
     comment:
       text: Body

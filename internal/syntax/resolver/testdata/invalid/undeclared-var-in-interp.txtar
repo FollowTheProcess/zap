@@ -1,0 +1,23 @@
+-- src.http --
+### Get a Thing
+@prompt id The ID of a thing to get
+GET https://api.something.com/{{ missing }}/thing/{{ id }}
+-- diagnostics.json --
+[
+  {
+    "file": "undeclared-var-in-interp.txtar",
+    "msg": "could not resolve interp of interpolated expression: use of undeclared variable missing",
+    "highlight": {
+      "start": 56,
+      "end": 110
+    }
+  },
+  {
+    "file": "undeclared-var-in-interp.txtar",
+    "msg": "failed to resolve URL expression: use of undeclared variable missing",
+    "highlight": {
+      "start": 56,
+      "end": 110
+    }
+  }
+]
