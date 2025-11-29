@@ -1,0 +1,92 @@
+source: parser_test.go
+expression: parsed
+---
+name: response-reference-interpolated.http
+statements:
+  - url:
+      value: https://api.somewhere.com/items/1
+      token:
+        kind: URL
+        start: 46
+        end: 79
+      type: URL
+    body:
+      value: |-
+        {
+          "something": "here"
+        }
+      token:
+        kind: Body
+        start: 81
+        end: 108
+      type: Body
+    responseRedirect: null
+    responseReference:
+      file:
+        left: null
+        right: null
+        interp:
+          expr:
+            name: response_ref
+            token:
+              kind: Ident
+              start: 114
+              end: 126
+            type: Ident
+          open:
+            kind: OpenInterp
+            start: 111
+            end: 113
+          close:
+            kind: CloseInterp
+            start: 127
+            end: 129
+          type: Interp
+        type: InterpolatedExpression
+      token:
+        kind: ResponseRef
+        start: 108
+        end: 110
+      type: ResponseReference
+    httpVersion: null
+    comment:
+      text: Body
+      token:
+        kind: Comment
+        start: 4
+        end: 8
+      type: Comment
+    vars:
+      - value:
+          value: response.json
+          token:
+            kind: Text
+            start: 27
+            end: 40
+          type: TextLiteral
+        ident:
+          name: response_ref
+          token:
+            kind: Ident
+            start: 12
+            end: 24
+          type: Ident
+        at:
+          kind: At
+          start: 11
+          end: 12
+        type: VarStatement
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodPost
+        start: 41
+        end: 45
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File

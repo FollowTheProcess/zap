@@ -1,0 +1,5 @@
+### Body File
+# @body = input.json
+POST https://api.somewhere.com/items/1 HTTP/1.2
+
+< {{ body }}

@@ -1,0 +1,17 @@
+-- src.http --
+### Body File
+# @body = input.json
+POST https://api.somewhere.com/items/1 HTTP/1.2
+
+< {{ body }}
+-- want.yaml --
+name: body-file-interpolated.txtar
+requests:
+  - vars:
+      body: input.json
+    name: '#1'
+    comment: Body File
+    method: POST
+    url: https://api.somewhere.com/items/1
+    httpVersion: "1.2"
+    bodyFile: input.json
