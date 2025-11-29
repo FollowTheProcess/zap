@@ -44,7 +44,6 @@ jobs:
           go-version-file: go.mod
 
       - name: Setup Testcontainers
-        if: inputs.testcontainers == true
         uses: docker/setup-docker-action@v4
         with:
           rootless: true
