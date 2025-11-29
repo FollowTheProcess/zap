@@ -7,7 +7,6 @@ package resolver
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"net/http"
 	"net/url"
 	"time"
@@ -53,8 +52,10 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 
 	var errs []error
 
+	env := NewEnvironment()
+
 	for _, statement := range in.Statements {
-		err := r.resolveFileStatement(&file, statement)
+		err := r.resolveFileStatement(env, &file, statement)
 		if err != nil {
 			// If we can't resolve this one, try carrying on. This ensures we provide
 			// multiple diagnostics for the user rather than one at a time
@@ -99,20 +100,21 @@ func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
 //
 // The file passed in is mutated only in the happy path, if err != nil, the file is
 // left untouched.
-func (r *Resolver) resolveFileStatement(file *spec.File, statement ast.Statement) error {
+func (r *Resolver) resolveFileStatement(env *Environment, file *spec.File, statement ast.Statement) error {
 	switch stmt := statement.(type) {
 	case ast.VarStatement:
-		err := r.resolveGlobalVarStatement(file, stmt)
+		err := r.resolveGlobalVarStatement(env, file, stmt)
 		if err != nil {
 			return err
 		}
 	case ast.PromptStatement:
-		err := r.resolveGlobalPromptStatement(file, stmt)
+		err := r.resolveGlobalPromptStatement(env, file, stmt)
 		if err != nil {
 			return err
 		}
 	case ast.Request:
-		request, err := r.resolveRequestStatement(file, stmt)
+		// Requests get their own scoped environment
+		request, err := r.resolveRequestStatement(env.Child(), stmt)
 		if err != nil {
 			return err
 		}
@@ -136,7 +138,7 @@ func (r *Resolver) resolveFileStatement(file *spec.File, statement ast.Statement
 // passed to it.
 //
 // The file is only mutated in the happy path.
-func (r *Resolver) resolveGlobalVarStatement(file *spec.File, statement ast.VarStatement) error {
+func (r *Resolver) resolveGlobalVarStatement(env *Environment, file *spec.File, statement ast.VarStatement) error {
 	key := statement.Ident.Name
 
 	kind, isKeyword := token.Keyword(key)
@@ -146,7 +148,7 @@ func (r *Resolver) resolveGlobalVarStatement(file *spec.File, statement ast.VarS
 		return nil
 	}
 
-	value, err := r.resolveExpression(file, nil, statement.Value)
+	value, err := r.resolveExpression(env, statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
 		return err
@@ -156,6 +158,11 @@ func (r *Resolver) resolveGlobalVarStatement(file *spec.File, statement ast.VarS
 		// Normal var
 		if file.Vars == nil {
 			file.Vars = make(map[string]string)
+		}
+
+		if err := env.Define(key, value); err != nil {
+			r.error(statement, err.Error())
+			return err
 		}
 
 		file.Vars[key] = value
@@ -192,13 +199,25 @@ func (r *Resolver) resolveGlobalVarStatement(file *spec.File, statement ast.VarS
 
 // resolveGlobalPromptStatement resolves a top level file @prompt statement and
 // adds it to the file, returning the new file containing the prompt.
-func (r *Resolver) resolveGlobalPromptStatement(file *spec.File, statement ast.PromptStatement) error {
+func (r *Resolver) resolveGlobalPromptStatement(
+	env *Environment,
+	file *spec.File,
+	statement ast.PromptStatement,
+) error {
 	name := statement.Ident.Name
 
 	prompt := spec.Prompt{
 		Name:        name,
 		Description: statement.Description.Value,
 	}
+
+	// TODO(@FollowTheProcess): Think about how prompts use the environment
+	//
+	// We don't know the variable at parse time because the user hasn't been prompted for it yet.
+	//
+	// Maybe fill in a placeholder for now? e.g. "zap::prompt::(global|local)::<ident>". Then
+	// when the file/request is invoked we prompt for <ident> and then do a replace for
+	// that placeholder string?
 
 	if _, exists := file.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
@@ -217,7 +236,7 @@ func (r *Resolver) resolveGlobalPromptStatement(file *spec.File, statement ast.P
 }
 
 // resolveRequestStatement resolves an [ast.Request] into a [spec.Request].
-func (r *Resolver) resolveRequestStatement(file *spec.File, in ast.Request) (spec.Request, error) {
+func (r *Resolver) resolveRequestStatement(env *Environment, in ast.Request) (spec.Request, error) {
 	request := spec.Request{
 		Vars:    make(map[string]string),
 		Headers: make(http.Header),
@@ -230,7 +249,7 @@ func (r *Resolver) resolveRequestStatement(file *spec.File, in ast.Request) (spe
 	var errs []error
 
 	for _, varStatement := range in.Vars {
-		err := r.resolveRequestVarStatement(file, &request, varStatement)
+		err := r.resolveRequestVarStatement(env, &request, varStatement)
 		if err != nil {
 			// So we can report as many diagnostics in one pass as possible
 			errs = append(errs, err)
@@ -239,7 +258,7 @@ func (r *Resolver) resolveRequestStatement(file *spec.File, in ast.Request) (spe
 	}
 
 	for _, promptStatement := range in.Prompts {
-		err := r.resolveRequestPromptStatement(&request, promptStatement)
+		err := r.resolveRequestPromptStatement(env, &request, promptStatement)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -251,7 +270,7 @@ func (r *Resolver) resolveRequestStatement(file *spec.File, in ast.Request) (spe
 		return spec.Request{}, err
 	}
 
-	rawURL, err := r.resolveExpression(file, &request, in.URL)
+	rawURL, err := r.resolveExpression(env, in.URL)
 	if err != nil {
 		r.errorf(in.URL, "failed to resolve URL expression: %v", err)
 		return spec.Request{}, err
@@ -282,13 +301,8 @@ func (r *Resolver) resolveRequestStatement(file *spec.File, in ast.Request) (spe
 
 // resolveExpression resolves an [ast.Expression].
 //
-// The [spec.File] and [spec.Request] are passed in as to resolve interpolation expressions we need
-// access to the global and local scopes for variables, prompts etc.
-func (r *Resolver) resolveExpression(
-	file *spec.File,
-	request *spec.Request,
-	expression ast.Expression,
-) (string, error) {
+// The environment is passed in to provide access to local and global scopes.
+func (r *Resolver) resolveExpression(env *Environment, expression ast.Expression) (string, error) {
 	if expression == nil {
 		// Nil expressions are okay, e.g. in the this interp:
 		// Authorization: Bearer {{ token }}
@@ -304,11 +318,11 @@ func (r *Resolver) resolveExpression(
 	case ast.URL:
 		return expr.Value, nil
 	case ast.Ident:
-		return r.resolveIdent(file, request, expr)
+		return r.resolveIdent(env, expr)
 	case ast.InterpolatedExpression:
-		return r.resolveInterpolatedExpression(file, request, expr)
+		return r.resolveInterpolatedExpression(env, expr)
 	case ast.Interp:
-		return r.resolveExpression(file, request, expr.Expr)
+		return r.resolveExpression(env, expr.Expr)
 	default:
 		return "", fmt.Errorf("unhandled ast expression: %T", expr)
 	}
@@ -346,7 +360,7 @@ func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
 //
 // The request is only mutated in the happy path.
 func (r *Resolver) resolveRequestVarStatement(
-	file *spec.File,
+	env *Environment,
 	request *spec.Request,
 	statement ast.VarStatement,
 ) error {
@@ -359,7 +373,7 @@ func (r *Resolver) resolveRequestVarStatement(
 		return nil
 	}
 
-	value, err := r.resolveExpression(file, request, statement.Value)
+	value, err := r.resolveExpression(env, statement.Value)
 	if err != nil {
 		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
 		return err
@@ -369,6 +383,11 @@ func (r *Resolver) resolveRequestVarStatement(
 		// Normal var
 		if request.Vars == nil {
 			request.Vars = make(map[string]string)
+		}
+
+		if err := env.Define(key, value); err != nil {
+			r.error(statement, err.Error())
+			return err
 		}
 
 		request.Vars[key] = value
@@ -405,13 +424,19 @@ func (r *Resolver) resolveRequestVarStatement(
 
 // resolveRequestPromptStatement resolves a request level @prompt statement and
 // adds it to the request, returning the new request containing the prompt.
-func (r *Resolver) resolveRequestPromptStatement(request *spec.Request, statement ast.PromptStatement) error {
+func (r *Resolver) resolveRequestPromptStatement(
+	env *Environment,
+	request *spec.Request,
+	statement ast.PromptStatement,
+) error {
 	name := statement.Ident.Name
 
 	prompt := spec.Prompt{
 		Name:        name,
 		Description: statement.Description.Value,
 	}
+
+	// TODO(@FollowTheProcess): Same comment as global, how do we use environments with prompts
 
 	if _, exists := request.Prompts[name]; exists {
 		r.errorf(statement, "prompt %s already declared", name)
@@ -431,22 +456,18 @@ func (r *Resolver) resolveRequestPromptStatement(request *spec.Request, statemen
 
 // resolveInterpolatedExpression resolves an [ast.InterpolatedExpression] node into
 // it's concrete string.
-func (r *Resolver) resolveInterpolatedExpression(
-	file *spec.File,
-	request *spec.Request,
-	expr ast.InterpolatedExpression,
-) (string, error) {
-	leftResolved, err := r.resolveExpression(file, request, expr.Left)
+func (r *Resolver) resolveInterpolatedExpression(env *Environment, expr ast.InterpolatedExpression) (string, error) {
+	leftResolved, err := r.resolveExpression(env, expr.Left)
 	if err != nil {
 		return "", err
 	}
 
-	interpResolved, err := r.resolveExpression(file, request, expr.Interp)
+	interpResolved, err := r.resolveExpression(env, expr.Interp)
 	if err != nil {
 		return "", err
 	}
 
-	rightResolved, err := r.resolveExpression(file, request, expr.Right)
+	rightResolved, err := r.resolveExpression(env, expr.Right)
 	if err != nil {
 		return "", err
 	}
@@ -454,47 +475,12 @@ func (r *Resolver) resolveInterpolatedExpression(
 	return leftResolved + interpResolved + rightResolved, nil
 }
 
-// resolveIdent resolves an [ast.Ident] into the concrete value it refers to.
-//
-// The [spec.File] and [spec.Request] are passed in as we need access to the global
-// and local scopes.
-func (r *Resolver) resolveIdent(file *spec.File, request *spec.Request, ident ast.Ident) (string, error) {
-	if file == nil {
-		return "", errors.New("resolveIdent: file was nil")
+// resolveIdent resolves an [ast.Ident] into the concrete value it refers to given
+// the environment.
+func (r *Resolver) resolveIdent(env *Environment, ident ast.Ident) (string, error) {
+	if env == nil {
+		return "", errors.New("resolveIdent: env was nil")
 	}
 
-	// TODO(@FollowTheProcess): This is inefficient
-	//
-	// Making a new map every time we resolve an ident isn't ideal. We should create an Environment object that can
-	// be enclosed by another (via pointer to another Environment)
-	// initialise a global one for the file, populate it with globals as we resolve them.
-	//
-	// Then when we resolve requests, we pass a copy of that global environment in, and add to it when
-	// we resolve request variables.
-	//
-	// Two methods: Define and Get. Define adds the variable to the inner most scope, Get walks up
-	// the tree of environments.
-
-	requestVarsLen := 0
-	if request != nil {
-		requestVarsLen = len(request.Vars)
-	}
-
-	// Create a unified variables map where local (request) variables override globals (file)
-	vars := make(map[string]string, len(file.Vars)+requestVarsLen)
-
-	maps.Copy(vars, file.Vars) // Inserts the globals as a baseline
-
-	if request != nil {
-		maps.Copy(vars, request.Vars) // Adds locals, overwriting globals of the same name
-	}
-
-	value, ok := vars[ident.Name]
-	if !ok {
-		// TODO(@FollowTheProcess): Can we combine the ideas of r.errorf and returning an error?
-		r.errorf(ident, "use of undeclared variable %s", ident.Name)
-		return "", fmt.Errorf("use of undeclared variable %s", ident.Name)
-	}
-
-	return value, nil
+	return env.Get(ident.Name)
 }
