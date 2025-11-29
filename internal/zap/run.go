@@ -186,6 +186,11 @@ func (z Zap) Run(
 		return fmt.Errorf("could not evaluate request prompts: %w", err)
 	}
 
+	// TODO(@FollowTheProcess): Respect --output, if JSON or YAML, gather up all responses
+	// and serialise as a list
+	//
+	// This will be essential when running integration tests against HTTP bin
+
 	for _, request := range toExecute {
 		logger.Debug(
 			"Executing request",

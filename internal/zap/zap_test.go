@@ -4,14 +4,20 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/rogpeppe/go-internal/testscript"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/zap"
 )
 
@@ -216,4 +222,86 @@ func export(options zap.ExportOptions) func() {
 			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
 		}
 	}
+}
+
+func TestWithHTTPBin(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is longer test, skipping as -short was passed")
+	}
+
+	container, cleanup := createHTTPBinContainer(t)
+	defer cleanup()
+
+	// Make a request to the /get endpoint
+	resp, err := http.Get(container.URI + "/get") //nolint:noctx // This will soon be replaced
+	if resp == nil {
+		t.Fatal("nil response")
+	}
+
+	if err != nil {
+		t.Fatalf("failed to hit /get: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	test.Ok(t, err)
+
+	t.Logf("HTTPBin response: %s", body)
+}
+
+// HTTPBinContainer is an instance of HTTPBin.
+type HTTPBinContainer struct {
+	testcontainers.Container
+
+	URI string
+}
+
+// createHTTPBinContainer creates and returns a [testcontainer] running
+// "kennethreitz/httpbin".
+//
+// Usage is:
+//
+//	container, cleanup := createHTTPBinContainer(t)
+//	defer cleanup()
+func createHTTPBinContainer(t testing.TB) (*HTTPBinContainer, func()) {
+	container, err := testcontainers.Run(
+		t.Context(),
+		"kennethreitz/httpbin",
+		testcontainers.WithExposedPorts("80/tcp"),
+		testcontainers.WithWaitStrategy(
+			wait.ForHTTP("/get").WithStartupTimeout(30*time.Second),
+		),
+	)
+	if err != nil {
+		t.Fatalf("failed to start container: %v\n", err)
+	}
+
+	// Retrieve the mapped port
+	host, err := container.Host(t.Context())
+	if err != nil {
+		t.Fatalf("failed to get host: %v", err)
+	}
+
+	port, err := container.MappedPort(t.Context(), "80")
+	if err != nil {
+		t.Fatalf("failed to get mapped port: %v", err)
+	}
+
+	// Build the base URL
+	hostPort := net.JoinHostPort(host, port.Port())
+	baseURL := fmt.Sprintf("http://%s", hostPort)
+
+	result := &HTTPBinContainer{
+		Container: container,
+		URI:       baseURL,
+	}
+
+	cleanup := func() {
+		if err = container.Terminate(t.Context()); err != nil {
+			t.Fatalf("testcontainer failed to terminate: %v\n", err)
+		}
+	}
+
+	return result, cleanup
 }
