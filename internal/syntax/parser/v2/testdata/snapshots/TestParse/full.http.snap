@@ -49,6 +49,22 @@ statements:
         end: 175
       type: URL
     body:
+      value: |+
+        {
+          "here": [
+            "arbitrary",
+            "json"
+          ],
+          "is_allowed": {
+            "including": {
+              "nested": [
+                "lists"
+              ]
+            }
+          },
+          "some": "stuff"
+        }
+
       token:
         kind: Body
         start: 296
@@ -247,6 +263,11 @@ statements:
         end: 501
       type: URL
     body:
+      value: |+
+        {
+          "something": "here"
+        }
+
       token:
         kind: Body
         start: 503

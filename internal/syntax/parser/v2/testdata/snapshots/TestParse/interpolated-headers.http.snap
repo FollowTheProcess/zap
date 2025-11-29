@@ -30,6 +30,10 @@ statements:
         end: 43
       type: URL
     body:
+      value: |
+        {
+          "body": "here"
+        }
       token:
         kind: Body
         start: 143

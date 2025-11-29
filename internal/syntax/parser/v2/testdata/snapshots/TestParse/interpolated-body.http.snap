@@ -12,12 +12,20 @@ statements:
       type: URL
     body:
       left:
+        value: |-
+          {
+            "something": "here",
+            "id": "
         token:
           kind: Body
           start: 68
           end: 102
         type: Body
       right:
+        value: |
+          ",
+            "else": "more"
+          }
         token:
           kind: Body
           start: 110
