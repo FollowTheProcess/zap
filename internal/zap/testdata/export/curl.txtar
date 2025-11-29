@@ -24,7 +24,7 @@ curl \
     --request PUT \
     --connect-timeout 10 \
     --max-time 30 \
-    --data '{"stuff": "here"}' \
+    --data '{"stuff":"here"}' \
     --header 'Accept: application/json' \
     --header 'Authorization: Bearer shhh' \
     --header 'Content-Type: application/json' \

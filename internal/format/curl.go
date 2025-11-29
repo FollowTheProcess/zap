@@ -18,11 +18,23 @@ import (
 //go:embed templates/curl.txt.tmpl
 var curlTempl string
 
+// minifier is a [strings.Replacer] that removes all whitespace from a string.
+//
+//nolint:gochecknoglobals // Also has to be here
+var minifier = strings.NewReplacer(
+	"\t", "",
+	"\n", "",
+	"\v", "",
+	"\f", "",
+	"\r", "",
+	" ", "",
+)
+
 // curlFunctions are custom template functions available in the curlTemplate.
 //
 //nolint:gochecknoglobals // This has to be here
 var curlFunctions = template.FuncMap{
-	"trim": strings.TrimSpace,
+	"minify": minifier.Replace,
 }
 
 // curlTemplate is the parsed curl command line text/template.

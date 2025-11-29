@@ -11,7 +11,7 @@ curl \
     --max-time {{ .Timeout.Seconds }} \
     {{- end }}
     {{- if .Body }}
-    --data '{{ printf "%s" .Body | trim }}' \
+    --data '{{ printf "%s" .Body | minify }}' \
     {{- end }}
     {{- if .BodyFile }}
     --data @{{ .BodyFile }} \
