@@ -2,7 +2,5 @@
 
 -- src.http --
 @name = test
--- want.json --
-{
-  "name": "test"
-}
+-- want.yaml --
+name: test

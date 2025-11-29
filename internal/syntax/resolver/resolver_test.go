@@ -1,6 +1,7 @@
 package resolver_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/parser/v2"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 	"go.uber.org/goleak"
+	"go.yaml.in/yaml/v4"
 )
 
 var update = flag.Bool("update", false, "Update testdata")
@@ -40,8 +42,8 @@ func TestValid(t *testing.T) {
 			src, ok := archive.Read("src.http")
 			test.True(t, ok, test.Context("%s missing src.http", file))
 
-			want, ok := archive.Read("want.json")
-			test.True(t, ok, test.Context("%s missing want.json", file))
+			want, ok := archive.Read("want.yaml")
+			test.True(t, ok, test.Context("%s missing want.yaml", file))
 
 			p, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
 			test.Ok(t, err)
@@ -60,15 +62,17 @@ func TestValid(t *testing.T) {
 
 			test.Equal(t, len(res.Diagnostics()), 0)
 
-			resolvedJSON, err := json.MarshalIndent(resolved, "", "  ")
-			test.Ok(t, err)
+			buf := &bytes.Buffer{}
 
-			resolvedJSON = append(resolvedJSON, '\n') // MarshalIndent doesn't do a final newline
+			encoder := yaml.NewEncoder(buf)
+			encoder.SetIndent(2)
 
-			got := string(resolvedJSON)
+			test.Ok(t, encoder.Encode(resolved))
+
+			got := buf.String()
 
 			if *update {
-				err := archive.Write("want.json", got)
+				err := archive.Write("want.yaml", got)
 				test.Ok(t, err)
 
 				err = txtar.DumpFile(file, archive)

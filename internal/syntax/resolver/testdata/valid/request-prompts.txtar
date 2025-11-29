@@ -5,23 +5,15 @@
 # @prompt id User ID
 # @prompt no-description
 GET https://example.com
--- want.json --
-{
-  "name": "request-prompts.txtar",
-  "requests": [
-    {
-      "prompts": {
-        "id": {
-          "name": "id",
-          "description": "User ID"
-        },
-        "no-description": {
-          "name": "no-description"
-        }
-      },
-      "name": "#1",
-      "method": "GET",
-      "url": "https://example.com"
-    }
-  ]
-}
+-- want.yaml --
+name: request-prompts.txtar
+requests:
+  - prompts:
+      id:
+        name: id
+        description: User ID
+      no-description:
+        name: no-description
+    name: '#1'
+    method: GET
+    url: https://example.com

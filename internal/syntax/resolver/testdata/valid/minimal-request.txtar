@@ -3,14 +3,9 @@
 -- src.http --
 ###
 GET https://example.com
--- want.json --
-{
-  "name": "minimal-request.txtar",
-  "requests": [
-    {
-      "name": "#1",
-      "method": "GET",
-      "url": "https://example.com"
-    }
-  ]
-}
+-- want.yaml --
+name: minimal-request.txtar
+requests:
+  - name: '#1'
+    method: GET
+    url: https://example.com

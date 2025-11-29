@@ -2,10 +2,7 @@
 
 -- src.http --
 @something = text
--- want.json --
-{
-  "name": "var-text-literal.txtar",
-  "vars": {
-    "something": "text"
-  }
-}
+-- want.yaml --
+name: var-text-literal.txtar
+vars:
+  something: text
