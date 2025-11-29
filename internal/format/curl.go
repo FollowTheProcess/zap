@@ -10,6 +10,11 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 )
 
+// TODO(@FollowTheProcess): It dumps the body as raw text but doesn't correctly escape it to be valid
+//
+// Multi-line JSON needs to be minified. Probably what we should do is if it's up to a certain limit
+// size, minify it and pass it inline. Otherwise save it to a file somewhere and pass it in as data?
+
 //go:embed templates/curl.txt.tmpl
 var curlTempl string
 
