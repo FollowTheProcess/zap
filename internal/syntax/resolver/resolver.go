@@ -52,7 +52,7 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 
 	var errs []error
 
-	env := NewEnvironment()
+	env := newEnvironment()
 
 	for _, statement := range in.Statements {
 		err := r.resolveFileStatement(env, &file, statement)
@@ -100,7 +100,7 @@ func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
 //
 // The file passed in is mutated only in the happy path, if err != nil, the file is
 // left untouched.
-func (r *Resolver) resolveFileStatement(env *Environment, file *spec.File, statement ast.Statement) error {
+func (r *Resolver) resolveFileStatement(env *environment, file *spec.File, statement ast.Statement) error {
 	switch stmt := statement.(type) {
 	case ast.VarStatement:
 		err := r.resolveGlobalVarStatement(env, file, stmt)
@@ -114,7 +114,7 @@ func (r *Resolver) resolveFileStatement(env *Environment, file *spec.File, state
 		}
 	case ast.Request:
 		// Requests get their own scoped environment
-		request, err := r.resolveRequestStatement(env.Child(), stmt)
+		request, err := r.resolveRequestStatement(env.child(), stmt)
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func (r *Resolver) resolveFileStatement(env *Environment, file *spec.File, state
 // passed to it.
 //
 // The file is only mutated in the happy path.
-func (r *Resolver) resolveGlobalVarStatement(env *Environment, file *spec.File, statement ast.VarStatement) error {
+func (r *Resolver) resolveGlobalVarStatement(env *environment, file *spec.File, statement ast.VarStatement) error {
 	key := statement.Ident.Name
 
 	kind, isKeyword := token.Keyword(key)
@@ -160,7 +160,7 @@ func (r *Resolver) resolveGlobalVarStatement(env *Environment, file *spec.File, 
 			file.Vars = make(map[string]string)
 		}
 
-		if err := env.Define(key, value); err != nil {
+		if err := env.define(key, value); err != nil {
 			r.error(statement, err.Error())
 			return err
 		}
@@ -200,7 +200,7 @@ func (r *Resolver) resolveGlobalVarStatement(env *Environment, file *spec.File, 
 // resolveGlobalPromptStatement resolves a top level file @prompt statement and
 // adds it to the file, returning the new file containing the prompt.
 func (r *Resolver) resolveGlobalPromptStatement(
-	env *Environment,
+	env *environment,
 	file *spec.File,
 	statement ast.PromptStatement,
 ) error {
@@ -233,7 +233,7 @@ func (r *Resolver) resolveGlobalPromptStatement(
 	// GET https://someurl.com/users/{{ id }}
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
-	if err := env.Define(name, "zap::prompt::global::"+name); err != nil {
+	if err := env.define(name, "zap::prompt::global::"+name); err != nil {
 		r.errorf(statement, "prompt %s shadows global variable of the same name: %v", name, err)
 		return err
 	}
@@ -244,7 +244,7 @@ func (r *Resolver) resolveGlobalPromptStatement(
 }
 
 // resolveRequestStatement resolves an [ast.Request] into a [spec.Request].
-func (r *Resolver) resolveRequestStatement(env *Environment, in ast.Request) (spec.Request, error) {
+func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (spec.Request, error) {
 	request := spec.Request{
 		Vars:    make(map[string]string),
 		Headers: make(http.Header),
@@ -310,7 +310,7 @@ func (r *Resolver) resolveRequestStatement(env *Environment, in ast.Request) (sp
 // resolveExpression resolves an [ast.Expression].
 //
 // The environment is passed in to provide access to local and global scopes.
-func (r *Resolver) resolveExpression(env *Environment, expression ast.Expression) (string, error) {
+func (r *Resolver) resolveExpression(env *environment, expression ast.Expression) (string, error) {
 	if expression == nil {
 		// Nil expressions are okay, e.g. in the this interp:
 		// Authorization: Bearer {{ token }}
@@ -368,7 +368,7 @@ func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
 //
 // The request is only mutated in the happy path.
 func (r *Resolver) resolveRequestVarStatement(
-	env *Environment,
+	env *environment,
 	request *spec.Request,
 	statement ast.VarStatement,
 ) error {
@@ -393,7 +393,7 @@ func (r *Resolver) resolveRequestVarStatement(
 			request.Vars = make(map[string]string)
 		}
 
-		if err := env.Define(key, value); err != nil {
+		if err := env.define(key, value); err != nil {
 			r.error(statement, err.Error())
 			return err
 		}
@@ -433,7 +433,7 @@ func (r *Resolver) resolveRequestVarStatement(
 // resolveRequestPromptStatement resolves a request level @prompt statement and
 // adds it to the request, returning the new request containing the prompt.
 func (r *Resolver) resolveRequestPromptStatement(
-	env *Environment,
+	env *environment,
 	request *spec.Request,
 	statement ast.PromptStatement,
 ) error {
@@ -465,7 +465,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 	// GET https://someurl.com/users/{{ id }}
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
-	if err := env.Define(name, "zap::prompt::local::"+name); err != nil {
+	if err := env.define(name, "zap::prompt::local::"+name); err != nil {
 		r.errorf(statement, "prompt %s shadows local variable of the same name: %v", name, err)
 		return err
 	}
@@ -477,7 +477,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 
 // resolveInterpolatedExpression resolves an [ast.InterpolatedExpression] node into
 // it's concrete string.
-func (r *Resolver) resolveInterpolatedExpression(env *Environment, expr ast.InterpolatedExpression) (string, error) {
+func (r *Resolver) resolveInterpolatedExpression(env *environment, expr ast.InterpolatedExpression) (string, error) {
 	leftResolved, err := r.resolveExpression(env, expr.Left)
 	if err != nil {
 		return "", err
@@ -498,10 +498,10 @@ func (r *Resolver) resolveInterpolatedExpression(env *Environment, expr ast.Inte
 
 // resolveIdent resolves an [ast.Ident] into the concrete value it refers to given
 // the environment.
-func (r *Resolver) resolveIdent(env *Environment, ident ast.Ident) (string, error) {
+func (r *Resolver) resolveIdent(env *environment, ident ast.Ident) (string, error) {
 	if env == nil {
 		return "", errors.New("resolveIdent: env was nil")
 	}
 
-	return env.Get(ident.Name)
+	return env.get(ident.Name)
 }

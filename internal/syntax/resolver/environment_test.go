@@ -1,70 +1,69 @@
-package resolver_test
+package resolver //nolint:testpackage // environment is intentionally internal.
 
 import (
 	"testing"
 
 	"go.followtheprocess.codes/test"
-	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 )
 
 func TestEnvironment(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
-		env := resolver.NewEnvironment()
+		env := newEnvironment()
 
-		got, err := env.Get("anything")
+		got, err := env.get("anything")
 		test.Err(t, err)
 		test.Equal(t, got, "")
 	})
 
 	t.Run("full", func(t *testing.T) {
-		env := resolver.NewEnvironment()
+		env := newEnvironment()
 
-		test.Ok(t, env.Define("something", "here"))
-		test.Ok(t, env.Define("other", "too"))
+		test.Ok(t, env.define("something", "here"))
+		test.Ok(t, env.define("other", "too"))
 
 		// Try and define "something" again in the same scope
-		test.Err(t, env.Define("something", "else"))
+		test.Err(t, env.define("something", "else"))
 
-		something, err := env.Get("something")
+		something, err := env.get("something")
 		test.Ok(t, err)
 		test.Equal(t, something, "here")
 
-		other, err := env.Get("other")
+		other, err := env.get("other")
 		test.Ok(t, err)
 		test.Equal(t, other, "too")
 	})
 
 	t.Run("parent", func(t *testing.T) {
-		env := resolver.NewEnvironment()
+		env := newEnvironment()
 
 		// Define some globals
-		test.Ok(t, env.Define("something", "here"))
-		test.Ok(t, env.Define("other", "too"))
+		test.Ok(t, env.define("something", "here"))
+		test.Ok(t, env.define("other", "too"))
 
 		// Create a child scope
-		child := env.Child()
+		child := env.child()
 
 		// Define some locals
-		test.Ok(t, child.Define("more", "here"))
-		test.Ok(t, child.Define("another", "yes"))
+		test.Ok(t, child.define("more", "here"))
+		test.Ok(t, child.define("another", "yes"))
 
 		// Override a global with a local
-		test.Ok(t, child.Define("something", "child something value"))
+		test.Ok(t, child.define("something", "child something value"))
 
 		// Use the child to access
-		other, err := child.Get("other")
+		other, err := child.get("other")
 		test.Ok(t, err)
 		test.Equal(t, other, "too") // Comes from globals
 
-		more, err := child.Get("more")
+		more, err := child.get("more")
 		test.Ok(t, err)
 		test.Equal(t, more, "here") // Comes from locals
 
-		something, err := child.Get("something")
+		something, err := child.get("something")
 		test.Ok(t, err)
 		test.Equal(t, something, "child something value") // Prefers local scope
 
-		something, err = env.Get("something")
+		something, err = env.get("something")
 		test.Ok(t, err)
 		test.Equal(t, something, "here") // Using the global env again
 	})
