@@ -1,18 +1,21 @@
 -- src.http --
 ### Body
+# @syntaxVar = syntax
 POST https://api.somewhere.com/items/1
 Content-Type: application/json
 
 {
   "body": "here"
   "yes": {
-    "full": ["json", "syntax"]
+    "full": ["json", "{{ syntaxVar }}"]
   }
 }
 -- want.yaml --
-name: body.txtar
+name: body-interpolated.txtar
 requests:
-  - headers:
+  - vars:
+      syntaxVar: syntax
+    headers:
       Content-Type:
         - application/json
     name: '#1'

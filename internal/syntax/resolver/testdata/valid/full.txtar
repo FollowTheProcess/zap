@@ -1,0 +1,63 @@
+-- src.http --
+###
+// @name Everything
+# @timeout 30s
+# @connection-timeout 10s
+// @no-redirect
+# @token shhh
+PUT https://api.somewhere.com/items/1 HTTP/2
+Content-Type: application/json
+Accept: application/json
+X-Something-Else: yes
+Authorization: Bearer {{ token }}
+
+{
+  "here": [
+    "arbitrary",
+    "json"
+  ],
+  "is_allowed": {
+    "including": {
+      "nested": [
+        "lists"
+      ]
+    }
+  },
+  "some": "stuff"
+}
+-- want.yaml --
+name: full.txtar
+requests:
+  - vars:
+      token: shhh
+    headers:
+      Accept:
+        - application/json
+      Authorization:
+        - Bearer shhh
+      Content-Type:
+        - application/json
+      X-Something-Else:
+        - "yes"
+    name: Everything
+    method: PUT
+    url: https://api.somewhere.com/items/1
+    httpVersion: "2"
+    body: |
+      {
+        "here": [
+          "arbitrary",
+          "json"
+        ],
+        "is_allowed": {
+          "including": {
+            "nested": [
+              "lists"
+            ]
+          }
+        },
+        "some": "stuff"
+      }
+    timeout: 30s
+    connectionTimeout: 10s
+    noRedirect: true
