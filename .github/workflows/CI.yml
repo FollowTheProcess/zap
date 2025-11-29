@@ -18,6 +18,8 @@ jobs:
     permissions:
       contents: read
     uses: FollowTheProcess/ci/.github/workflows/Go.yml@v3
+    with:
+      test-flags: -short
 
   bats:
     name: Bats Tests
