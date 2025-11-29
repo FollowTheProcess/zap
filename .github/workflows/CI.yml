@@ -17,9 +17,48 @@ jobs:
     name: CI
     permissions:
       contents: read
-    uses: FollowTheProcess/ci/.github/workflows/Go.yml@feat/allow-testcontainers
+    uses: FollowTheProcess/ci/.github/workflows/Go.yml@v3
     with:
-      testcontainers: true
+      # Skip integration tests and code coverage (as it should include those)
+      # these are run below in their own step
+      test-flags: -short
+      codecov: false
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Testcontainers
+        if: inputs.testcontainers == true
+        uses: docker/setup-docker-action@v4
+        with:
+          rootless: true
+
+      - name: Run Tests
+        env:
+          # -race needs CGO (https://go.dev/doc/articles/race_detector#Requirements)
+          CGO_ENABLED: 1
+        run: go test -race -cover -covermode=atomic -coverprofile=./coverage.out ./...
+
+      - name: Coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.out
 
   bats:
     name: Bats Tests
