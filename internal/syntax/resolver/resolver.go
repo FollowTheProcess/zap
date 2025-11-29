@@ -65,7 +65,7 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 	}
 
 	// We've had diagnostics reported during resolving so just bubble up a top level error
-	if r.hadErrors {
+	if r.hadErrors || len(errs) != 0 {
 		return spec.File{}, fmt.Errorf("%w: %w", ErrResolve, errors.Join(errs...))
 	}
 
@@ -251,11 +251,21 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 		Prompts: make(map[string]spec.Prompt),
 	}
 
-	// Resolve vars and prompts first so we have access to be able to do
-	// interpolations etc.
-
+	// Gather up all the errors in resolving a single request, this is used when we are looping
+	// through things, it's nicer to bubble up as many errors as we can at once rather than
+	// forcing the caller to play whack-a-mole with each one.
 	var errs []error
 
+	if in.Comment != nil {
+		request.Comment = in.Comment.Text
+	}
+
+	if in.HTTPVersion != nil {
+		request.HTTPVersion = in.HTTPVersion.Version
+	}
+
+	// Resolve vars and prompts first so we have access to be able to do
+	// interpolations etc.
 	for _, varStatement := range in.Vars {
 		err := r.resolveRequestVarStatement(env, &request, varStatement)
 		if err != nil {
@@ -273,10 +283,12 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 		}
 	}
 
-	err := errors.Join(errs...)
+	method, err := r.resolveHTTPMethod(in.Method)
 	if err != nil {
 		return spec.Request{}, err
 	}
+
+	request.Method = method
 
 	rawURL, err := r.resolveExpression(env, in.URL)
 	if err != nil {
@@ -289,20 +301,46 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 	// This is probably one to change once parser v2 has been swapped in
 
 	// Validate the URL here
-	_, err = url.ParseRequestURI(rawURL)
-	if err != nil {
+	if _, err = url.ParseRequestURI(rawURL); err != nil {
 		r.errorf(in.URL, "invalid URL %s: %v", rawURL, err)
 		return spec.Request{}, err
 	}
 
 	request.URL = rawURL
 
-	method, err := r.resolveHTTPMethod(in.Method)
+	// HTTP Headers
+	for _, header := range in.Headers {
+		// Otherwise err shadows one from earlier
+		var (
+			key   string
+			value string
+		)
+
+		key, value, err = r.resolveHeader(env, header)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		request.Headers.Add(key, value)
+	}
+
+	body, err := r.resolveExpression(env, in.Body)
+	if err != nil {
+		return spec.Request{}, fmt.Errorf("could not resolve request body: %w", err)
+	}
+
+	// TODO(@FollowTheProcess): We don't need spec.Body anymore
+	//
+	// It was originally created to better serialise []byte but resolveExpression returns a string now so
+	// this is no longer needed. Replace this when the v2 parser/resolver becomes the default
+	request.Body = spec.Body([]byte(body))
+
+	// Bubble up all the errors at once
+	err = errors.Join(errs...)
 	if err != nil {
 		return spec.Request{}, err
 	}
-
-	request.Method = method
 
 	return request, nil
 }
@@ -473,6 +511,17 @@ func (r *Resolver) resolveRequestPromptStatement(
 	request.Prompts[name] = prompt
 
 	return nil
+}
+
+// resolveHeader resolves a single [ast.Header].
+func (r *Resolver) resolveHeader(env *environment, in ast.Header) (key, value string, err error) {
+	value, err = r.resolveExpression(env, in.Value)
+	if err != nil {
+		r.errorf(in, "invalid value expression for header %s: %v", in.Key, err)
+		return "", "", err
+	}
+
+	return in.Key, value, nil
 }
 
 // resolveInterpolatedExpression resolves an [ast.InterpolatedExpression] node into
