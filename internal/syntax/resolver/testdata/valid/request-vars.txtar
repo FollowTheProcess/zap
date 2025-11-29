@@ -8,20 +8,14 @@
 # @no-redirect
 # @normal-var = test
 GET https://example.com
--- want.json --
-{
-  "name": "request-vars.txtar",
-  "requests": [
-    {
-      "vars": {
-        "normal-var": "test"
-      },
-      "name": "MyRequest",
-      "method": "GET",
-      "url": "https://example.com",
-      "timeout": 30000000000,
-      "connectionTimeout": 10000000000,
-      "noRedirect": true
-    }
-  ]
-}
+-- want.yaml --
+name: request-vars.txtar
+requests:
+  - vars:
+      normal-var: test
+    name: MyRequest
+    method: GET
+    url: https://example.com
+    timeout: 30s
+    connectionTimeout: 10s
+    noRedirect: true

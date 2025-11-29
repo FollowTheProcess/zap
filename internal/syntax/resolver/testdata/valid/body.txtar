@@ -14,21 +14,20 @@ Content-Type: application/json
     "full": ["json", "syntax"]
   }
 }
--- want.json --
-{
-  "name": "body.txtar",
-  "requests": [
-    {
-      "headers": {
-        "Content-Type": [
-          "application/json"
-        ]
-      },
-      "name": "#1",
-      "comment": "Body",
-      "method": "POST",
-      "url": "https://api.somewhere.com/items/1",
-      "body": "{\n  \"body\": \"here\"\n  \"yes\": {\n    \"full\": [\"json\", \"syntax\"]\n  }\n}\n"
-    }
-  ]
-}
+-- want.yaml --
+name: body.txtar
+requests:
+  - headers:
+      Content-Type:
+        - application/json
+    name: '#1'
+    comment: Body
+    method: POST
+    url: https://api.somewhere.com/items/1
+    body: |
+      {
+        "body": "here"
+        "yes": {
+          "full": ["json", "syntax"]
+        }
+      }

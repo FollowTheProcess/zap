@@ -3,17 +3,11 @@
 
 ###
 GET https://api.something.com/items/1
--- want.json --
-{
-  "name": "global-url.txtar",
-  "vars": {
-    "base": "https://api.somewhere.com"
-  },
-  "requests": [
-    {
-      "name": "#1",
-      "method": "GET",
-      "url": "https://api.something.com/items/1"
-    }
-  ]
-}
+-- want.yaml --
+name: global-url.txtar
+vars:
+  base: https://api.somewhere.com
+requests:
+  - name: '#1'
+    method: GET
+    url: https://api.something.com/items/1

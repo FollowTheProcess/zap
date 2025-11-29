@@ -3,17 +3,11 @@
 
 ###
 GET https://api.something.com/v1/{{ something }}
--- want.json --
-{
-  "name": "global-url-interpolated-end.txtar",
-  "vars": {
-    "something": "hello"
-  },
-  "requests": [
-    {
-      "name": "#1",
-      "method": "GET",
-      "url": "https://api.something.com/v1/hello"
-    }
-  ]
-}
+-- want.yaml --
+name: global-url-interpolated-end.txtar
+vars:
+  something: hello
+requests:
+  - name: '#1'
+    method: GET
+    url: https://api.something.com/v1/hello
