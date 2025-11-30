@@ -3,8 +3,8 @@
 package zap
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -66,13 +66,10 @@ func (z Zap) parseFile(file string) (spec.File, error) {
 	p := parser.New(file, src)
 	// TODO(@FollowTheProcess): Do something pretty with the diagnostics
 
-	var diagnostics []syntax.Diagnostic
-
 	parsed, err := p.Parse()
 	if err != nil {
-		diagnostics = p.Diagnostics()
-		if jsonErr := json.NewEncoder(z.stderr).Encode(diagnostics); jsonErr != nil {
-			return spec.File{}, fmt.Errorf("unable to display diagnostics: %w", jsonErr)
+		if printErr := z.printDiagnostics(p.Diagnostics()); printErr != nil {
+			return spec.File{}, printErr
 		}
 
 		return spec.File{}, err
@@ -82,8 +79,8 @@ func (z Zap) parseFile(file string) (spec.File, error) {
 
 	resolved, err := res.Resolve(parsed)
 	if err != nil {
-		if jsonErr := json.NewEncoder(z.stderr).Encode(res.Diagnostics()); jsonErr != nil {
-			return spec.File{}, fmt.Errorf("unable to display diagnostics: %w", jsonErr)
+		if printErr := z.printDiagnostics(res.Diagnostics()); printErr != nil {
+			return spec.File{}, printErr
 		}
 
 		return spec.File{}, err
@@ -98,4 +95,22 @@ func (z Zap) parseFile(file string) (spec.File, error) {
 	}
 
 	return resolved, nil
+}
+
+// printDiagnostics prints the list of [syntax.Diagnostic] gathered by
+// the parsing pipeline.
+func (z Zap) printDiagnostics(diagnostics []syntax.Diagnostic) error {
+	// TODO(@FollowTheProcess): Give this function different formats
+	// to display as e.g. JSON for possible integration into language servers
+	buf := &bytes.Buffer{}
+	for _, diag := range diagnostics {
+		buf.WriteString(diag.String())
+	}
+
+	_, err := buf.WriteTo(z.stderr)
+	if err != nil {
+		return fmt.Errorf("could not write diagnostics to stderr: %w", err)
+	}
+
+	return nil
 }
