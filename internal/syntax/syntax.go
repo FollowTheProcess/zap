@@ -96,5 +96,5 @@ type Diagnostic struct {
 
 // String prints a [Diagnostic].
 func (d Diagnostic) String() string {
-	return d.Position.String() + ": " + d.Msg + "\n"
+	return d.Position.String() + ": " + d.Msg
 }

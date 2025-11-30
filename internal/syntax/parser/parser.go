@@ -71,8 +71,9 @@ func (p *Parser) Parse() (ast.File, error) {
 
 	for !p.current.Is(token.EOF) {
 		if p.current.Is(token.Error) {
-			// An error from the scanner
+			p.error("Error token from scanner")
 			p.synchronise()
+
 			continue
 		}
 

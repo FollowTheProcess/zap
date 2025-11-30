@@ -2,7 +2,6 @@ package format
 
 import (
 	_ "embed"
-	"fmt"
 	"io"
 	"strings"
 	"text/template"
@@ -48,9 +47,5 @@ type CurlExporter struct{}
 // Export implements [Exporter] for [CurlExporter] and exports the given
 // file as one or more curl snippets.
 func (c CurlExporter) Export(w io.Writer, file spec.File) error {
-	if err := curlTemplate.Execute(w, file); err != nil {
-		return fmt.Errorf("could not export file %s to curl: %w", file.Name, err)
-	}
-
-	return nil
+	return curlTemplate.Execute(w, file)
 }

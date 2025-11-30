@@ -67,6 +67,156 @@ func TestPositionString(t *testing.T) {
 	}
 }
 
+func TestDiagnosticString(t *testing.T) {
+	tests := []struct {
+		name string            // Name of the test case
+		want string            // Expected return value
+		diag syntax.Diagnostic // Diagnostic under test
+	}{
+		{
+			name: "empty",
+			diag: syntax.Diagnostic{},
+			want: `BadPosition: {Name: "", Line: 0, StartCol: 0, EndCol: 0}: `,
+		},
+		{
+			name: "missing name",
+			diag: syntax.Diagnostic{Position: syntax.Position{Line: 12, StartCol: 2, EndCol: 6}},
+			want: `BadPosition: {Name: "", Line: 12, StartCol: 2, EndCol: 6}: `,
+		},
+		{
+			name: "zero line",
+			diag: syntax.Diagnostic{Position: syntax.Position{Name: "file.txt", Line: 0, StartCol: 12, EndCol: 19}},
+			want: `BadPosition: {Name: "file.txt", Line: 0, StartCol: 12, EndCol: 19}: `,
+		},
+		{
+			name: "zero start column",
+			diag: syntax.Diagnostic{Position: syntax.Position{Name: "file.txt", Line: 4, StartCol: 0, EndCol: 19}},
+			want: `BadPosition: {Name: "file.txt", Line: 4, StartCol: 0, EndCol: 19}: `,
+		},
+		{
+			name: "zero end column",
+			diag: syntax.Diagnostic{Position: syntax.Position{Name: "file.txt", Line: 4, StartCol: 1, EndCol: 0}},
+			want: `BadPosition: {Name: "file.txt", Line: 4, StartCol: 1, EndCol: 0}: `,
+		},
+		{
+			name: "end less than start",
+			diag: syntax.Diagnostic{Position: syntax.Position{Name: "test.http", Line: 1, StartCol: 6, EndCol: 4}},
+			want: `BadPosition: {Name: "test.http", Line: 1, StartCol: 6, EndCol: 4}: `,
+		},
+		{
+			name: "valid single column",
+			diag: syntax.Diagnostic{
+				Position: syntax.Position{Name: "demo.http", Line: 1, StartCol: 6, EndCol: 6},
+				Msg:      "this is bad",
+			},
+			want: "demo.http:1:6: this is bad",
+		},
+		{
+			name: "valid column range",
+			diag: syntax.Diagnostic{
+				Position: syntax.Position{Name: "demo.http", Line: 17, StartCol: 20, EndCol: 26},
+				Msg:      "more badness here",
+			},
+			want: "demo.http:17:20-26: more badness here",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("%q", tt.diag.String())
+			test.Equal(t, tt.diag.String(), tt.want)
+		})
+	}
+}
+
+func TestComparePosition(t *testing.T) {
+	tests := []struct {
+		name string          // Name of the test case
+		x, y syntax.Position // Positions to compare
+		want int             // Expected result
+	}{
+		{
+			name: "equal",
+			x: syntax.Position{
+				Name:     "test.http",
+				Offset:   128,
+				Line:     12,
+				StartCol: 1,
+				EndCol:   13,
+			},
+			y: syntax.Position{
+				Name:     "test.http",
+				Offset:   128,
+				Line:     12,
+				StartCol: 1,
+				EndCol:   13,
+			},
+			want: 0,
+		},
+		{
+			name: "x less than y",
+			x: syntax.Position{
+				Name:     "test.http",
+				Offset:   10,
+				Line:     3,
+				StartCol: 2,
+				EndCol:   17,
+			},
+			y: syntax.Position{
+				Name:     "test.http",
+				Offset:   128,
+				Line:     12,
+				StartCol: 1,
+				EndCol:   13,
+			},
+			want: -1,
+		},
+		{
+			name: "x greater than y",
+			x: syntax.Position{
+				Name:     "test.http",
+				Offset:   99,
+				Line:     12,
+				StartCol: 7,
+				EndCol:   10,
+			},
+			y: syntax.Position{
+				Name:     "test.http",
+				Offset:   12,
+				Line:     1,
+				StartCol: 1,
+				EndCol:   13,
+			},
+			want: 1,
+		},
+		{
+			name: "different name",
+			x: syntax.Position{
+				Name:     "aaaa.http", // Should sort first
+				Offset:   128,         // Despite this value being lower
+				Line:     12,
+				StartCol: 1,
+				EndCol:   13,
+			},
+			y: syntax.Position{
+				Name:     "bbbb.http",
+				Offset:   999,
+				Line:     86,
+				StartCol: 3,
+				EndCol:   18,
+			},
+			want: -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := syntax.ComparePosition(tt.x, tt.y)
+			test.Equal(t, got, tt.want)
+		})
+	}
+}
+
 func FuzzPosition(f *testing.F) {
 	f.Add("", 0, 0, 0)
 	f.Add("name.txt", 1, 1, 2)

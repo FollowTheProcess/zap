@@ -1,0 +1,5 @@
+-- src.http --
+^&*(
+-- want.txt --
+bad-top-level-char.txtar:1:2: Error token from scanner
+bad-top-level-char.txtar:1:2: unrecognised character: '^'

@@ -49,6 +49,10 @@ func (z Zap) Export(ctx context.Context, options ExportOptions) error {
 
 	logger.Debug("Export configuration", slog.String("options", fmt.Sprintf("%+v", options)))
 
+	if err := options.Validate(); err != nil {
+		return err
+	}
+
 	start := time.Now()
 
 	httpFile, err := z.parseFile(options.File)
