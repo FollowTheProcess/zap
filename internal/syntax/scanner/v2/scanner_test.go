@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -148,4 +149,59 @@ func TestInvalid(t *testing.T) {
 			test.Diff(t, gotErrs, errs)
 		})
 	}
+}
+
+func FuzzScanner(f *testing.F) {
+	// Get all the .http source from testdata for the corpus
+	validPattern := filepath.Join("testdata", "valid", "*.txtar")
+	validFiles, err := filepath.Glob(validPattern)
+	test.Ok(f, err)
+
+	// And the invalid ones too!
+	invalidPattern := filepath.Join("testdata", "invalid", "*.txtar")
+	invalidFiles, err := filepath.Glob(invalidPattern)
+	test.Ok(f, err)
+
+	files := slices.Concat(validFiles, invalidFiles)
+
+	for _, file := range files {
+		archive, err := txtar.ParseFile(file)
+		test.Ok(f, err)
+
+		if archive == nil {
+			f.Fatal("txtar.ParseFile returned nil archive")
+		}
+
+		src, ok := archive.Read("src.http")
+		test.True(f, ok, test.Context("%s missing src.http", file))
+
+		f.Add(src)
+	}
+
+	// Property: The scanner never panics or loops indefinitely, fuzz
+	// by default will catch both of these
+	f.Fuzz(func(t *testing.T, src string) {
+		scanner := scanner.New("fuzz", []byte(src))
+
+		for {
+			tok := scanner.Scan()
+			if tok.Is(token.EOF, token.Error) {
+				break
+			}
+
+			// Property: Positions must be positive integers
+			test.True(t, tok.Start >= 0, test.Context("token start position (%d) was negative", tok.Start))
+			test.True(t, tok.End >= 0, test.Context("token end position (%d) was negative", tok.End))
+
+			// Property: The kind must be one of the known kinds
+			test.True(
+				t,
+				(tok.Kind >= token.EOF) && (tok.Kind <= token.MethodTrace),
+				test.Context("token %s was not one of the pre-defined kinds", tok),
+			)
+
+			// Property: End must be >= Start
+			test.True(t, tok.End >= tok.Start, test.Context("token %s had invalid start and end positions", tok))
+		}
+	})
 }
