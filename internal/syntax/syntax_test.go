@@ -1,7 +1,6 @@
 package syntax_test
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -152,24 +151,13 @@ func BenchmarkEntireParse(b *testing.B) {
 	test.Ok(b, err)
 
 	for b.Loop() {
-		p, err := parser.New(file, bytes.NewReader(src), testFailHandler(b))
-		test.Ok(b, err)
+		p := parser.New(file, src)
 
 		parsed, err := p.Parse()
 		test.Ok(b, err)
 
-		res := resolver.New(file)
+		res := resolver.New(file, src)
 		_, err = res.Resolve(parsed)
 		test.Ok(b, err)
-	}
-}
-
-// testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
-// the enclosing test.
-func testFailHandler(tb testing.TB) syntax.ErrorHandler {
-	tb.Helper()
-
-	return func(pos syntax.Position, msg string) {
-		tb.Fatalf("%s: %s", pos, msg)
 	}
 }

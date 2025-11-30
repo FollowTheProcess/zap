@@ -7,19 +7,23 @@
 -- diagnostics.json --
 [
   {
-    "file": "bad-global-timeouts.txtar",
     "msg": "invalid timeout value: time: invalid duration \"notaduration\"",
-    "highlight": {
-      "start": 11,
-      "end": 23
+    "position": {
+      "name": "bad-global-timeouts.txtar",
+      "offset": 11,
+      "line": 1,
+      "startCol": 12,
+      "endCol": 24
     }
   },
   {
-    "file": "bad-global-timeouts.txtar",
     "msg": "invalid connection-timeout value: time: invalid duration \"meneither\"",
-    "highlight": {
-      "start": 46,
-      "end": 55
+    "position": {
+      "name": "bad-global-timeouts.txtar",
+      "offset": 46,
+      "line": 2,
+      "startCol": 23,
+      "endCol": 32
     }
   }
 ]

@@ -3,7 +3,6 @@
 package zap
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -58,28 +57,31 @@ func (z Zap) Hello(ctx context.Context) {
 // parseFile reads a .http file, parses it and resolves it.
 //
 // Most operations begin by parsing the file so those steps are extracted here.
-func (z Zap) parseFile(file string, handler syntax.ErrorHandler) (spec.File, error) {
-	f, err := os.Open(file)
+func (z Zap) parseFile(file string) (spec.File, error) {
+	src, err := os.ReadFile(file)
 	if err != nil {
-		return spec.File{}, fmt.Errorf("could not open file: %w", err)
+		return spec.File{}, fmt.Errorf("could not read file: %w", err)
 	}
-	defer f.Close()
 
-	p, err := parser.New(file, f, handler)
-	if err != nil {
-		return spec.File{}, fmt.Errorf("could not initialise the parser: %w", err)
-	}
+	p := parser.New(file, src)
+	// TODO(@FollowTheProcess): Do something pretty with the diagnostics
+
+	var diagnostics []syntax.Diagnostic
 
 	parsed, err := p.Parse()
 	if err != nil {
+		diagnostics = p.Diagnostics()
+		if jsonErr := json.NewEncoder(z.stderr).Encode(diagnostics); jsonErr != nil {
+			return spec.File{}, fmt.Errorf("unable to display diagnostics: %w", jsonErr)
+		}
+
 		return spec.File{}, err
 	}
 
-	res := resolver.New(file)
+	res := resolver.New(file, src)
 
 	resolved, err := res.Resolve(parsed)
 	if err != nil {
-		// TODO(@FollowTheProcess): Do something pretty with the diagnostics
 		if jsonErr := json.NewEncoder(z.stderr).Encode(res.Diagnostics()); jsonErr != nil {
 			return spec.File{}, fmt.Errorf("unable to display diagnostics: %w", jsonErr)
 		}
@@ -96,37 +98,4 @@ func (z Zap) parseFile(file string, handler syntax.ErrorHandler) (spec.File, err
 	}
 
 	return resolved, nil
-}
-
-// PrettyConsoleHandler returns a [syntax.ErrorHandler] that formats the syntax error for
-// display on the terminal to a user.
-func PrettyConsoleHandler(w io.Writer) syntax.ErrorHandler {
-	// TODO(@FollowTheProcess): This currently reads the whole file every time it's called
-	// maybe we should gather up parse errors and then handle them "prettily" once at the end? Kind of like
-	// the resolver diagnostics
-	return func(pos syntax.Position, msg string) {
-		fmt.Fprintf(w, "%s: %s\n\n", pos, msg)
-
-		contents, err := os.ReadFile(pos.Name)
-		if err != nil {
-			fmt.Fprintf(w, "unable to show src context: %v\n", err)
-			return
-		}
-
-		lines := bytes.Split(contents, []byte("\n"))
-
-		const contextLines = 3
-
-		startLine := max(pos.Line-contextLines, 0)
-		endLine := min(pos.Line+contextLines, len(lines))
-
-		for i, line := range lines {
-			i++ // Lines are 1 indexed
-			if i >= startLine && i <= endLine {
-				// Note: This is U+2502/"Box Drawings Light Vertical" NOT standard vertical pipe '|'
-				margin := fmt.Sprintf("%d │ ", i)
-				fmt.Fprintf(w, "%s%s\n", margin, line)
-			}
-		}
-	}
 }

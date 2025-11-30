@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
-
-	"go.followtheprocess.codes/zap/internal/syntax"
 )
 
 // TestOptions are the options passed to the test subcommand.
@@ -69,7 +67,7 @@ func (t TestOptions) Validate() error {
 }
 
 // Test implements the test subcommand.
-func (z Zap) Test(ctx context.Context, handler syntax.ErrorHandler, options TestOptions) error {
+func (z Zap) Test(ctx context.Context, options TestOptions) error {
 	logger := z.logger.Prefixed("test").With(slog.String("path", options.Path))
 	logger.Debug("Collecting tests in path")
 

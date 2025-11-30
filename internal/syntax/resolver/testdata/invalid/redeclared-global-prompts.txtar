@@ -9,19 +9,23 @@
 -- diagnostics.json --
 [
   {
-    "file": "redeclared-global-prompts.txtar",
     "msg": "prompt id already declared",
-    "highlight": {
-      "start": 19,
-      "end": 44
+    "position": {
+      "name": "redeclared-global-prompts.txtar",
+      "offset": 19,
+      "line": 2,
+      "startCol": 1,
+      "endCol": 26
     }
   },
   {
-    "file": "redeclared-global-prompts.txtar",
     "msg": "prompt other already declared",
-    "highlight": {
-      "start": 97,
-      "end": 131
+    "position": {
+      "name": "redeclared-global-prompts.txtar",
+      "offset": 97,
+      "line": 5,
+      "startCol": 1,
+      "endCol": 35
     }
   }
 ]

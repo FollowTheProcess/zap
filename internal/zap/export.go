@@ -10,7 +10,6 @@ import (
 
 	"go.followtheprocess.codes/zap/internal/format"
 	"go.followtheprocess.codes/zap/internal/spec"
-	"go.followtheprocess.codes/zap/internal/syntax"
 )
 
 const (
@@ -45,14 +44,14 @@ func (e ExportOptions) Validate() error {
 }
 
 // Export handles the export subcommand.
-func (z Zap) Export(ctx context.Context, handler syntax.ErrorHandler, options ExportOptions) error {
+func (z Zap) Export(ctx context.Context, options ExportOptions) error {
 	logger := z.logger.Prefixed("export")
 
 	logger.Debug("Export configuration", slog.String("options", fmt.Sprintf("%+v", options)))
 
 	start := time.Now()
 
-	httpFile, err := z.parseFile(options.File, handler)
+	httpFile, err := z.parseFile(options.File)
 	if err != nil {
 		return err
 	}

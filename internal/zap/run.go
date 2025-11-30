@@ -18,7 +18,6 @@ import (
 	"go.followtheprocess.codes/hue"
 	"go.followtheprocess.codes/log"
 	"go.followtheprocess.codes/zap/internal/spec"
-	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 )
 
@@ -119,11 +118,7 @@ func (r RunOptions) Validate() error {
 }
 
 // Run implements the run subcommand.
-func (z Zap) Run(
-	ctx context.Context,
-	handler syntax.ErrorHandler,
-	options RunOptions,
-) error {
+func (z Zap) Run(ctx context.Context, options RunOptions) error {
 	if err := options.Validate(); err != nil {
 		return err
 	}
@@ -143,7 +138,7 @@ func (z Zap) Run(
 
 	start := time.Now()
 
-	httpFile, err := z.parseFile(options.File, handler)
+	httpFile, err := z.parseFile(options.File)
 	if err != nil {
 		return err
 	}

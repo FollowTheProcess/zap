@@ -43,15 +43,15 @@ type scanFn func(*Scanner) scanFn
 
 // Scanner is the http file scanner.
 type Scanner struct {
-	mu                sync.RWMutex        // Guards diagnostics
-	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
 	tokens            chan token.Token    // Channel on which to emit scanned tokens
 	name              string              // Name of the file
+	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
 	src               []byte              // Raw source text
 	start             int                 // The start position of the current token
 	pos               int                 // Current scanner position in src (bytes, 0 indexed)
 	line              int                 // Current line number, 1 indexed
 	currentLineOffset int                 // Offset at which the current line started
+	mu                sync.RWMutex        // Guards diagnostics
 }
 
 // New returns a new [Scanner] and kicks off the state machine in a goroutine.
@@ -239,6 +239,7 @@ func (s *Scanner) error(msg string) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	s.diagnostics = append(s.diagnostics, diag)
 }
 

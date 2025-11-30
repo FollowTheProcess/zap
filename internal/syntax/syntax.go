@@ -4,12 +4,9 @@
 package syntax
 
 import (
+	"cmp"
 	"fmt"
 )
-
-// An ErrorHandler may be provided to parts of the parsing pipeline. If a syntax error is encountered and
-// a non-nil handler was provided, it is called with the position info and error message.
-type ErrorHandler func(pos Position, msg string)
 
 // Position is an arbitrary source file position including file, line
 // and column information. It can also express a range of source via StartCol
@@ -18,11 +15,11 @@ type ErrorHandler func(pos Position, msg string)
 // Positions without filenames are considered invalid, in the case of stdin
 // the string "stdin" may be used.
 type Position struct {
-	Name     string // Filename
-	Offset   int    // Byte offset of the position from the start of the file
-	Line     int    // Line number (1 indexed)
-	StartCol int    // Start column (1 indexed)
-	EndCol   int    // End column (1 indexed), EndCol == StartCol when pointing to a single character
+	Name     string `json:"name"`     // Filename
+	Offset   int    `json:"offset"`   // Byte offset of the position from the start of the file
+	Line     int    `json:"line"`     // Line number (1 indexed)
+	StartCol int    `json:"startCol"` // Start column (1 indexed)
+	EndCol   int    `json:"endCol"`   // End column (1 indexed), EndCol == StartCol when pointing to a single character
 }
 
 // IsValid reports whether the [Position] describes a valid source position.
@@ -71,6 +68,26 @@ func (p Position) String() string {
 	return fmt.Sprintf("%s:%d:%d-%d", p.Name, p.Line, p.StartCol, p.EndCol)
 }
 
+// ComparePosition is like [cmp.Compare] for a [syntax.Position].
+//
+// If x and y are equal ComparePosition returns 0.
+//
+// If x and y refer to the same file, it returns [cmp.Compare] of
+// the two offsets.
+//
+// If the positions refer to different files, they are compared alphabetically.
+func ComparePosition(x, y Position) int {
+	if x == y {
+		return 0
+	}
+
+	if x.Name == y.Name {
+		return cmp.Compare(x.Offset, y.Offset)
+	}
+
+	return cmp.Compare(x.Name, y.Name)
+}
+
 // Diagnostic is a syntax level diagnostic.
 type Diagnostic struct {
 	Msg      string   `json:"msg"`      // A descriptive message explaining the error
@@ -79,5 +96,5 @@ type Diagnostic struct {
 
 // String prints a [Diagnostic].
 func (d Diagnostic) String() string {
-	return d.Position.String() + ": " + d.Msg
+	return d.Position.String() + ": " + d.Msg + "\n"
 }

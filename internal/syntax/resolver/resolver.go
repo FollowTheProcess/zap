@@ -9,12 +9,19 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"go.followtheprocess.codes/zap/internal/spec"
+	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
+
+// TODO(@FollowTheProcess): Should the resolver just live implicitly inside the parser?
+//
+// Just like the scanner does, so all you need to do is call Parse and it does
+// scanning -> parsing -> resolving
 
 const (
 	// PromptPlaceholderGlobal is the placeholder prefix for a global prompt variable.
@@ -40,15 +47,17 @@ var ErrResolve = errors.New("resolve error")
 // parsing URLs and durations, and otherwise validating and checking the parse tree
 // along the way.
 type Resolver struct {
-	name        string       // The name of the file being resolved.
-	diagnostics []Diagnostic // Diagnostics collected during resolving.
-	hadErrors   bool         // Whether we encountered resolver errors.
+	name        string              // The name of the file being resolved.
+	src         []byte              // Raw source
+	diagnostics []syntax.Diagnostic // Diagnostics collected during resolving.
+	hadErrors   bool                // Whether we encountered resolver errors.
 }
 
 // New returns a new [Resolver].
-func New(name string) *Resolver {
+func New(name string, src []byte) *Resolver {
 	return &Resolver{
 		name: name,
+		src:  src,
 	}
 }
 
@@ -87,18 +96,58 @@ func (r *Resolver) Resolve(in ast.File) (spec.File, error) {
 }
 
 // Diagnostics returns the diagnostics gathered during resolving.
-func (r *Resolver) Diagnostics() []Diagnostic {
+func (r *Resolver) Diagnostics() []syntax.Diagnostic {
+	slices.SortFunc(r.diagnostics, func(a, b syntax.Diagnostic) int {
+		return syntax.ComparePosition(a.Position, b.Position)
+	})
+
 	return r.diagnostics
+}
+
+// position returns the position in the input as a [syntax.Position] for a given
+// ast node.
+//
+// The position is calculated based on the start offset of the node.
+func (r *Resolver) position(node ast.Node) syntax.Position {
+	line := 1              // Line counter
+	lastNewLineOffset := 0 // The byte offset of the (end of the) last newline seen
+	start := node.Start().Start
+	end := node.End().End
+
+	for index, byt := range r.src {
+		if index >= start {
+			break
+		}
+
+		if byt == '\n' {
+			lastNewLineOffset = index + 1 // +1 to account for len("\n")
+			line++
+		}
+	}
+
+	// The column is therefore the number of bytes between the end of the last newline
+	// and the current position, +1 because editors columns start at 1. Applying this
+	// correction here means you can click a syntax error in the terminal and be
+	// taken to a precise location in an editor which is probably what we want to happen
+	startCol := 1 + start - lastNewLineOffset
+	endCol := 1 + end - lastNewLineOffset
+
+	return syntax.Position{
+		Name:     r.name,
+		Offset:   start,
+		Line:     line,
+		StartCol: startCol,
+		EndCol:   endCol,
+	}
 }
 
 // error reports a resolve error with a fixed message.
 func (r *Resolver) error(node ast.Node, msg string) {
 	r.hadErrors = true
 
-	diag := Diagnostic{
-		File:      r.name,
-		Msg:       msg,
-		Highlight: Span{Start: node.Start().Start, End: node.End().End},
+	diag := syntax.Diagnostic{
+		Msg:      msg,
+		Position: r.position(node),
 	}
 
 	r.diagnostics = append(r.diagnostics, diag)

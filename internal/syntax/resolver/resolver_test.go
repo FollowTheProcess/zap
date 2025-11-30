@@ -8,13 +8,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/spec"
-	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 	"go.uber.org/goleak"
@@ -45,13 +43,12 @@ func TestValid(t *testing.T) {
 			want, ok := archive.Read("want.yaml")
 			test.True(t, ok, test.Context("%s missing want.yaml", file))
 
-			p, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
-			test.Ok(t, err)
+			p := parser.New(name, []byte(src))
 
 			parsed, err := p.Parse()
 			test.Ok(t, err, test.Context("unexpected parser error"))
 
-			res := resolver.New(name)
+			res := resolver.New(name, []byte(src))
 
 			resolved, err := res.Resolve(parsed)
 			if err != nil {
@@ -108,13 +105,12 @@ func TestInvalid(t *testing.T) {
 			want, ok := archive.Read("diagnostics.json")
 			test.True(t, ok, test.Context("%s missing diagnostics.json", file))
 
-			p, err := parser.New(name, strings.NewReader(src), testFailHandler(t))
-			test.Ok(t, err)
+			p := parser.New(name, []byte(src))
 
 			parsed, err := p.Parse()
 			test.Ok(t, err, test.Context("unexpected parser error"))
 
-			res := resolver.New(name)
+			res := resolver.New(name, []byte(src))
 
 			_, err = res.Resolve(parsed)
 			test.Err(t, err, test.Context("resolved did not return an error but should have"))
@@ -141,16 +137,6 @@ func TestInvalid(t *testing.T) {
 	}
 }
 
-// testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
-// the enclosing test.
-func testFailHandler(tb testing.TB) syntax.ErrorHandler {
-	tb.Helper()
-
-	return func(pos syntax.Position, msg string) {
-		tb.Fatalf("%s: %s", pos, msg)
-	}
-}
-
 func BenchmarkResolver(b *testing.B) {
 	file := filepath.Join("testdata", "valid", "full.txtar")
 
@@ -160,14 +146,13 @@ func BenchmarkResolver(b *testing.B) {
 	src, ok := archive.Read("src.http")
 	test.True(b, ok, test.Context("%s missing src.http", file))
 
-	p, err := parser.New(file, strings.NewReader(src), testFailHandler(b))
-	test.Ok(b, err)
+	p := parser.New(file, []byte(src))
 
 	parsed, err := p.Parse()
 	test.Ok(b, err)
 
 	for b.Loop() {
-		res := resolver.New(file)
+		res := resolver.New(file, []byte(src))
 		_, err = res.Resolve(parsed)
 		test.Ok(b, err)
 	}
@@ -206,12 +191,11 @@ func FuzzResolver(f *testing.F) {
 	// Property: The resolver never panics or loops indefinitely, fuzz by default will
 	// catch both of these
 	f.Fuzz(func(t *testing.T, src string) {
-		parser, err := parser.New("fuzz", strings.NewReader(src), nil)
-		test.Ok(t, err)
+		parser := parser.New("fuzz", []byte(src))
 
 		parsed, _ := parser.Parse() //nolint:errcheck // Just checking for panics and infinite loops
 
-		res := resolver.New(parsed.Name)
+		res := resolver.New(parsed.Name, []byte(src))
 
 		resolved, err := res.Resolve(parsed)
 		// Property: If there is an error, the file should be the zero spec.File{}

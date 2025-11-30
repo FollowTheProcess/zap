@@ -2,7 +2,6 @@ package zap
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -10,9 +9,6 @@ import (
 	"path/filepath"
 
 	"go.followtheprocess.codes/msg"
-	"go.followtheprocess.codes/zap/internal/syntax"
-	"go.followtheprocess.codes/zap/internal/syntax/parser"
-	"go.followtheprocess.codes/zap/internal/syntax/resolver"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -26,7 +22,7 @@ type CheckOptions struct {
 }
 
 // Check implements the check subcommand.
-func (z Zap) Check(ctx context.Context, handler syntax.ErrorHandler, options CheckOptions) error {
+func (z Zap) Check(ctx context.Context, options CheckOptions) error {
 	logger := z.logger.Prefixed("check").With(slog.String("path", options.Path))
 	logger.Debug("Checking path")
 
@@ -66,7 +62,8 @@ func (z Zap) Check(ctx context.Context, handler syntax.ErrorHandler, options Che
 
 	for _, path := range paths {
 		group.Go(func() error {
-			return z.checkFile(path, handler)
+			_, err := z.parseFile(path)
+			return err
 		})
 	}
 
@@ -76,39 +73,6 @@ func (z Zap) Check(ctx context.Context, handler syntax.ErrorHandler, options Che
 
 	for _, path := range paths {
 		msg.Fsuccess(z.stdout, "%s is valid", path)
-	}
-
-	return nil
-}
-
-// checkFile runs a parse check on a single file.
-func (z Zap) checkFile(path string, handler syntax.ErrorHandler) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("could not open file: %w", err)
-	}
-	defer file.Close()
-
-	p, err := parser.New(path, file, handler)
-	if err != nil {
-		return fmt.Errorf("could not initialise the parser: %w", err)
-	}
-
-	parsed, err := p.Parse()
-	if err != nil {
-		return err
-	}
-
-	res := resolver.New(path)
-
-	_, err = res.Resolve(parsed)
-	if err != nil {
-		// TODO(@FollowTheProcess): Do something pretty with the diagnostics
-		if jsonErr := json.NewEncoder(z.stderr).Encode(res.Diagnostics()); jsonErr != nil {
-			return fmt.Errorf("unable to display diagnostics: %w", jsonErr)
-		}
-
-		return err
 	}
 
 	return nil

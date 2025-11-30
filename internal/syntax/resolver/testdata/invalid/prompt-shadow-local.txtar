@@ -8,11 +8,13 @@ GET https://somewhere.com/{{ id }}
 -- diagnostics.json --
 [
   {
-    "file": "prompt-shadow-local.txtar",
     "msg": "prompt id shadows local variable of the same name: variable id already defined",
-    "highlight": {
-      "start": 18,
-      "end": 40
+    "position": {
+      "name": "prompt-shadow-local.txtar",
+      "offset": 18,
+      "line": 3,
+      "startCol": 3,
+      "endCol": 25
     }
   }
 ]

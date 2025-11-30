@@ -1,20 +1,16 @@
 package parser_test
 
 import (
-	"bytes"
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"testing"
 
-	"github.com/rogpeppe/go-internal/txtar"
 	"go.followtheprocess.codes/snapshot"
 	"go.followtheprocess.codes/test"
-	"go.followtheprocess.codes/zap/internal/syntax"
+	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.uber.org/goleak"
 )
@@ -41,13 +37,10 @@ func TestParse(t *testing.T) {
 				snapshot.Color(os.Getenv("CI") == ""),
 			)
 
-			src, err := os.Open(file)
+			src, err := os.ReadFile(file)
 			test.Ok(t, err)
 
-			defer src.Close()
-
-			p, err := parser.New(name, src, testFailHandler(t))
-			test.Ok(t, err)
+			p := parser.New(name, src)
 
 			parsed, err := p.Parse()
 			test.Ok(t, err)
@@ -77,48 +70,33 @@ func TestInvalid(t *testing.T) {
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
-			test.Equal(
-				t,
-				len(archive.Files),
-				2,
-				test.Context("%s should contain 2 files, got %d", file, len(archive.Files)),
-			)
-			test.Equal(
-				t,
-				archive.Files[0].Name,
-				"src.http",
-				test.Context("first file should be named 'src.http', got %q", archive.Files[0].Name),
-			)
-			test.Equal(
-				t,
-				archive.Files[1].Name,
-				"want.txt",
-				test.Context("second file should be named 'want.txt', got %q", archive.Files[1].Name),
-			)
+			src, ok := archive.Read("src.http")
+			test.True(t, ok, test.Context("%s missing src.http", file))
 
-			src := archive.Files[0].Data
-			want := archive.Files[1].Data
+			want, ok := archive.Read("want.txt")
+			test.True(t, ok, test.Context("%s missing want.txt", file))
 
-			collector := &errorCollector{}
-
-			parser, err := parser.New(name, bytes.NewReader(src), collector.handler())
-			test.Ok(t, err)
+			parser := parser.New(name, []byte(src))
 
 			_, err = parser.Parse()
 			test.Err(t, err, test.Context("Parse() failed to return an error given invalid syntax"))
 
-			got := collector.String()
+			var diagnostics strings.Builder
+			for _, diag := range parser.Diagnostics() {
+				diagnostics.WriteString(diag.String())
+			}
+
+			got := diagnostics.String()
 
 			if *update {
-				archive.Files[1].Data = []byte(got)
+				test.Ok(t, archive.Write("want.txt", got))
 
-				err := os.WriteFile(file, txtar.Format(archive), 0o644)
-				test.Ok(t, err)
+				test.Ok(t, txtar.DumpFile(file, archive))
 
 				return
 			}
 
-			test.DiffBytes(t, []byte(got), want)
+			test.Diff(t, got, want)
 		})
 	}
 }
@@ -130,8 +108,7 @@ func BenchmarkParser(b *testing.B) {
 	test.Ok(b, err)
 
 	for b.Loop() {
-		p, err := parser.New(file, bytes.NewReader(src), testFailHandler(b))
-		test.Ok(b, err)
+		p := parser.New(file, src)
 
 		_, err = p.Parse()
 		test.Ok(b, err)
@@ -162,56 +139,8 @@ func FuzzParser(f *testing.F) {
 	// Property: The parser never panics or loops indefinitely, fuzz by default
 	// will catch both of these
 	f.Fuzz(func(t *testing.T, src []byte) {
-		parser, err := parser.New("fuzz", bytes.NewReader(src), nil)
-		test.Ok(t, err)
+		parser := parser.New("fuzz", src)
 
 		_, _ = parser.Parse() //nolint:errcheck // Just checking for panics and infinite loops
 	})
-}
-
-// testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
-// the enclosing test.
-func testFailHandler(tb testing.TB) syntax.ErrorHandler {
-	tb.Helper()
-
-	return func(pos syntax.Position, msg string) {
-		tb.Fatalf("%s: %s", pos, msg)
-	}
-}
-
-// errorCollector is a helper struct that implements a [syntax.ErrorHandler] which
-// simply collects the scanning errors internally to be inspected later.
-type errorCollector struct {
-	errs []string
-	mu   sync.RWMutex
-}
-
-func (e *errorCollector) String() string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	// Take a copy so as not to alter the original
-	errsCopy := slices.Clone(e.errs)
-
-	var s strings.Builder
-
-	slices.Sort(errsCopy) // Deterministic
-
-	for _, err := range errsCopy {
-		s.WriteString(err)
-	}
-
-	return s.String()
-}
-
-// handler returns the [syntax.ErrorHandler] to be plugged in to the scanning operation.
-func (e *errorCollector) handler() syntax.ErrorHandler {
-	return func(pos syntax.Position, msg string) {
-		// Because the scanner runs in it's own goroutine and also makes use of the
-		// handler
-		e.mu.Lock()
-		defer e.mu.Unlock()
-
-		e.errs = append(e.errs, fmt.Sprintf("%s: %s\n", pos, msg))
-	}
 }

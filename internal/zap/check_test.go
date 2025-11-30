@@ -3,14 +3,12 @@ package zap_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"go.followtheprocess.codes/test"
-	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/zap"
 	"go.uber.org/goleak"
 )
@@ -30,7 +28,7 @@ func TestCheckValid(t *testing.T) {
 
 			app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-			err := app.Check(t.Context(), simpleErrorHandler(stderr), zap.CheckOptions{Path: file})
+			err := app.Check(t.Context(), zap.CheckOptions{Path: file})
 			test.Ok(t, err)
 
 			test.Diff(t, stdout.String(), fmt.Sprintf("Success: %s is valid\n", file))
@@ -51,7 +49,7 @@ func TestCheckValidDir(t *testing.T) {
 
 	app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-	err = app.Check(t.Context(), simpleErrorHandler(stderr), zap.CheckOptions{Path: path})
+	err = app.Check(t.Context(), zap.CheckOptions{Path: path})
 	test.Ok(t, err)
 
 	s := &strings.Builder{}
@@ -80,7 +78,7 @@ func TestCheckInvalid(t *testing.T) {
 
 			app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-			err := app.Check(t.Context(), simpleErrorHandler(stderr), zap.CheckOptions{Path: file})
+			err := app.Check(t.Context(), zap.CheckOptions{Path: file})
 			test.Err(t, err)
 
 			test.Equal(t, stdout.String(), "")
@@ -101,13 +99,5 @@ func TestCheckInvalid(t *testing.T) {
 				test.Context("stderr output did not contain %s", filepath.Base(file)),
 			)
 		})
-	}
-}
-
-// simpleErrorHandler returns a [syntax.ErrorHandler] that returns a simple, unstyled
-// string representation of the error.
-func simpleErrorHandler(w io.Writer) syntax.ErrorHandler {
-	return func(pos syntax.Position, msg string) {
-		fmt.Fprintf(w, "%s: %s\n", pos, msg)
 	}
 }
