@@ -9,6 +9,11 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 )
 
+// TODO(@FollowTheProcess): Curl importer might be tricky?
+//
+// We'll need to parse the curl command as a shell script basically, could use
+// mvdan/sh for that
+
 // TODO(@FollowTheProcess): It dumps the body as raw text but doesn't correctly escape it to be valid
 //
 // Multi-line JSON needs to be minified. Probably what we should do is if it's up to a certain limit

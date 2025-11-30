@@ -1,6 +1,7 @@
 package format
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/BurntSushi/toml"
@@ -17,4 +18,22 @@ func (t TOMLExporter) Export(w io.Writer, file spec.File) error {
 	encoder.Indent = ""
 
 	return encoder.Encode(file)
+}
+
+// TOMLImporter is an [Importer] that transforms valid TOML documents representing
+// a .http file into a [spec.File].
+type TOMLImporter struct{}
+
+// Import implements [Importer] for [TOMLImporter].
+func (t TOMLImporter) Import(r io.Reader) (spec.File, error) {
+	var file spec.File
+
+	decoder := toml.NewDecoder(r)
+
+	_, err := decoder.Decode(&file)
+	if err != nil {
+		return spec.File{}, fmt.Errorf("could not decode TOML: %w", err)
+	}
+
+	return file, nil
 }

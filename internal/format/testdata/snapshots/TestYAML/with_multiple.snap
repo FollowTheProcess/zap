@@ -1,5 +1,5 @@
 source: yaml_test.go
-expression: buf.String()
+expression: got
 ---
 |
   name: with multiple

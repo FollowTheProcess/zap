@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 )
 
-func TestYAMLExporter(t *testing.T) {
+func TestYAML(t *testing.T) {
 	tests := []struct {
 		name string    // Name of the test case
 		file spec.File // The HTTP file
@@ -181,7 +182,16 @@ func TestYAMLExporter(t *testing.T) {
 			buf := &bytes.Buffer{}
 			test.Ok(t, exporter.Export(buf, tt.file))
 
-			snap.Snap(buf.String())
+			got := buf.String()
+
+			snap.Snap(got)
+
+			// Round trip
+			importer := format.YAMLImporter{}
+			gotBack, err := importer.Import(strings.NewReader(got))
+			test.Ok(t, err)
+
+			test.Diff(t, gotBack.String(), tt.file.String())
 		})
 	}
 }

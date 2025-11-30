@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 )
 
-func TestTOMLExporter(t *testing.T) {
+func TestTOML(t *testing.T) {
 	tests := []struct {
 		name string    // Name of the test case
 		file spec.File // The HTTP file
@@ -181,7 +182,16 @@ func TestTOMLExporter(t *testing.T) {
 			buf := &bytes.Buffer{}
 			test.Ok(t, exporter.Export(buf, tt.file))
 
-			snap.Snap(buf.String())
+			got := buf.String()
+
+			snap.Snap(got)
+
+			// Round trip
+			importer := format.TOMLImporter{}
+			gotBack, err := importer.Import(strings.NewReader(got))
+			test.Ok(t, err)
+
+			test.Diff(t, gotBack.String(), tt.file.String())
 		})
 	}
 }
