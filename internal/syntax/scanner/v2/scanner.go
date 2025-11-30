@@ -354,9 +354,13 @@ func scanEq(s *Scanner) state {
 
 // scanIdent scans an identifier.
 func scanIdent(s *Scanner) state {
-	// TODO(@FollowTheProcess): Keywords
 	s.takeWhile(isIdent)
-	s.emit(token.Ident)
+
+	// Is it a keyword? If so token.Keyword will return its proper
+	// token type, else [token.Ident].
+	text := string(s.src[s.start:s.pos])
+	kind, _ := token.Keyword(text)
+	s.emit(kind)
 
 	return scanStart
 }
