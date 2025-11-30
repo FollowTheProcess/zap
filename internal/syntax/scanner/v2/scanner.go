@@ -367,9 +367,12 @@ func scanIdent(s *Scanner) state {
 
 // scanText scans a string of text characters (no whitespace).
 func scanText(s *Scanner) state {
-	// TODO(@FollowTheProcess): HTTP Methods
 	s.takeWhile(isText)
-	s.emit(token.Text)
+
+	// Is it a HTTP method?
+	text := string(s.src[s.start:s.pos])
+	method, _ := token.Method(text)
+	s.emit(method)
 
 	return scanStart
 }
