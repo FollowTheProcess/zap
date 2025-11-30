@@ -134,6 +134,14 @@ func (s *Scanner) restHasPrefix(prefix string) bool {
 	return bytes.HasPrefix(s.rest(), []byte(prefix))
 }
 
+// takeWhile consumes characters so long as the predicate returns true, stopping at the
+// first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
+func (s *Scanner) takeWhile(predicate func(r rune) bool) {
+	for predicate(s.peek()) {
+		s.next()
+	}
+}
+
 // takeUntil consumes characters until it hits any of the specified runes.
 //
 // It stops before it consumes the first specified rune such that after it returns,
@@ -239,8 +247,19 @@ func scanStart(s *Scanner) state {
 		return scanHash
 	case '/':
 		return scanSlash
+	case '@':
+		return scanAt
+	case '=':
+		return scanEq
+	case '{':
+		return scanOpenInterp
 	default:
+		if isIdent(char) {
+			return scanText
+		}
+
 		s.errorf("unrecognised character: %q", char)
+
 		return nil
 	}
 }
@@ -316,10 +335,102 @@ func scanComment(s *Scanner) state {
 	return scanStart
 }
 
+// scanAt scans a literal '@'.
+func scanAt(s *Scanner) state {
+	s.emit(token.At)
+
+	if isIdent(s.peek()) {
+		return scanIdent
+	}
+
+	return scanStart
+}
+
+// scanEq scans a literal '='.
+func scanEq(s *Scanner) state {
+	s.emit(token.Eq)
+	return scanStart
+}
+
+// scanIdent scans an identifier.
+func scanIdent(s *Scanner) state {
+	// TODO(@FollowTheProcess): Keywords
+	s.takeWhile(isIdent)
+	s.emit(token.Ident)
+
+	return scanStart
+}
+
+// scanText scans a string of text characters (no whitespace).
+func scanText(s *Scanner) state {
+	// TODO(@FollowTheProcess): HTTP Methods
+	s.takeWhile(isText)
+	s.emit(token.Text)
+
+	return scanStart
+}
+
+// scanOpenInterp scans a '{' character, as part of an open interp token.
+//
+// If the next char is not another '{', this is a no-op and the scanning
+// state is returned back to scanStart.
+func scanOpenInterp(s *Scanner) state {
+	if s.peek() != '{' {
+		// Ignore
+		return scanStart
+	}
+
+	s.next() // Consume the second '{'
+	s.emit(token.OpenInterp)
+
+	s.skip(isLineSpace)
+
+	return scanInterpInner
+}
+
+// scanInterpInner scans the expression inside an interpolation.
+func scanInterpInner(s *Scanner) state {
+	// TODO(@FollowTheProcess): More things can go here
+	if isIdent(s.peek()) {
+		scanIdent(s)
+	}
+
+	s.skip(isLineSpace)
+
+	if !s.restHasPrefix("}}") {
+		s.errorf("unterminated interpolation, expected %q got %q", "}}", s.peek())
+		return nil
+	}
+
+	s.takeExact("}}")
+	s.emit(token.CloseInterp)
+
+	if isText(s.peek()) {
+		return scanText
+	}
+
+	return scanStart
+}
+
 // isLineSpace reports whether r is a non line terminating whitespace character,
 // imagine [unicode.IsSpace] but without '\n' or '\r'.
 func isLineSpace(r rune) bool {
 	return r == ' ' || r == '\t'
+}
+
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isDigit reports whether r is a valid ASCII digit.
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
 }
 
 // isText reports whether r is valid in a continuous string of text.
