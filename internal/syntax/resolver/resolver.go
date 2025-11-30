@@ -18,11 +18,6 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
-// TODO(@FollowTheProcess): Should the resolver just live implicitly inside the parser?
-//
-// Just like the scanner does, so all you need to do is call Parse and it does
-// scanning -> parsing -> resolving
-
 const (
 	// PromptPlaceholderGlobal is the placeholder prefix for a global prompt variable.
 	//

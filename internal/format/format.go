@@ -12,6 +12,8 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 )
 
+// TODO(@FollowTheProcess): A postman exporter
+
 // Exporter is the interface defining a mechanism for exporting a .http file
 // into an external format.
 type Exporter interface {
