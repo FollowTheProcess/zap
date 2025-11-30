@@ -64,7 +64,7 @@ func run() (*cli.Command, error) {
 		cli.Flag(&options.Debug, "debug", 'd', "Enable debug logging"),
 		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
 			app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-			return app.Run(ctx, zap.PrettyConsoleHandler(cmd.Stderr()), options)
+			return app.Run(ctx, options)
 		}),
 	)
 }

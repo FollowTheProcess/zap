@@ -6,11 +6,13 @@
 -- diagnostics.json --
 [
   {
-    "file": "prompt-shadow-global.txtar",
     "msg": "prompt id shadows global variable of the same name: variable id already defined",
-    "highlight": {
-      "start": 10,
-      "end": 32
+    "position": {
+      "name": "prompt-shadow-global.txtar",
+      "offset": 10,
+      "line": 2,
+      "startCol": 1,
+      "endCol": 23
     }
   }
 ]

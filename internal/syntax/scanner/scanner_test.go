@@ -2,17 +2,14 @@ package scanner_test
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"testing"
 
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
-	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/scanner"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 	"go.uber.org/goleak"
@@ -298,7 +295,7 @@ func TestBasics(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
 			src := []byte(tt.src)
-			scanner := scanner.New(tt.name, src, testFailHandler(t))
+			scanner := scanner.New(tt.name, src)
 
 			var tokens []token.Token
 
@@ -338,7 +335,7 @@ func TestValid(t *testing.T) {
 			want, ok := archive.Read("tokens.txt")
 			test.True(t, ok, test.Context("%s missing tokens.txt", file))
 
-			scanner := scanner.New(name, []byte(src), testFailHandler(t))
+			scanner := scanner.New(name, []byte(src))
 
 			var tokens []token.Token
 
@@ -399,9 +396,7 @@ func TestInvalid(t *testing.T) {
 			errs, ok := archive.Read("errors.txt")
 			test.True(t, ok, test.Context("%s missing errors.txt", file))
 
-			collector := &errorCollector{}
-
-			scanner := scanner.New(name, []byte(src), collector.handler())
+			scanner := scanner.New(name, []byte(src))
 
 			var tokens []token.Token
 
@@ -421,7 +416,13 @@ func TestInvalid(t *testing.T) {
 			}
 
 			got := formattedTokens.String()
-			gotErrs := collector.String()
+
+			var diagnostics strings.Builder
+			for _, diag := range scanner.Diagnostics() {
+				diagnostics.WriteString(diag.String())
+			}
+
+			gotErrs := diagnostics.String()
 
 			if *update {
 				err := archive.Write("tokens.txt", got)
@@ -467,10 +468,7 @@ func FuzzScanner(f *testing.F) {
 	// Property: The scanner never panics or loops indefinitely, fuzz
 	// by default will catch both of these
 	f.Fuzz(func(t *testing.T, src string) {
-		// Note: no ErrorHandler installed, because if we let the scanner report syntax
-		// errors it would kill the fuzz test straight away e.g. on the first invalid
-		// utf-8 char
-		scanner := scanner.New("fuzz", []byte(src), nil)
+		scanner := scanner.New("fuzz", []byte(src))
 
 		for {
 			tok := scanner.Scan()
@@ -508,7 +506,7 @@ func BenchmarkScanner(b *testing.B) {
 	test.True(b, ok, test.Context("%s missing src.http", file))
 
 	for b.Loop() {
-		s := scanner.New("bench", []byte(src), testFailHandler(b))
+		s := scanner.New("bench", []byte(src))
 
 		for {
 			tok := s.Scan()
@@ -516,52 +514,5 @@ func BenchmarkScanner(b *testing.B) {
 				break
 			}
 		}
-	}
-}
-
-// testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
-// the enclosing test.
-func testFailHandler(tb testing.TB) syntax.ErrorHandler {
-	tb.Helper()
-
-	return func(pos syntax.Position, msg string) {
-		tb.Fatalf("%s: %s", pos, msg)
-	}
-}
-
-// errorCollector is a helper struct that implements a [syntax.ErrorHandler] which
-// simply collects the scanning errors internally to be inspected later.
-type errorCollector struct {
-	errs []string
-	mu   sync.RWMutex
-}
-
-func (e *errorCollector) String() string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	// Take a copy so as not to alter the original
-	errsCopy := slices.Clone(e.errs)
-
-	var s strings.Builder
-
-	slices.Sort(errsCopy) // Deterministic
-
-	for _, err := range errsCopy {
-		s.WriteString(err)
-	}
-
-	return s.String()
-}
-
-// handler returns the [syntax.ErrorHandler] to be plugged in to the scanning operation.
-func (e *errorCollector) handler() syntax.ErrorHandler {
-	return func(pos syntax.Position, msg string) {
-		// Because the scanner runs in it's own goroutine and also makes use of the
-		// handler
-		e.mu.Lock()
-		defer e.mu.Unlock()
-
-		e.errs = append(e.errs, fmt.Sprintf("%s: %s\n", pos, msg))
 	}
 }

@@ -14,7 +14,7 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"io"
+	"slices"
 	"strings"
 
 	"go.followtheprocess.codes/zap/internal/syntax"
@@ -29,25 +29,19 @@ var ErrParse = errors.New("parse error")
 
 // Parser is the http file parser.
 type Parser struct {
-	handler   syntax.ErrorHandler // The installed error handler, to be called in response to parse errors
-	scanner   *scanner.Scanner    // Scanner to produce tokens
-	name      string              // Name of the file being parsed
-	src       []byte              // Raw source text
-	current   token.Token         // Current token under inspection
-	next      token.Token         // Next token in the stream
-	hadErrors bool                // Whether we encountered parse errors
+	diagnostics []syntax.Diagnostic // Diagnostics gathered during parsing
+	scanner     *scanner.Scanner    // Scanner to produce tokens
+	name        string              // Name of the file being parsed
+	src         []byte              // Raw source text
+	current     token.Token         // Current token under inspection
+	next        token.Token         // Next token in the stream
+	hadErrors   bool                // Whether we encountered parse errors
 }
 
-// New initialises and returns a new [Parser] that reads from r.
-func New(name string, r io.Reader, handler syntax.ErrorHandler) (*Parser, error) {
-	src, err := io.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read from input: %w", err)
-	}
-
+// New initialises and returns a new [Parser] that parses src.
+func New(name string, src []byte) *Parser {
 	p := &Parser{
-		handler: handler,
-		scanner: scanner.New(name, src, handler),
+		scanner: scanner.New(name, src),
 		name:    name,
 		src:     src,
 	}
@@ -56,7 +50,7 @@ func New(name string, r io.Reader, handler syntax.ErrorHandler) (*Parser, error)
 	p.advance()
 	p.advance()
 
-	return p, nil
+	return p
 }
 
 // Parse parses the file to completion returning an [ast.File] and any parsing errors.
@@ -102,6 +96,18 @@ func (p *Parser) Parse() (ast.File, error) {
 	return file, nil
 }
 
+// Diagnostics returns any [syntax.Diagnostic] gathered during parsing.
+func (p *Parser) Diagnostics() []syntax.Diagnostic {
+	combined := slices.Concat(p.scanner.Diagnostics(), p.diagnostics)
+
+	// Sort by file and line number
+	slices.SortFunc(combined, func(a, b syntax.Diagnostic) int {
+		return syntax.ComparePosition(a.Position, b.Position)
+	})
+
+	return combined
+}
+
 // advance advances the parser by a single token.
 func (p *Parser) advance() {
 	p.current = p.next
@@ -116,10 +122,8 @@ func (p *Parser) advance() {
 // It returns an [ErrParse] is the expectation is violated, nil otherwise.
 func (p *Parser) expect(kinds ...token.Kind) error {
 	if p.next.Is(token.Error) {
-		p.error("Error token from scanner")
 		// Nobody expects an error!
-		// But seriously, this means the scanner has emitted an error and has already
-		// passed it to the error handler
+		p.error("Error token from scanner")
 		return ErrParse
 	}
 
@@ -187,17 +191,17 @@ func (p *Parser) position() syntax.Position {
 	}
 }
 
-// error calculates the current position and calls the installed error handler
-// with the correct information.
+// error calculates the current position and appends a syntax diagnostic to
+// the parser.
 func (p *Parser) error(msg string) {
 	p.hadErrors = true
 
-	if p.handler == nil {
-		// I guess ignore?
-		return
+	diag := syntax.Diagnostic{
+		Msg:      msg,
+		Position: p.position(),
 	}
 
-	p.handler(p.position(), msg)
+	p.diagnostics = append(p.diagnostics, diag)
 }
 
 // errorf calls error with a formatted message.

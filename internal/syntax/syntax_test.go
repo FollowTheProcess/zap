@@ -1,25 +1,15 @@
 package syntax_test
 
 import (
-	"bytes"
-	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"go.followtheprocess.codes/snapshot"
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
-)
-
-var (
-	update = flag.Bool("update", false, "Update snapshots")
-	clean  = flag.Bool("clean", false, "Clean all snapshots and recreate")
 )
 
 func TestPositionString(t *testing.T) {
@@ -73,246 +63,6 @@ func TestPositionString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			test.Equal(t, tt.pos.String(), tt.want)
-		})
-	}
-}
-
-func TestFileString(t *testing.T) {
-	tests := []struct {
-		name string      // Name of the test case
-		file syntax.File // File under test
-	}{
-		{
-			name: "empty",
-			file: syntax.File{},
-		},
-		{
-			name: "name only",
-			file: syntax.File{
-				Name: "FileyMcFileFace",
-			},
-		},
-		{
-			name: "name and vars",
-			file: syntax.File{
-				Name: "SomeVars",
-				Vars: map[string]string{
-					"base":  "https://url.com/api/v1",
-					"hello": "world",
-				},
-			},
-		},
-		{
-			name: "non default timeouts",
-			file: syntax.File{
-				Name:              "Timeouts",
-				Timeout:           42 * time.Second,
-				ConnectionTimeout: 12 * time.Second,
-			},
-		},
-		{
-			name: "no redirect",
-			file: syntax.File{
-				Name:       "NoRedirect",
-				NoRedirect: true,
-			},
-		},
-		{
-			name: "with simple request",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Comment: "A simple request",
-						Name:    "GetItem",
-						Method:  http.MethodGet,
-						URL:     "https://api.com/v1/items/123",
-					},
-				},
-			},
-		},
-		{
-			name: "global prompt",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Prompts: map[string]syntax.Prompt{
-					"colour": {
-						Name:        "colour",
-						Description: "The colour of something",
-					},
-				},
-				Requests: []syntax.Request{
-					{
-						Comment: "A simple request",
-						Name:    "SimpleRequest",
-						Method:  http.MethodGet,
-						URL:     "https://api.com/v1/items/123",
-					},
-				},
-			},
-		},
-		{
-			name: "request headers",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Method: http.MethodPost,
-						URL:    "https://api.com/v1/items/123",
-						Headers: http.Header{
-							"Accept":        []string{"application/json"},
-							"Content-Type":  []string{"application/json"},
-							"Authorization": []string{"Bearer xxxxx"},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "request with timeouts",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Name:              "AnotherRequest",
-						Comment:           "This time it's a POST",
-						Method:            http.MethodPost,
-						URL:               "https://api.com/v1/items/123",
-						Timeout:           3 * time.Second,
-						ConnectionTimeout: 500 * time.Millisecond,
-						NoRedirect:        true,
-					},
-				},
-			},
-		},
-		{
-			name: "request with body file",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Name:     "AnotherRequest",
-						Method:   http.MethodPost,
-						URL:      "https://api.com/v1/items/123",
-						BodyFile: "./body.json",
-					},
-				},
-			},
-		},
-		{
-			name: "request with body file and response ref",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Name:        "AnotherRequest",
-						Method:      http.MethodPost,
-						URL:         "https://api.com/v1/items/123",
-						BodyFile:    "./body.json",
-						ResponseRef: "response.json",
-					},
-				},
-			},
-		},
-		{
-			name: "request with body",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Name:    "PostJSON",
-						Comment: "This time with JSON body",
-						Method:  http.MethodPost,
-						URL:     "https://api.com/v1/items/123",
-						Body:    []byte(`{"some": "json", "here": "yes"}`),
-					},
-				},
-			},
-		},
-		{
-			name: "request with response file",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Method:       http.MethodPost,
-						URL:          "https://api.com/v1/items/123",
-						ResponseFile: "./response.json",
-					},
-				},
-			},
-		},
-		{
-			name: "request with response ref",
-			file: syntax.File{
-				Name: "Requests",
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Method:      http.MethodPost,
-						URL:         "https://api.com/v1/items/123",
-						ResponseRef: "./response.json",
-					},
-				},
-			},
-		},
-		{
-			name: "request with prompts",
-			file: syntax.File{
-				Vars: map[string]string{
-					"base": "https://api.com/v1",
-				},
-				Requests: []syntax.Request{
-					{
-						Method:       http.MethodPost,
-						URL:          "https://api.com/v1/items/{{ id }}",
-						ResponseFile: "./response.json",
-						Prompts: map[string]syntax.Prompt{
-							"id": {
-								Name:        "id",
-								Description: "The ID of the item",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			snap := snapshot.New(
-				t,
-				snapshot.Update(*update),
-				snapshot.Clean(*clean),
-			)
-			snap.Snap(tt.file.String())
 		})
 	}
 }
@@ -401,24 +151,13 @@ func BenchmarkEntireParse(b *testing.B) {
 	test.Ok(b, err)
 
 	for b.Loop() {
-		p, err := parser.New(file, bytes.NewReader(src), testFailHandler(b))
-		test.Ok(b, err)
+		p := parser.New(file, src)
 
 		parsed, err := p.Parse()
 		test.Ok(b, err)
 
-		res := resolver.New(file)
+		res := resolver.New(file, src)
 		_, err = res.Resolve(parsed)
 		test.Ok(b, err)
-	}
-}
-
-// testFailHandler returns a [syntax.ErrorHandler] that handles syntax errors by failing
-// the enclosing test.
-func testFailHandler(tb testing.TB) syntax.ErrorHandler {
-	tb.Helper()
-
-	return func(pos syntax.Position, msg string) {
-		tb.Fatalf("%s: %s", pos, msg)
 	}
 }

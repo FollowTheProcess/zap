@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"fmt"
 	"slices"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -42,24 +43,24 @@ type scanFn func(*Scanner) scanFn
 
 // Scanner is the http file scanner.
 type Scanner struct {
-	handler           syntax.ErrorHandler // The installed error handler, to be called in response to scanning errors
 	tokens            chan token.Token    // Channel on which to emit scanned tokens
 	name              string              // Name of the file
+	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
 	src               []byte              // Raw source text
 	start             int                 // The start position of the current token
 	pos               int                 // Current scanner position in src (bytes, 0 indexed)
 	line              int                 // Current line number, 1 indexed
 	currentLineOffset int                 // Offset at which the current line started
+	mu                sync.RWMutex        // Guards diagnostics
 }
 
 // New returns a new [Scanner] and kicks off the state machine in a goroutine.
-func New(name string, src []byte, handler syntax.ErrorHandler) *Scanner {
+func New(name string, src []byte) *Scanner {
 	s := &Scanner{
-		handler: handler,
-		tokens:  make(chan token.Token, bufferSize),
-		name:    name,
-		src:     src,
-		line:    1,
+		tokens: make(chan token.Token, bufferSize),
+		name:   name,
+		src:    src,
+		line:   1,
 	}
 
 	// run terminates when the scanning state machine is finished and all the
@@ -72,6 +73,18 @@ func New(name string, src []byte, handler syntax.ErrorHandler) *Scanner {
 // Scan scans the input and returns the next token.
 func (s *Scanner) Scan() token.Token {
 	return <-s.tokens
+}
+
+// Diagnostics returns the list of diagnostics gathered during scanning.
+func (s *Scanner) Diagnostics() []syntax.Diagnostic {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Create a copy so caller can't mutate the original diagnostics slice
+	diagCopy := make([]syntax.Diagnostic, 0, len(s.diagnostics))
+	diagCopy = append(diagCopy, s.diagnostics...)
+
+	return diagCopy
 }
 
 // next returns the next utf8 rune in the input, or [eof], and advances the scanner
@@ -204,14 +217,7 @@ func (s *Scanner) run() {
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
 func (s *Scanner) error(msg string) {
-	// So that even if there is no handler installed, we still know something
-	// went wrong
 	s.emit(token.Error)
-
-	if s.handler == nil {
-		// Nothing more to do
-		return
-	}
 
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
@@ -226,7 +232,15 @@ func (s *Scanner) error(msg string) {
 		EndCol:   endCol,
 	}
 
-	s.handler(position, msg)
+	diag := syntax.Diagnostic{
+		Position: position,
+		Msg:      msg,
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.diagnostics = append(s.diagnostics, diag)
 }
 
 // errorf calls error with a formatted message.

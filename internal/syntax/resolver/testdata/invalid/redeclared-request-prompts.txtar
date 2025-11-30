@@ -10,19 +10,23 @@ GET https://example.com/1
 -- diagnostics.json --
 [
   {
-    "file": "redeclared-request-prompts.txtar",
     "msg": "prompt id already declared",
-    "highlight": {
-      "start": 52,
-      "end": 77
+    "position": {
+      "name": "redeclared-request-prompts.txtar",
+      "offset": 52,
+      "line": 4,
+      "startCol": 3,
+      "endCol": 28
     }
   },
   {
-    "file": "redeclared-request-prompts.txtar",
     "msg": "prompt no-description already declared",
-    "highlight": {
-      "start": 80,
-      "end": 102
+    "position": {
+      "name": "redeclared-request-prompts.txtar",
+      "offset": 80,
+      "line": 5,
+      "startCol": 3,
+      "endCol": 25
     }
   }
 ]
