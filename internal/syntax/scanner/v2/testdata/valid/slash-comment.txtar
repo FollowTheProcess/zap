@@ -1,0 +1,5 @@
+-- src.http --
+// I'm also a comment
+-- tokens.txt --
+<Token::Comment start=3, end=21>
+<Token::EOF start=22, end=22>
