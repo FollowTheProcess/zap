@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/huh v0.8.0
 	github.com/rogpeppe/go-internal v1.14.1
-	go.followtheprocess.codes/cli v0.18.1
+	go.followtheprocess.codes/cli v0.18.2
 	go.followtheprocess.codes/hue v1.0.0
 	go.followtheprocess.codes/log v1.2.0
 	go.followtheprocess.codes/msg v1.9.2
@@ -30,7 +30,7 @@ require (
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20251126160633-0b68cdcd21da // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
-	github.com/clipperhouse/displaywidth v0.6.0 // indirect
+	github.com/clipperhouse/displaywidth v0.6.1 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
