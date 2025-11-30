@@ -1,13 +1,14 @@
 source: toml_test.go
-expression: buf.String()
+expression: got
 ---
 |
-  name = "simple"
+  name = "with body"
   timeout = "0s"
   connectionTimeout = "0s"
 
   [[requests]]
-  method = "GET"
-  url = "https://api.nowhere.com/v1/items/1234"
+  method = "POST"
+  url = "https://somewhere.org/api/items/1"
+  body = "{\"stuff\":\"here\"}"
   timeout = "0s"
   connectionTimeout = "0s"

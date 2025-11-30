@@ -1,9 +1,9 @@
 source: yaml_test.go
-expression: buf.String()
+expression: got
 ---
 |
-  name: with body file
+  name: with body
   requests:
     - method: POST
       url: https://somewhere.org/api/items/1
-      bodyFile: a/file.txt
+      body: '{"stuff":"here"}'

@@ -280,6 +280,8 @@ func (z Zap) doRequest(
 	return response, nil
 }
 
+// TODO(@FollowTheProcess): Respect --output
+
 // showResponse prints the response in a user friendly way to z.stdout.
 func (z Zap) showResponse(file string, request spec.Request, response Response, verbose bool) {
 	fmt.Fprintln(z.stdout)

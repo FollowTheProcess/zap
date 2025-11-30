@@ -1,6 +1,7 @@
 package format
 
 import (
+	"fmt"
 	"io"
 
 	"go.followtheprocess.codes/zap/internal/spec"
@@ -19,4 +20,22 @@ func (y YAMLExporter) Export(w io.Writer, file spec.File) error {
 	encoder.SetIndent(yamlIndent)
 
 	return encoder.Encode(file)
+}
+
+// YAMLImporter is an [Importer] that transforms valid YAML representations of .http files
+// into a [spec.File].
+type YAMLImporter struct{}
+
+// Import implements [Importer] for a [YAMLImporter].
+func (y YAMLImporter) Import(r io.Reader) (spec.File, error) {
+	var file spec.File
+
+	decoder := yaml.NewDecoder(r)
+	decoder.KnownFields(true)
+
+	if err := decoder.Decode(&file); err != nil {
+		return spec.File{}, fmt.Errorf("could not decode YAML: %w", err)
+	}
+
+	return file, nil
 }

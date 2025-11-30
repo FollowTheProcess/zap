@@ -1,5 +1,5 @@
 source: toml_test.go
-expression: buf.String()
+expression: got
 ---
 |
   name = "no redirect"
