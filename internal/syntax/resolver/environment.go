@@ -22,10 +22,6 @@ func (e *environment) define(key, value string) error {
 		return fmt.Errorf("variable %s already defined", key)
 	}
 
-	if e.values == nil {
-		e.values = make(map[string]string)
-	}
-
 	e.values[key] = value
 
 	return nil

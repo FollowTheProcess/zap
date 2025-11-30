@@ -105,6 +105,7 @@ func (z Zap) printDiagnostics(diagnostics []syntax.Diagnostic) error {
 	buf := &bytes.Buffer{}
 	for _, diag := range diagnostics {
 		buf.WriteString(diag.String())
+		buf.WriteByte('\n')
 	}
 
 	_, err := buf.WriteTo(z.stderr)

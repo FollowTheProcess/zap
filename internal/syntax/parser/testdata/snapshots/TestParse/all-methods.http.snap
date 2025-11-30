@@ -1,0 +1,240 @@
+source: parser_test.go
+expression: parsed
+---
+name: all-methods.http
+statements:
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 8
+        end: 29
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodGet
+        start: 4
+        end: 7
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 39
+        end: 60
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodHead
+        start: 34
+        end: 38
+      type: Method
+    sep:
+      kind: Separator
+      start: 30
+      end: 33
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 70
+        end: 91
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodPost
+        start: 65
+        end: 69
+      type: Method
+    sep:
+      kind: Separator
+      start: 61
+      end: 64
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 100
+        end: 121
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodPut
+        start: 96
+        end: 99
+      type: Method
+    sep:
+      kind: Separator
+      start: 92
+      end: 95
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 132
+        end: 153
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodPatch
+        start: 126
+        end: 131
+      type: Method
+    sep:
+      kind: Separator
+      start: 122
+      end: 125
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 165
+        end: 186
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodDelete
+        start: 158
+        end: 164
+      type: Method
+    sep:
+      kind: Separator
+      start: 154
+      end: 157
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 199
+        end: 220
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodConnect
+        start: 191
+        end: 198
+      type: Method
+    sep:
+      kind: Separator
+      start: 187
+      end: 190
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 231
+        end: 252
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodTrace
+        start: 225
+        end: 230
+      type: Method
+    sep:
+      kind: Separator
+      start: 221
+      end: 224
+    type: Request
+  - url:
+      value: https://something.com
+      token:
+        kind: URL
+        start: 265
+        end: 286
+      type: URL
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodOptions
+        start: 257
+        end: 264
+      type: Method
+    sep:
+      kind: Separator
+      start: 253
+      end: 256
+    type: Request
+type: File

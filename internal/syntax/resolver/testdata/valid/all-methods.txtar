@@ -1,0 +1,49 @@
+-- src.http --
+###
+GET https://something.com
+###
+HEAD https://something.com
+###
+POST https://something.com
+###
+PUT https://something.com
+###
+PATCH https://something.com
+###
+DELETE https://something.com
+###
+CONNECT https://something.com
+###
+TRACE https://something.com
+###
+OPTIONS https://something.com
+-- want.yaml --
+name: all-methods.txtar
+requests:
+  - name: '#1'
+    method: GET
+    url: https://something.com
+  - name: '#2'
+    method: HEAD
+    url: https://something.com
+  - name: '#3'
+    method: POST
+    url: https://something.com
+  - name: '#4'
+    method: PUT
+    url: https://something.com
+  - name: '#5'
+    method: PATCH
+    url: https://something.com
+  - name: '#6'
+    method: DELETE
+    url: https://something.com
+  - name: '#7'
+    method: CONNECT
+    url: https://something.com
+  - name: '#8'
+    method: TRACE
+    url: https://something.com
+  - name: '#9'
+    method: OPTIONS
+    url: https://something.com

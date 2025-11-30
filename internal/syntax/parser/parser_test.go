@@ -84,6 +84,7 @@ func TestInvalid(t *testing.T) {
 			var diagnostics strings.Builder
 			for _, diag := range parser.Diagnostics() {
 				diagnostics.WriteString(diag.String())
+				diagnostics.WriteByte('\n')
 			}
 
 			got := diagnostics.String()
