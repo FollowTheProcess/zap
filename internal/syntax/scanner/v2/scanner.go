@@ -369,8 +369,16 @@ func scanIdent(s *Scanner) state {
 func scanText(s *Scanner) state {
 	s.takeWhile(isText)
 
+	// Is it a HTTP version?
+	src := s.src[s.start:s.pos]
+	if bytes.HasPrefix(src, []byte("HTTP/")) {
+		// Yes!
+		s.emit(token.HTTPVersion)
+		return scanStart
+	}
+
 	// Is it a HTTP method?
-	text := string(s.src[s.start:s.pos])
+	text := string(src)
 	method, _ := token.Method(text)
 	s.emit(method)
 
