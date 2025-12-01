@@ -1,0 +1,16 @@
+-- src.http --
+@base = https://example.com
+@endpoint = {{ base /v1/items
+-- tokens.txt --
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=5>
+<Token::Eq start=6, end=7>
+<Token::URL start=8, end=27>
+<Token::At start=28, end=29>
+<Token::Ident start=29, end=37>
+<Token::Eq start=38, end=39>
+<Token::OpenInterp start=40, end=42>
+<Token::Ident start=43, end=47>
+<Token::Error start=48, end=48>
+-- errors.txt --
+unterminated-interp.txtar:2:21: unterminated interpolation, expected "}}" got '/'

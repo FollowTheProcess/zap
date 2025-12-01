@@ -401,7 +401,7 @@ func scanIdent(s *Scanner) scanFn {
 		return scanText
 	case s.restHasPrefix("{{"):
 		// @var {{ <value> }}
-		return scanInterp
+		return scanOpenInterp
 	default:
 		return scanStart
 	}
@@ -442,21 +442,25 @@ func scanEq(s *Scanner) scanFn {
 	case isAlphaNumeric(s.peek()):
 		return scanText
 	case s.restHasPrefix("{{"):
-		return scanInterp
+		return scanOpenInterp
 	default:
 		return scanStart
 	}
 }
 
-// scanInterp scans an entire interpolation of {{ <contents> }}.
-func scanInterp(s *Scanner) scanFn {
+// scanOpenInterp scans the open interp token '{{'.
+func scanOpenInterp(s *Scanner) scanFn {
 	s.takeExact("{{")
 	s.emit(token.OpenInterp)
 
-	// TODO(@FollowTheProcess): More can go here but for now let's assume
-	// it's always an ident
 	s.skip(isLineSpace)
 
+	return scanInterpInner
+}
+
+// scanInterpInner scans the expression inside an interpolation.
+func scanInterpInner(s *Scanner) scanFn {
+	// TODO(@FollowTheProcess): More things can go here
 	if isAlpha(s.peek()) {
 		// We don't actually want to move to the next state yet
 		// after the ident, just scan it
@@ -466,14 +470,21 @@ func scanInterp(s *Scanner) scanFn {
 	s.skip(isLineSpace)
 
 	if !s.restHasPrefix("}}") {
-		s.error("unterminated interpolation")
+		s.errorf("unterminated interpolation, expected %q got %q", "}}", s.peek())
 		return nil
 	}
 
+	return scanCloseInterp
+}
+
+// scanCloseInterp scans the closing interp token '}}'.
+func scanCloseInterp(s *Scanner) scanFn {
 	s.takeExact("}}")
 	s.emit(token.CloseInterp)
 
-	// If there is content on the same line, carry on
+	// TODO(@FollowTheProcess): Do we need this check?
+	//
+	// Won't scanStart get here by itself
 	if isText(s.peek()) {
 		return scanText
 	}
@@ -499,7 +510,7 @@ func scanText(s *Scanner) scanFn {
 
 	// There might be another interp on this line
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		return scanOpenInterp
 	}
 
 	return scanStart
@@ -510,7 +521,7 @@ func scanText(s *Scanner) scanFn {
 func scanURL(s *Scanner) scanFn {
 	// The first bit is templated e.g. `GET {{ base }}/v1/endpoint`
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		return scanOpenInterp
 	}
 
 	if !s.restHasPrefix("http") {
@@ -529,7 +540,15 @@ func scanURL(s *Scanner) scanFn {
 				s.emit(token.URL)
 			}
 
-			scanInterp(s)
+			// TODO(@FollowTheProcess): I don't like this
+			//
+			// The only reason we have to do this is retain the previous state of URL
+			// which wouldn't matter if we just emitted URLs as text which the parser
+			// could handle just fine
+
+			scanOpenInterp(s)
+			scanInterpInner(s)
+			scanCloseInterp(s)
 		}
 
 		// Scan URL-like characters
@@ -663,7 +682,10 @@ func scanHeaders(s *Scanner) scanFn {
 				s.emit(token.Text)
 			}
 
-			scanInterp(s)
+			// TODO(@FollowTheProcess): Same comment here
+			scanOpenInterp(s)
+			scanInterpInner(s)
+			scanCloseInterp(s)
 		}
 
 		// Scan any text on the same line
@@ -725,7 +747,10 @@ func scanBody(s *Scanner) scanFn {
 				s.emit(token.Body)
 			}
 
-			scanInterp(s)
+			// TODO(@FollowTheProcess): Same comment here
+			scanOpenInterp(s)
+			scanInterpInner(s)
+			scanCloseInterp(s)
 		}
 
 		// Scan any text
@@ -777,7 +802,7 @@ func scanLeftAngle(s *Scanner) scanFn {
 	s.skip(isLineSpace)
 
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		return scanOpenInterp
 	}
 
 	if isFilePath(s.peek()) {
@@ -810,7 +835,7 @@ func scanRightAngle(s *Scanner) scanFn {
 	s.skip(isLineSpace)
 
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		return scanOpenInterp
 	}
 
 	if isFilePath(s.peek()) {

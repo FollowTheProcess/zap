@@ -1,9 +1,0 @@
--- src.http --
-###
-GET https://example.com HTTP/1.2
--- tokens.txt --
-<Token::Separator start=0, end=3>
-<Token::MethodGet start=4, end=7>
-<Token::Text start=8, end=27>
-<Token::HTTPVersion start=28, end=36>
-<Token::EOF start=37, end=37>
