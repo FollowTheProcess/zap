@@ -277,6 +277,8 @@ func scanStart(s *Scanner) scanFn {
 		return scanSlash
 	case '@':
 		return scanAt
+	case '{':
+		return scanLeftBrace
 	default:
 		if isIdent(char) {
 			return scanText
@@ -448,6 +450,22 @@ func scanEq(s *Scanner) scanFn {
 	}
 }
 
+// scanLeftBrace scans a '{' literal.
+//
+// If the next char is another '{' then we move to scanOpenInterp.
+func scanLeftBrace(s *Scanner) scanFn {
+	if s.peek() == '{' {
+		return scanOpenInterp
+	}
+
+	return scanStart
+}
+
+// TODO(@FollowTheProcess): Need to hoist interp up to the top level state
+//
+// Which should enable it to be encountered more or less anywhere and deal
+// with a lot of the complexity we've added below to deal with this
+
 // scanOpenInterp scans the open interp token '{{'.
 func scanOpenInterp(s *Scanner) scanFn {
 	s.takeExact("{{")
@@ -584,6 +602,11 @@ func scanURL(s *Scanner) scanFn {
 	if isAlpha(s.peek()) {
 		return scanHeaders
 	}
+
+	// TODO(@FollowTheProcess): Same here, token.Body is basically unnecessary
+	//
+	// The parser simply treats it as a TextLiteral or InterpolatedExpression
+	// so we can simplify some of this
 
 	// Either this was a URL in a request and the next thing is another
 	// request or the end. Or it was a URL in a global or request variable
