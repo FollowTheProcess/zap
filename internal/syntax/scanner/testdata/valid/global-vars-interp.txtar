@@ -7,7 +7,7 @@
 <Token::At start=0, end=1>
 <Token::Ident start=1, end=5>
 <Token::Eq start=6, end=7>
-<Token::Text start=8, end=27>
+<Token::URL start=8, end=27>
 <Token::At start=28, end=29>
 <Token::Ident start=29, end=38>
 <Token::Eq start=39, end=40>
