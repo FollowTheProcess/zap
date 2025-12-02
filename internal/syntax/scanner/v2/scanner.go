@@ -57,7 +57,6 @@ type Scanner struct {
 	src               []byte              // Raw source text
 	start             int                 // The start position of the current token
 	pos               int                 // Current scanner position in src (bytes, 0 indexed)
-	width             int                 // Width of last utf8 rune read, allows backing up by 1 rune
 	line              int                 // Current line number, 1 indexed
 	currentLineOffset int                 // Offset at which the current line started
 	mu                sync.RWMutex        // Guards diagnostics
@@ -111,7 +110,6 @@ func (s *Scanner) next() rune {
 	}
 
 	s.pos += width
-	s.width = width
 
 	if char == '\n' {
 		s.line++
@@ -121,25 +119,18 @@ func (s *Scanner) next() rune {
 	return char
 }
 
-// backup steps back one rune, can only be called once per call of next.
-func (s *Scanner) backup() {
-	previousLineOffset := s.currentLineOffset
-
-	s.pos -= s.width
-	if s.pos < len(s.src) && s.src[s.pos] == '\n' {
-		// Correct the line number and offset
-		s.line--
-		s.currentLineOffset = previousLineOffset
-	}
-}
-
 // peek returns the next utf8 rune in the input, or [eof], but does not
 // advance the scanner.
 //
 // Successive calls to peek simply return the same rune again and again.
 func (s *Scanner) peek() rune {
-	defer s.backup()
-	return s.next()
+	if s.pos >= len(s.src) {
+		return eof
+	}
+
+	char, _ := utf8.DecodeRune(s.src[s.pos:])
+
+	return char
 }
 
 // rest returns the rest of the input from the current scanner position,
@@ -159,11 +150,8 @@ func (s *Scanner) rest() []byte {
 // The scanner start position is brought up to the current position before returning, effectively
 // ignoring everything it's travelled over in the meantime.
 func (s *Scanner) skip(predicate func(r rune) bool) {
-	for {
-		if !predicate(s.next()) {
-			s.backup()
-			break
-		}
+	for predicate(s.peek()) {
+		s.next()
 	}
 
 	s.start = s.pos
@@ -178,11 +166,8 @@ func (s *Scanner) restHasPrefix(prefix string) bool {
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
-	for {
-		if !predicate(s.next()) {
-			s.backup()
-			break
-		}
+	for predicate(s.peek()) {
+		s.next()
 	}
 }
 
@@ -194,10 +179,12 @@ func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 //	s.takeUntil('\n', '\t') // Consume runes until you hit a newline or a tab
 func (s *Scanner) takeUntil(runes ...rune) {
 	for {
-		if slices.Contains(runes, s.next()) {
-			s.backup()
+		next := s.peek()
+		if slices.Contains(runes, next) {
 			return
 		}
+		// Otherwise, advance the scanner
+		s.next()
 	}
 }
 
@@ -211,9 +198,8 @@ func (s *Scanner) takeExact(match string) {
 	}
 
 	for _, char := range match {
-		if s.next() != char {
-			s.backup()
-			return
+		if s.peek() == char {
+			s.next()
 		}
 	}
 }
@@ -283,8 +269,78 @@ func scanStart(s *Scanner) scanFn {
 	case eof:
 		s.emit(token.EOF)
 		return nil
+	case '#':
+		return scanHashComment
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
 	}
+}
+
+// scanHashComment scans a '#' initiated comment.
+//
+// It assumes the opening '#' has already been consumed.
+func scanHashComment(s *Scanner) scanFn {
+	if s.peek() == '#' {
+		// It's a request separator
+		panic("TODO: Request separator")
+	}
+
+	return scanComment
+}
+
+// scanComment scans a line comment started with either a '#' or '//'.
+//
+// The comment opening character(s) have already been consumed.
+func scanComment(s *Scanner) scanFn {
+	s.skip(isLineSpace)
+
+	// Requests may have '{//|#} @ident [=] <text>' to set request-scoped
+	// variables
+	if s.peek() == '@' {
+		panic("TODO: Scan '@'")
+	}
+
+	// Absorb the whole line as the comment
+	s.takeUntil('\n', eof)
+
+	s.emit(token.Comment)
+
+	return scanStart
+}
+
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
+}
+
+// isDigit reports whether r is a valid ASCII digit.
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+// isAlphaNumeric reports whether r is an alpha-numeric character.
+func isAlphaNumeric(r rune) bool {
+	return isAlpha(r) || isDigit(r)
+}
+
+// isText reports whether r is valid in a continuous string of text.
+func isText(r rune) bool {
+	return !unicode.IsSpace(r) && r != eof && r != '{' && r != '}'
+}
+
+// isFilePath reports whether r could be a valid first character in a filepath.
+func isFilePath(r rune) bool {
+	return isIdent(r) || r == '.' || r == '/' || r == '\\'
+}
+
+// isLineSpace reports whether r is a non line terminating whitespace character,
+// imagine [unicode.IsSpace] but without '\n' or '\r'.
+func isLineSpace(r rune) bool {
+	return r == ' ' || r == '\t'
 }

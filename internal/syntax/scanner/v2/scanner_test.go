@@ -72,6 +72,7 @@ func TestValid(t *testing.T) {
 				return
 			}
 
+			t.Logf("Diagnostics: %v\n", scanner.Diagnostics())
 			test.Diff(t, got, want)
 		})
 	}
