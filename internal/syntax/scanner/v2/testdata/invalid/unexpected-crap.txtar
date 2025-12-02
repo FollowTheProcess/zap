@@ -3,4 +3,4 @@
 -- tokens.txt --
 <Token::Error start=0, end=1>
 -- errors.txt --
-unexpected-crap.txtar:1:2: unrecognised character: '!'
+unexpected-crap.txtar:1:1: unrecognised character: '!'

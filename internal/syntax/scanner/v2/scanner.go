@@ -9,14 +9,9 @@
 // the token is then "emitted" over a channel where it may be consumed by a client e.g. the parser.
 //
 // The state of the scanner is maintained between token emits unlike a more conventional
-// switch-based scanner that must determine it's current state from scratch in every loop.
-//
-// This scanner uses "scanFns" to pass the state from one loop to an another.
-//
-// The 'run' method consumes these "scanFns" which return states in a continual loop until nil is returned
-// marking the fact that either "there is nothing more to scan" or "we've hit an error" at which point
-// the scanner closes the tokens channel, which will be picked up by the parser as a
-// signal that the input stream has ended.
+// switch-based scanner that must determine it's current state from scratch in every loop. This makes
+// it particularly useful for scanning .http files as it is not a context free grammar, a header
+// looks the same as a HTTP method (it's just raw text), or even a header value to a naive scanner.
 //
 // A similar approach is used in [BurntSushi/toml].
 //
@@ -27,6 +22,7 @@ package scanner
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"slices"
 	"unicode"
 	"unicode/utf8"
@@ -217,26 +213,21 @@ func (s *Scanner) emit(kind token.Kind) {
 	s.start = s.pos
 }
 
-// run starts the state machine for the scanner, it runs with each [scanFn] returning the next
-// state until one returns nil (typically in response to an error or eof), at which point the tokens channel
-// is closed as a signal to the receiver that no more tokens will be sent.
-func (s *Scanner) run() {
-	for state := scanStart; state != nil; {
-		state = state(s)
-	}
-
-	close(s.tokens)
-}
-
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
 func (s *Scanner) error(msg string) {
-	s.emit(token.Error)
-
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
 	startCol := 1 + s.start - s.currentLineOffset
 	endCol := 1 + s.pos - s.currentLineOffset
+
+	// If they only differ by 1, they are just pointing at
+	// one character so just point at the start of this char
+	if math.Abs(float64(startCol-endCol)) == 1 {
+		endCol = startCol
+	}
+
+	s.emit(token.Error)
 
 	position := syntax.Position{
 		Name:     s.name,
@@ -260,6 +251,15 @@ func (s *Scanner) errorf(format string, a ...any) {
 }
 
 // scanStart is the initial state of the scanner.
+//
+// The only thing that is valid at the top level are:
+//
+//   - '#' Beginning a comment or as the first char in a request separator
+//   - '/' Beginning a comment
+//   - '@' Declaring a global variable
+//
+// The scanner progresses from these initial states with each state
+// in charge of where it goes next.
 func scanStart(s *Scanner) scanFn {
 	s.skip(unicode.IsSpace)
 
@@ -269,13 +269,17 @@ func scanStart(s *Scanner) scanFn {
 		return nil
 	case '#':
 		return scanHash
+	case '/':
+		return scanSlash
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
 	}
 }
 
-// scanHash scans a '#' initiated comment.
+// scanHash scans a literal '#', either as the start of a
+// comment or if it's immediately followed by another 2 '##' then
+// as the start of a request separator.
 //
 // It assumes the opening '#' has already been consumed.
 func scanHash(s *Scanner) scanFn {
@@ -284,6 +288,20 @@ func scanHash(s *Scanner) scanFn {
 	if s.restHasPrefix("##") {
 		return scanSeparator
 	}
+
+	return scanComment
+}
+
+// scanSlash scans a '/' which only has any significance if
+// it is followed by another one to form the start of a slash
+// comment.
+func scanSlash(s *Scanner) scanFn {
+	if s.peek() != '/' {
+		// Ignore
+		return scanStart
+	}
+
+	s.next() // Consume the second '/' we now know is there
 
 	return scanComment
 }
