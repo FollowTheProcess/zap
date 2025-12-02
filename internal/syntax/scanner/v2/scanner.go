@@ -28,7 +28,6 @@ import (
 	"bytes"
 	"fmt"
 	"slices"
-	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -52,6 +51,7 @@ type scanFn func(*Scanner) scanFn
 // Scanner is the http file scanner.
 type Scanner struct {
 	tokens            chan token.Token    // Channel on which to emit scanned tokens
+	state             scanFn              // The scanner's current state
 	name              string              // Name of the file
 	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
 	src               []byte              // Raw source text
@@ -59,7 +59,6 @@ type Scanner struct {
 	pos               int                 // Current scanner position in src (bytes, 0 indexed)
 	line              int                 // Current line number, 1 indexed
 	currentLineOffset int                 // Offset at which the current line started
-	mu                sync.RWMutex        // Guards diagnostics
 }
 
 // New returns a new [Scanner] and kicks off the state machine in a goroutine.
@@ -68,26 +67,28 @@ func New(name string, src []byte) *Scanner {
 		tokens: make(chan token.Token, bufferSize),
 		name:   name,
 		src:    src,
+		state:  scanStart,
 		line:   1,
 	}
-
-	// run terminates when the scanning state machine is finished and all the
-	// tokens are drained from s.tokens, so no other synchronisation needed here
-	go s.run()
 
 	return s
 }
 
 // Scan scans the input and returns the next token.
 func (s *Scanner) Scan() token.Token {
-	return <-s.tokens
+	for {
+		select {
+		case tok := <-s.tokens:
+			return tok
+		default:
+			// Move to the next state
+			s.state = s.state(s)
+		}
+	}
 }
 
 // Diagnostics returns the list of diagnostics gathered during scanning.
 func (s *Scanner) Diagnostics() []syntax.Diagnostic {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	// Create a copy so caller can't mutate the original diagnostics slice
 	diagCopy := make([]syntax.Diagnostic, 0, len(s.diagnostics))
 	diagCopy = append(diagCopy, s.diagnostics...)
@@ -250,9 +251,6 @@ func (s *Scanner) error(msg string) {
 		Msg:      msg,
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	s.diagnostics = append(s.diagnostics, diag)
 }
 
@@ -270,20 +268,21 @@ func scanStart(s *Scanner) scanFn {
 		s.emit(token.EOF)
 		return nil
 	case '#':
-		return scanHashComment
+		return scanHash
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
 	}
 }
 
-// scanHashComment scans a '#' initiated comment.
+// scanHash scans a '#' initiated comment.
 //
 // It assumes the opening '#' has already been consumed.
-func scanHashComment(s *Scanner) scanFn {
-	if s.peek() == '#' {
-		// It's a request separator
-		panic("TODO: Request separator")
+func scanHash(s *Scanner) scanFn {
+	// The opening '#' has been consumed so we're looking for 2 more
+	// to make a separator
+	if s.restHasPrefix("##") {
+		return scanSeparator
 	}
 
 	return scanComment
@@ -305,6 +304,23 @@ func scanComment(s *Scanner) scanFn {
 	s.takeUntil('\n', eof)
 
 	s.emit(token.Comment)
+
+	return scanStart
+}
+
+// scanSeparator scans the literal '###' used as a request separator.
+//
+// It assumes the first '#' has already been consumed.
+func scanSeparator(s *Scanner) scanFn {
+	s.takeExact("##")
+	s.emit(token.Separator)
+
+	// If there is text on the same line as the separator it is a request comment
+	s.skip(isLineSpace)
+
+	if s.peek() != '\n' && s.peek() != eof {
+		return scanComment
+	}
 
 	return scanStart
 }
