@@ -252,7 +252,7 @@ func (s *Scanner) errorf(format string, a ...any) {
 
 // scanStart is the initial state of the scanner.
 //
-// The only thing that is valid at the top level are:
+// The only things that are valid at the top level are:
 //
 //   - '#' Beginning a comment or as the first char in a request separator
 //   - '/' Beginning a comment
@@ -264,13 +264,15 @@ func scanStart(s *Scanner) scanFn {
 	s.skip(unicode.IsSpace)
 
 	switch char := s.next(); char {
-	case eof:
-		s.emit(token.EOF)
-		return nil
 	case '#':
 		return scanHash
 	case '/':
 		return scanSlash
+	case '@':
+		return scanAt
+	case eof:
+		s.emit(token.EOF)
+		return nil
 	default:
 		s.errorf("unrecognised character: %q", char)
 		return nil
@@ -304,6 +306,48 @@ func scanSlash(s *Scanner) scanFn {
 	s.next() // Consume the second '/' we now know is there
 
 	return scanComment
+}
+
+// scanAt scans a '@' literal.
+//
+// It assumes the '@' has already been consumed.
+func scanAt(s *Scanner) scanFn {
+	s.emit(token.At)
+
+	if isAlpha(s.peek()) {
+		return scanIdent
+	}
+
+	return scanStart
+}
+
+// scanIdent scans an ident, that is; a continuous sequence
+// of valid ident characters.
+func scanIdent(s *Scanner) scanFn {
+	s.takeWhile(isIdent)
+
+	// Is it a keyword? If so token.Keyword will return it's
+	// proper token type, else [token.Ident].
+	// Either way we need to emit it and then check for an optional '='
+	text := string(s.src[s.start:s.pos])
+	kind, _ := token.Keyword(text)
+	s.emit(kind)
+
+	s.skip(isLineSpace)
+
+	peek := s.peek()
+
+	switch {
+	case peek == '=':
+		// @var = <value>
+		return scanEq
+	case isAlphaNumeric(peek):
+		// @var <value>
+		// Value could be a timeout, hence alpha-numeric
+		return scanText
+	default:
+		return scanStart
+	}
 }
 
 // scanComment scans a line comment started with either a '#' or '//'.
@@ -343,6 +387,25 @@ func scanSeparator(s *Scanner) scanFn {
 	return scanStart
 }
 
+// scanEq scans a '=' character, as used in a variable declaration.
+func scanEq(s *Scanner) scanFn {
+	s.next()
+	s.emit(token.Eq)
+
+	s.skip(isLineSpace)
+
+	// TODO(@FollowTheProcess): More things are allowed after a '='
+	return scanText
+}
+
+// scanText scans a series of continuous text characters (no whitespace).
+func scanText(s *Scanner) scanFn {
+	s.takeWhile(isText)
+	s.emit(token.Text)
+
+	return scanStart
+}
+
 // isAlpha reports whether r is an alpha character.
 func isAlpha(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
@@ -365,12 +428,7 @@ func isAlphaNumeric(r rune) bool {
 
 // isText reports whether r is valid in a continuous string of text.
 func isText(r rune) bool {
-	return !unicode.IsSpace(r) && r != eof && r != '{' && r != '}'
-}
-
-// isFilePath reports whether r could be a valid first character in a filepath.
-func isFilePath(r rune) bool {
-	return isIdent(r) || r == '.' || r == '/' || r == '\\'
+	return !unicode.IsSpace(r) && r != eof
 }
 
 // isLineSpace reports whether r is a non line terminating whitespace character,
