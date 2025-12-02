@@ -37,6 +37,10 @@ const (
 	bufferSize = 32       // benchmarks suggest this is the optimum token channel buffer size
 )
 
+// TODO(@FollowTheProcess): Drop URL in favour of just Text, parser treats them the same
+
+// TODO(@FollowTheProcess): Likewise Body
+
 // scanFn represents the state of the scanner as a function that does the work
 // associated with the current state, then returns the next state.
 type scanFn func(*Scanner) scanFn
@@ -263,6 +267,11 @@ func (s *Scanner) errorf(format string, a ...any) {
 // Whitespace is ignored.
 func scanStart(s *Scanner) scanFn {
 	s.skip(unicode.IsSpace)
+
+	// TODO(@FollowTheProcess): Swap .next() here for .peek()
+	//
+	// This will need all the other states to actively consume their chars
+	// but leads to more predictable and simpler states
 
 	switch char := s.next(); char {
 	case eof:
