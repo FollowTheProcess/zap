@@ -1,0 +1,33 @@
+-- src.http --
+@base = https://example.com
+@beginning = {{ base }}/v1
+@middle = something{{ base }}more
+@end = more-stuff-here{{ base }}
+-- tokens.txt --
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=5>
+<Token::Eq start=6, end=7>
+<Token::URL start=8, end=27>
+<Token::At start=28, end=29>
+<Token::Ident start=29, end=38>
+<Token::Eq start=39, end=40>
+<Token::OpenInterp start=41, end=43>
+<Token::Ident start=44, end=48>
+<Token::CloseInterp start=49, end=51>
+<Token::Text start=51, end=54>
+<Token::At start=55, end=56>
+<Token::Ident start=56, end=62>
+<Token::Eq start=63, end=64>
+<Token::Text start=65, end=74>
+<Token::OpenInterp start=74, end=76>
+<Token::Ident start=77, end=81>
+<Token::CloseInterp start=82, end=84>
+<Token::Text start=84, end=88>
+<Token::At start=89, end=90>
+<Token::Ident start=90, end=93>
+<Token::Eq start=94, end=95>
+<Token::Text start=96, end=111>
+<Token::OpenInterp start=111, end=113>
+<Token::Ident start=114, end=118>
+<Token::CloseInterp start=119, end=121>
+<Token::EOF start=122, end=122>

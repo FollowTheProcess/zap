@@ -1,0 +1,11 @@
+-- src.http --
+@base = https://{{}}.com
+-- tokens.txt --
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=5>
+<Token::Eq start=6, end=7>
+<Token::URL start=8, end=16>
+<Token::OpenInterp start=16, end=18>
+<Token::CloseInterp start=18, end=20>
+<Token::URL start=20, end=24>
+<Token::EOF start=25, end=25>
