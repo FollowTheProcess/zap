@@ -215,7 +215,7 @@ func (s *Scanner) emit(kind token.Kind) {
 
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
-func (s *Scanner) error(msg string) {
+func (s *Scanner) error(msg string) scanFn {
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
 	startCol := 1 + s.start - s.currentLineOffset
@@ -243,11 +243,14 @@ func (s *Scanner) error(msg string) {
 	}
 
 	s.diagnostics = append(s.diagnostics, diag)
+
+	// Terminate the scan
+	return nil
 }
 
 // errorf calls error with a formatted message.
-func (s *Scanner) errorf(format string, a ...any) {
-	s.error(fmt.Sprintf(format, a...))
+func (s *Scanner) errorf(format string, a ...any) scanFn {
+	return s.error(fmt.Sprintf(format, a...))
 }
 
 // scanStart is the initial state of the scanner.
@@ -274,8 +277,7 @@ func scanStart(s *Scanner) scanFn {
 		s.emit(token.EOF)
 		return nil
 	default:
-		s.errorf("unrecognised character: %q", char)
-		return nil
+		return s.errorf("unrecognised character: %q", char)
 	}
 }
 
@@ -359,7 +361,7 @@ func scanComment(s *Scanner) scanFn {
 	// Requests may have '{//|#} @ident [=] <text>' to set request-scoped
 	// variables
 	if s.peek() == '@' {
-		panic("TODO: Scan '@'")
+		return scanAt
 	}
 
 	// Absorb the whole line as the comment
@@ -380,11 +382,11 @@ func scanSeparator(s *Scanner) scanFn {
 	// If there is text on the same line as the separator it is a request comment
 	s.skip(isLineSpace)
 
-	if s.peek() != '\n' && s.peek() != eof {
+	if isText(s.peek()) {
 		return scanComment
 	}
 
-	return scanStart
+	return scanRequest
 }
 
 // scanEq scans a '=' character, as used in a variable declaration.
@@ -400,6 +402,51 @@ func scanEq(s *Scanner) scanFn {
 
 // scanText scans a series of continuous text characters (no whitespace).
 func scanText(s *Scanner) scanFn {
+	s.takeWhile(isText)
+	s.emit(token.Text)
+
+	return scanStart
+}
+
+// scanRequest scans inside a request definition, it assumes
+// the opening separator '###' and any trailing comment have
+// already been consumed and emitted.
+func scanRequest(s *Scanner) scanFn {
+	s.skip(unicode.IsSpace)
+
+	// TODO(@FollowTheProcess): More things here obviously
+	//
+	// Like request variables, prompts etc.
+
+	return scanMethod
+}
+
+// scanMethod scans a HTTP method.
+func scanMethod(s *Scanner) scanFn {
+	s.takeWhile(isAlpha)
+
+	text := string(s.src[s.start:s.pos])
+
+	kind, isMethod := token.Method(text)
+	if !isMethod {
+		if len(text) != 0 {
+			return s.errorf("expected HTTP method, got %q", text)
+		}
+
+		return s.error("unexpected EOF, expected HTTP method")
+	}
+
+	s.emit(kind)
+
+	s.skip(isLineSpace)
+
+	// Now URL
+	return scanURL
+}
+
+// scanURL scans a URL.
+func scanURL(s *Scanner) scanFn {
+	// TODO(@FollowTheProcess): Interpolation
 	s.takeWhile(isText)
 	s.emit(token.Text)
 

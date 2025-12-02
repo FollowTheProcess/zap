@@ -4,5 +4,5 @@ GET https://example.com
 -- tokens.txt --
 <Token::Separator start=0, end=3>
 <Token::MethodGet start=4, end=7>
-<Token::URL start=8, end=27>
+<Token::Text start=8, end=27>
 <Token::EOF start=28, end=28>
