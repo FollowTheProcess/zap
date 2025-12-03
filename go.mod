@@ -1,6 +1,6 @@
 module go.followtheprocess.codes/zap
 
-go 1.25
+go 1.25.5
 
 require (
 	github.com/BurntSushi/toml v1.5.0
