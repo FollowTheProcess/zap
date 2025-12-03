@@ -130,7 +130,11 @@ func (s *Scanner) peek() rune {
 		return eof
 	}
 
-	char, _ := utf8.DecodeRune(s.src[s.pos:])
+	char, width := utf8.DecodeRune(s.src[s.pos:])
+	if char == utf8.RuneError && width == 1 {
+		s.errorf("invalid utf8 character: %U", char)
+		return utf8.RuneError
+	}
 
 	return char
 }
@@ -182,7 +186,7 @@ func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 func (s *Scanner) takeUntil(runes ...rune) {
 	for {
 		next := s.peek()
-		if slices.Contains(runes, next) {
+		if slices.Contains(runes, next) || next == utf8.RuneError {
 			return
 		}
 		// Otherwise, advance the scanner
