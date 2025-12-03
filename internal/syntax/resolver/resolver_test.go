@@ -15,7 +15,6 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
-	"go.uber.org/goleak"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -32,8 +31,6 @@ func TestValid(t *testing.T) {
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
-			defer goleak.VerifyNone(t)
-
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
@@ -94,8 +91,6 @@ func TestInvalid(t *testing.T) {
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
-			defer goleak.VerifyNone(t)
-
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
@@ -170,8 +165,6 @@ func FuzzResolver(f *testing.F) {
 	test.Ok(f, err)
 
 	files := slices.Concat(validFiles, invalidFiles)
-
-	defer goleak.VerifyNone(f)
 
 	for _, file := range files {
 		archive, err := txtar.ParseFile(file)

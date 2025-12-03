@@ -24,7 +24,6 @@ import (
 	"bytes"
 	"fmt"
 	"slices"
-	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -48,6 +47,7 @@ type scanFn func(*Scanner) scanFn
 // Scanner is the http file scanner.
 type Scanner struct {
 	tokens            chan token.Token    // Channel on which to emit scanned tokens
+	state             scanFn              // Scanner's current state
 	name              string              // Name of the file
 	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
 	src               []byte              // Raw source text
@@ -55,7 +55,6 @@ type Scanner struct {
 	pos               int                 // Current scanner position in src (bytes, 0 indexed)
 	line              int                 // Current line number, 1 indexed
 	currentLineOffset int                 // Offset at which the current line started
-	mu                sync.RWMutex        // Guards diagnostics
 }
 
 // New returns a new [Scanner] and kicks off the state machine in a goroutine.
@@ -65,25 +64,30 @@ func New(name string, src []byte) *Scanner {
 		name:   name,
 		src:    src,
 		line:   1,
+		state:  scanStart,
 	}
-
-	// run terminates when the scanning state machine is finished and all the
-	// tokens are drained from s.tokens, so no other synchronisation needed here
-	go s.run()
 
 	return s
 }
 
 // Scan scans the input and returns the next token.
 func (s *Scanner) Scan() token.Token {
-	return <-s.tokens
+	for {
+		select {
+		case tok := <-s.tokens:
+			return tok
+		default:
+			s.state = s.state(s)
+			if s.state == nil {
+				// No more tokens
+				close(s.tokens)
+			}
+		}
+	}
 }
 
 // Diagnostics returns the list of diagnostics gathered during scanning.
 func (s *Scanner) Diagnostics() []syntax.Diagnostic {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	// Create a copy so caller can't mutate the original diagnostics slice
 	diagCopy := make([]syntax.Diagnostic, 0, len(s.diagnostics))
 	diagCopy = append(diagCopy, s.diagnostics...)
@@ -207,17 +211,6 @@ func (s *Scanner) emit(kind token.Kind) {
 	s.start = s.pos
 }
 
-// run starts the state machine for the scanner, it runs with each [scanFn] returning the next
-// state until one returns nil (typically in response to an error or eof), at which point the tokens channel
-// is closed as a signal to the receiver that no more tokens will be sent.
-func (s *Scanner) run() {
-	for state := scanStart; state != nil; {
-		state = state(s)
-	}
-
-	close(s.tokens)
-}
-
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
 func (s *Scanner) error(msg string) {
@@ -240,9 +233,6 @@ func (s *Scanner) error(msg string) {
 		Position: position,
 		Msg:      msg,
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	s.diagnostics = append(s.diagnostics, diag)
 }
@@ -267,11 +257,6 @@ func (s *Scanner) errorf(format string, a ...any) {
 // Whitespace is ignored.
 func scanStart(s *Scanner) scanFn {
 	s.skip(unicode.IsSpace)
-
-	// TODO(@FollowTheProcess): Swap .next() here for .peek()
-	//
-	// This will need all the other states to actively consume their chars
-	// but leads to more predictable and simpler states
 
 	switch char := s.next(); char {
 	case eof:

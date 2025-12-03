@@ -10,7 +10,6 @@ import (
 
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/zap"
-	"go.uber.org/goleak"
 )
 
 func TestCheckValid(t *testing.T) {
@@ -21,8 +20,6 @@ func TestCheckValid(t *testing.T) {
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
-			defer goleak.VerifyNone(t)
-
 			stdout := &bytes.Buffer{}
 			stderr := &bytes.Buffer{}
 
@@ -71,8 +68,6 @@ func TestCheckInvalid(t *testing.T) {
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
-			defer goleak.VerifyNone(t)
-
 			stdout := &bytes.Buffer{}
 			stderr := &bytes.Buffer{}
 

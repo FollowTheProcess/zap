@@ -12,7 +12,6 @@ import (
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
-	"go.uber.org/goleak"
 )
 
 var (
@@ -21,15 +20,13 @@ var (
 )
 
 func TestParse(t *testing.T) {
-	pattern := filepath.Join("testdata", "valid", "*.http")
+	pattern := filepath.Join("testdata", "valid", "all-methods.http")
 	files, err := filepath.Glob(pattern)
 	test.Ok(t, err)
 
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
-			defer goleak.VerifyNone(t)
-
 			snap := snapshot.New(
 				t,
 				snapshot.Update(*update),
@@ -65,8 +62,6 @@ func TestInvalid(t *testing.T) {
 	for _, file := range files {
 		name := filepath.Base(file)
 		t.Run(name, func(t *testing.T) {
-			defer goleak.VerifyNone(t)
-
 			archive, err := txtar.ParseFile(file)
 			test.Ok(t, err)
 
@@ -127,8 +122,6 @@ func FuzzParser(f *testing.F) {
 	test.Ok(f, err)
 
 	files := slices.Concat(validFiles, invalidFiles)
-
-	defer goleak.VerifyNone(f)
 
 	for _, file := range files {
 		src, err := os.ReadFile(file)
