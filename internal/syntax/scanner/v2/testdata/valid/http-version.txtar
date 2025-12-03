@@ -4,6 +4,6 @@ GET https://api.somewhere.com/items/1 HTTP/1.1
 -- tokens.txt --
 <Token::Separator start=0, end=3>
 <Token::MethodGet start=4, end=7>
-<Token::URL start=8, end=41>
+<Token::Text start=8, end=41>
 <Token::HTTPVersion start=42, end=50>
 <Token::EOF start=51, end=51>

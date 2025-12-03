@@ -92,11 +92,16 @@ func (s *Scanner) Diagnostics() []syntax.Diagnostic {
 	return diagCopy
 }
 
+// atEOF reports whether the scanner has reached the end of the input.
+func (s *Scanner) atEOF() bool {
+	return s.pos >= len(s.src)
+}
+
 // next returns the next utf8 rune in the input, or [eof], and advances the scanner
 // over that rune such that successive calls to [Scanner.next] iterate through
 // src one rune at a time.
 func (s *Scanner) next() rune {
-	if s.pos >= len(s.src) {
+	if s.atEOF() {
 		return eof
 	}
 
@@ -121,7 +126,7 @@ func (s *Scanner) next() rune {
 //
 // Successive calls to peek simply return the same rune again and again.
 func (s *Scanner) peek() rune {
-	if s.pos >= len(s.src) {
+	if s.atEOF() {
 		return eof
 	}
 
@@ -133,7 +138,7 @@ func (s *Scanner) peek() rune {
 // rest returns the rest of the input from the current scanner position,
 // or nil if the scanner is at EOF.
 func (s *Scanner) rest() []byte {
-	if s.pos >= len(s.src) {
+	if s.atEOF() {
 		return nil
 	}
 
@@ -189,9 +194,9 @@ func (s *Scanner) takeUntil(runes ...rune) {
 // the scanner encounters.
 //
 // If the next characters in src do not match, this is a no-op.
-func (s *Scanner) takeExact(match string) {
+func (s *Scanner) takeExact(match string) bool {
 	if !s.restHasPrefix(match) {
-		return
+		return false
 	}
 
 	for _, char := range match {
@@ -199,6 +204,8 @@ func (s *Scanner) takeExact(match string) {
 			s.next()
 		}
 	}
+
+	return true
 }
 
 // emit passes a token over the tokens channel, using the scanner's internal
@@ -241,6 +248,8 @@ func (s *Scanner) error(msg string) scanFn {
 		Position: position,
 		Msg:      msg,
 	}
+
+	// TODO(@FollowTheProcess): If we're terminating the scan, do we need diagnostics to be a list?
 
 	s.diagnostics = append(s.diagnostics, diag)
 
@@ -374,7 +383,7 @@ func scanComment(s *Scanner) scanFn {
 
 // scanSeparator scans the literal '###' used as a request separator.
 //
-// It assumes the first '#' has already been consumed.
+// It assumes the first '#' has already been consumed and that the '##' is next.
 func scanSeparator(s *Scanner) scanFn {
 	s.takeExact("##")
 	s.emit(token.Separator)
@@ -432,7 +441,9 @@ func scanMethod(s *Scanner) scanFn {
 		if len(text) != 0 {
 			return s.errorf("expected HTTP method, got %q", text)
 		}
+	}
 
+	if s.atEOF() {
 		return s.error("unexpected EOF, expected HTTP method")
 	}
 
@@ -450,6 +461,36 @@ func scanURL(s *Scanner) scanFn {
 	s.takeWhile(isText)
 	s.emit(token.Text)
 
+	// Is there a HTTP version?
+	s.skip(isLineSpace)
+
+	if s.restHasPrefix("HTTP/") {
+		return scanHTTPVersion
+	}
+
+	return scanStart
+}
+
+// scanHTTPVersion scans a 'HTTP/<version>' statement.
+//
+// The 'HTTP/' is known to exist.
+func scanHTTPVersion(s *Scanner) scanFn {
+	s.takeExact("HTTP/")
+
+	if peek := s.peek(); !isDigit(peek) {
+		return s.errorf("bad HTTP version, expected digit got %q", peek)
+	}
+
+	s.takeWhile(isDigit)
+
+	if s.takeExact(".") {
+		// It's e.g. 1.2
+		s.takeWhile(isDigit)
+	}
+
+	s.emit(token.HTTPVersion)
+
+	// TODO(@FollowTheProcess): Headers next
 	return scanStart
 }
 
