@@ -164,12 +164,17 @@ func (s *Scanner) restHasPrefix(prefix string) bool {
 // ignoring everything it's travelled over in the meantime.
 func (s *Scanner) skip(predicate func(r rune) bool) {
 	for {
-		if predicate(s.next()) {
+		next := s.next()
+		if predicate(next) {
 			continue
 		}
 
-		s.backup()
+		if next != eof {
+			s.backup()
+		}
+
 		s.start = s.pos
+
 		return
 	}
 }
@@ -178,11 +183,15 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 	for {
-		if predicate(s.next()) {
+		next := s.next()
+		if predicate(next) {
 			continue
 		}
 
-		s.backup()
+		if next != eof {
+			s.backup()
+		}
+
 		return
 	}
 }
@@ -289,8 +298,41 @@ func scanStart(s *Scanner) stateFn {
 	case utf8.RuneError:
 		// next() already emits an error for this
 		return nil
+	case '#':
+		return scanHash
 	default:
 		s.errorf("unexpected character: %q", char)
 		return nil
 	}
+}
+
+// scanHash scans a literal '#' either as the opener to a comment
+// or the first char in a request separator.
+//
+// It assumes the '#' has already been consumed.
+func scanHash(s *Scanner) stateFn {
+	if s.restHasPrefix("##") {
+		// TODO(@FollowTheProcess): Request separator
+		panic("TODO: Request separator")
+	}
+
+	return scanComment
+}
+
+// scanComment scans a line comment started by either a '#' or '//'.
+//
+// It assumed he comment opening character(s) have already been consumed.
+func scanComment(s *Scanner) stateFn {
+	s.skip(isLineSpace)
+
+	s.takeUntil('\n', eof)
+	s.emit(token.Comment)
+
+	return scanStart
+}
+
+// isLineSpace reports whether r is a non line terminating whitespace character,
+// imagine [unicode.IsSpace] but without '\n' or '\r'.
+func isLineSpace(r rune) bool {
+	return r == ' ' || r == '\t'
 }
