@@ -5,6 +5,7 @@
 # @connection-timeout = 10s
 # @no-redirect
 # @normal-var = test
+# I'm just a normal comment
 GET https://example.com
 -- tokens.txt --
 <Token::Separator start=0, end=3>
@@ -27,6 +28,7 @@ GET https://example.com
 <Token::Ident start=97, end=107>
 <Token::Eq start=108, end=109>
 <Token::Text start=110, end=114>
-<Token::MethodGet start=115, end=118>
-<Token::Text start=119, end=138>
-<Token::EOF start=139, end=139>
+<Token::Comment start=117, end=142>
+<Token::MethodGet start=143, end=146>
+<Token::Text start=147, end=166>
+<Token::EOF start=167, end=167>
