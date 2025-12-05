@@ -372,14 +372,15 @@ func scanSeparator(s *Scanner) stateFn {
 	s.takeExact("##")
 	s.emit(token.Separator)
 
+	// Is there a request comment?
 	s.skip(isLineSpace)
 
 	if s.peek() != '\n' && s.peek() != eof {
-		return scanComment
+		s.takeUntil('\n', eof)
+		s.emit(token.Comment)
 	}
 
-	// TODO(@FollowTheProcess): This should return the scanRequest state
-	return scanStart
+	return scanRequest
 }
 
 // scanIdent scans a continuous string of characters as an identifier.
@@ -413,6 +414,53 @@ func scanText(s *Scanner) stateFn {
 	return scanStart
 }
 
+// scanRequest scans inside a HTTP request definition.
+//
+// The opening '###' has already been consumed.
+func scanRequest(s *Scanner) stateFn {
+	s.skip(unicode.IsSpace)
+
+	if isUpperAlpha(s.peek()) {
+		// Probably a request method
+		return scanMethod
+	}
+
+	return scanStart
+}
+
+// scanMethod scans a HTTP method.
+func scanMethod(s *Scanner) stateFn {
+	s.takeWhile(isUpperAlpha)
+
+	text := string(s.src[s.start:s.pos])
+
+	kind, isMethod := token.Method(text)
+	if !isMethod {
+		s.errorf("expected HTTP method, got %q", text)
+		return nil
+	}
+
+	s.emit(kind)
+	s.skip(isLineSpace)
+
+	if !s.restHasPrefix("http") && !s.restHasPrefix("{{") {
+		s.errorf("expected URL or interpolation, got %q", s.peek())
+		return nil
+	}
+
+	return scanURL
+}
+
+// scanURL scans a request URL.
+func scanURL(s *Scanner) stateFn {
+	// TODO(@FollowTheProcess): Handle interp
+	s.takeWhile(isURL)
+	s.emit(token.Text)
+
+	// TODO(@FollowTheProcess): Should move the state to scanHTTPVersion or scanHeaders
+	return scanStart
+}
+
 // isLineSpace reports whether r is a non line terminating whitespace character,
 // imagine [unicode.IsSpace] but without '\n' or '\r'.
 func isLineSpace(r rune) bool {
@@ -429,9 +477,19 @@ func isAlpha(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 }
 
+// isUpperAlpha reports whether r is an upper case alpha character.
+func isUpperAlpha(r rune) bool {
+	return r >= 'A' && r <= 'Z'
+}
+
+// isAlphaNumeric reports whether r is a valid alpha-numeric character.
+func isAlphaNumeric(r rune) bool {
+	return isAlpha(r) || isDigit(r)
+}
+
 // isIdent reports whether r is a valid identifier character.
 func isIdent(r rune) bool {
-	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
+	return isAlphaNumeric(r) || r == '_' || r == '-'
 }
 
 // isText reports whether r is valid in a continuous string of text.
@@ -443,4 +501,9 @@ func isIdent(r rune) bool {
 //   - bad utf8 runes
 func isText(r rune) bool {
 	return !unicode.IsSpace(r) && r != eof && r != utf8.RuneError
+}
+
+// isURL reports whether r is valid in a URL.
+func isURL(r rune) bool {
+	return isAlphaNumeric(r) || strings.ContainsRune("$-_.+!*'(),:/?#[]@&;=", r)
 }
