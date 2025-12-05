@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -185,6 +186,17 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 	}
 }
 
+// take consumes the next rune if it's from the valid set, and returns
+// whether it was accepted.
+func (s *Scanner) take(valid string) bool {
+	if strings.IndexRune(valid, s.next()) >= 0 {
+		return true
+	}
+
+	s.backup()
+	return false
+}
+
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
@@ -315,6 +327,8 @@ func scanStart(s *Scanner) stateFn {
 		return scanHash
 	case '/':
 		return scanSlash
+	case '@':
+		return scanAt
 	default:
 		s.errorf("unexpected character: %q", char)
 		return nil
@@ -347,6 +361,19 @@ func scanSlash(s *Scanner) stateFn {
 	return scanStart
 }
 
+// scanAt scans a literal '@' as in a variable or prompt declaration.
+//
+// It assumes the '@' has already been consumed.
+func scanAt(s *Scanner) stateFn {
+	s.emit(token.At)
+
+	if isAlpha(s.peek()) {
+		return scanIdent
+	}
+
+	return scanStart
+}
+
 // scanComment scans a line comment started by either a '#' or '//'.
 //
 // It assumed he comment opening character(s) have already been consumed.
@@ -370,10 +397,52 @@ func scanSeparator(s *Scanner) stateFn {
 	return scanStart
 }
 
+// scanIdent scans a continuous string of characters as an identifier.
+func scanIdent(s *Scanner) stateFn {
+	s.takeWhile(isIdent)
+	s.emit(token.Ident)
+
+	s.skip(isLineSpace)
+
+	if s.take("=") {
+		s.emit(token.Eq)
+		s.skip(isLineSpace)
+	}
+
+	if isText(s.peek()) {
+		return scanText
+	}
+
+	return scanStart
+}
+
+// scanText scans a continuous string of text.
+func scanText(s *Scanner) stateFn {
+	s.takeWhile(isText)
+	s.emit(token.Text)
+
+	return scanStart
+}
+
 // isLineSpace reports whether r is a non line terminating whitespace character,
 // imagine [unicode.IsSpace] but without '\n' or '\r'.
 func isLineSpace(r rune) bool {
 	return r == ' ' || r == '\t'
+}
+
+// isDigit reports whether r is a valid ASCII digit.
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
 }
 
 // isText reports whether r is valid in a continuous string of text.
