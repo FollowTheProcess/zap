@@ -140,6 +140,12 @@ func (s *Scanner) peek() rune {
 	return next
 }
 
+// discard brings the start position up to current, effectively discarding
+// any text the scanner has "collected" up to this point.
+func (s *Scanner) discard() {
+	s.start = s.pos
+}
+
 // rest returns the rest of the input from the current scanner position,
 // or nil if the scanner is an EOF.
 func (s *Scanner) rest() []byte {
@@ -173,7 +179,7 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 			s.backup()
 		}
 
-		s.start = s.pos
+		s.discard()
 
 		return
 	}
@@ -206,7 +212,10 @@ func (s *Scanner) takeUntil(runes ...rune) {
 	for {
 		next := s.next()
 		if slices.Contains(runes, next) {
-			s.backup()
+			if next != eof {
+				s.backup()
+			}
+
 			return
 		}
 	}
@@ -235,7 +244,8 @@ func (s *Scanner) emit(kind token.Kind) {
 		End:   s.pos,
 	}
 
-	s.start = s.pos
+	// We've just emitted it, no need to keep it
+	s.discard()
 }
 
 // error calculates the position information and calls the installed error handler
@@ -335,4 +345,9 @@ func scanComment(s *Scanner) stateFn {
 // imagine [unicode.IsSpace] but without '\n' or '\r'.
 func isLineSpace(r rune) bool {
 	return r == ' ' || r == '\t'
+}
+
+// isText reports whether r is valid in a continuous string of text.
+func isText(r rune) bool {
+	return !unicode.IsSpace(r) && r != eof
 }
