@@ -412,6 +412,9 @@ func scanText(s *Scanner) stateFn {
 // scanRequest scans inside a HTTP request definition.
 //
 // The opening '###' and any request comment has already been consumed.
+//
+// The only thing allowed top level in a request is '#', '//' and
+// a request method.
 func scanRequest(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
@@ -428,7 +431,6 @@ func scanRequest(s *Scanner) stateFn {
 		return scanRequestSlash
 	default:
 		if isUpperAlpha(char) {
-			// A request method
 			return scanMethod
 		}
 
@@ -528,8 +530,78 @@ func scanURL(s *Scanner) stateFn {
 	s.takeWhile(isURL)
 	s.emit(token.Text)
 
-	// TODO(@FollowTheProcess): Should move the state to scanHTTPVersion or scanHeaders
-	return scanStart
+	s.skip(isLineSpace)
+
+	// Is there a HTTP version?
+	if s.restHasPrefix("HTTP/") {
+		return scanHTTPVersion
+	}
+
+	s.skip(unicode.IsSpace)
+
+	if isIdent(s.peek()) {
+		return scanHeaders
+	}
+
+	// TODO(@FollowTheProcess): Probably should be scan body
+	return scanRequest
+}
+
+// scanHTTPVersion scans a literal 'HTTP/<version>' declaration.
+func scanHTTPVersion(s *Scanner) stateFn {
+	s.takeExact("HTTP/")
+
+	s.takeWhile(isDigit)
+
+	if s.take(".") {
+		// It's e.g 1.2
+		s.takeWhile(isDigit)
+	}
+
+	s.emit(token.HTTPVersion)
+
+	return scanHeaders
+}
+
+// scanHeaders scans a request header.
+func scanHeaders(s *Scanner) stateFn {
+	s.skip(unicode.IsSpace)
+
+	if s.atEOF() {
+		return scanStart
+	}
+
+	s.takeWhile(isIdent)
+	s.emit(token.Ident)
+
+	if s.peek() != ':' {
+		s.errorf("invalid header, expected ':', got %q", s.peek())
+		return nil
+	}
+
+	s.take(":")
+	s.emit(token.Colon)
+
+	s.skip(isLineSpace)
+
+	if isText(s.peek()) {
+		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
+	s.skip(unicode.IsSpace)
+
+	// If there are more headers, call this function again!
+	if isIdent(s.peek()) {
+		return scanHeaders
+	}
+
+	if s.peek() == eof || s.peek() == '#' {
+		return scanStart
+	}
+
+	// TODO(@FollowTheProcess): Scan body
+	return nil
 }
 
 // isLineSpace reports whether r is a non line terminating whitespace character,
