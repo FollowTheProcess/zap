@@ -1,0 +1,32 @@
+-- src.http --
+### Equals
+# @name = test-request
+# @timeout = 30s
+# @connection-timeout = 10s
+# @no-redirect
+# @normal-var = test
+GET https://example.com
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=10>
+<Token::At start=13, end=14>
+<Token::Name start=14, end=18>
+<Token::Eq start=19, end=20>
+<Token::Text start=21, end=33>
+<Token::At start=36, end=37>
+<Token::Timeout start=37, end=44>
+<Token::Eq start=45, end=46>
+<Token::Text start=47, end=50>
+<Token::At start=53, end=54>
+<Token::ConnectionTimeout start=54, end=72>
+<Token::Eq start=73, end=74>
+<Token::Text start=75, end=78>
+<Token::At start=81, end=82>
+<Token::NoRedirect start=82, end=93>
+<Token::At start=96, end=97>
+<Token::Ident start=97, end=107>
+<Token::Eq start=108, end=109>
+<Token::Text start=110, end=114>
+<Token::MethodGet start=115, end=118>
+<Token::Text start=119, end=138>
+<Token::EOF start=139, end=139>
