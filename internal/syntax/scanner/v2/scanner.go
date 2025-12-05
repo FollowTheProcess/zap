@@ -600,15 +600,8 @@ func scanHeaders(s *Scanner) stateFn {
 		return scanStart
 	}
 
-	return scanBody
-}
-
-// scanBody scans a HTTP request body.
-func scanBody(s *Scanner) stateFn {
-	s.takeUntil('#', eof)
-	s.emit(token.Text)
-
-	return scanStart
+	// TODO(@FollowTheProcess): Scan body
+	return nil
 }
 
 // isLineSpace reports whether r is a non line terminating whitespace character,
