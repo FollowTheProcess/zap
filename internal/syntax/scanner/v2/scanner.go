@@ -209,6 +209,9 @@ func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 //
 //	s.takeUntil('\n', '\t') // Consume runes until you hit a newline or a tab
 func (s *Scanner) takeUntil(runes ...rune) {
+	// Implicitly add RuneError
+	runes = append(runes, utf8.RuneError)
+
 	for {
 		next := s.next()
 		if slices.Contains(runes, next) {
@@ -310,6 +313,8 @@ func scanStart(s *Scanner) stateFn {
 		return nil
 	case '#':
 		return scanHash
+	case '/':
+		return scanSlash
 	default:
 		s.errorf("unexpected character: %q", char)
 		return nil
@@ -322,11 +327,24 @@ func scanStart(s *Scanner) stateFn {
 // It assumes the '#' has already been consumed.
 func scanHash(s *Scanner) stateFn {
 	if s.restHasPrefix("##") {
-		// TODO(@FollowTheProcess): Request separator
-		panic("TODO: Request separator")
+		return scanSeparator
 	}
 
 	return scanComment
+}
+
+// scanSlash scans a literal '/' as the opener to a slash comment, if
+// the next char is not another '/', it is ignored.
+//
+// It assumes the first '/' has already been consumed.
+func scanSlash(s *Scanner) stateFn {
+	if s.next() == '/' {
+		return scanComment
+	}
+
+	s.discard()
+
+	return scanStart
 }
 
 // scanComment scans a line comment started by either a '#' or '//'.
@@ -338,6 +356,17 @@ func scanComment(s *Scanner) stateFn {
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
+	return scanStart
+}
+
+// scanSeparator scans a '###' request separator.
+//
+// It assumes the first '#' has already been consumed.
+func scanSeparator(s *Scanner) stateFn {
+	s.takeExact("##")
+	s.emit(token.Separator)
+
+	// TODO(@FollowTheProcess): This should return the scanRequest state
 	return scanStart
 }
 
