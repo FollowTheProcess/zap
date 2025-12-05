@@ -15,7 +15,9 @@
 !go.sum
 !go.mod
 !.golangci.yml
-!**/testdata/**/*
+!**/testdata/**/*.txtar
+!**/testdata/**/*.http
+!**/testdata/**/fuzz/**
 !.goreleaser.yaml
 !*.tmpl
 

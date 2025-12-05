@@ -42,17 +42,15 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner is the http file scanner.
 type Scanner struct {
-	tokens             chan token.Token    // Channel on which to emit scanned tokens.
-	state              stateFn             // The scanner's current state
-	name               string              // Name of the file
-	diagnostics        []syntax.Diagnostic // Diagnostics gathered during scanning
-	src                []byte              // Raw source text
-	start              int                 // The start position of the current token
-	pos                int                 // Current scanner position in src (bytes, 0 indexed)
-	width              int                 // Width of the last rune scanned, allows backing up
-	line               int                 // Current line number (1 indexed)
-	currentLineOffset  int                 // Offset at which the current line started, used for column calculation
-	previousLineOffset int                 // Offset at which the previous line started, used when backing up over a line
+	tokens            chan token.Token    // Channel on which to emit scanned tokens.
+	state             stateFn             // The scanner's current state
+	name              string              // Name of the file
+	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
+	src               []byte              // Raw source text
+	start             int                 // The start position of the current token
+	pos               int                 // Current scanner position in src (bytes, 0 indexed)
+	line              int                 // Current line number (1 indexed)
+	currentLineOffset int                 // Offset at which the current line started, used for column calculation
 }
 
 // New returns a new [Scanner].
@@ -96,49 +94,45 @@ func (s *Scanner) atEOF() bool {
 	return s.pos >= len(s.src)
 }
 
+// char returns the next utf8 rune in the input or [eof], along with it's width.
+func (s *Scanner) char() (rune, int) {
+	if s.atEOF() {
+		return eof, 0
+	}
+
+	r, width := utf8.DecodeRune(s.src[s.pos:])
+	if r == utf8.RuneError && width == 1 {
+		s.errorf("invalid utf8 character at position %d: %q", s.pos, s.src[s.pos])
+		return utf8.RuneError, width
+	}
+
+	return r, width
+}
+
 // next returns the next utf8 rune in the input or [eof], and advances
 // the scanner over that rune such that successive calls to next iterate
 // through src one rune at a time.
 func (s *Scanner) next() rune {
-	if s.atEOF() {
-		return eof
-	}
+	char, width := s.char()
 
-	char, width := utf8.DecodeRune(s.src[s.pos:])
-	if char == utf8.RuneError && width == 1 {
-		s.errorf("invalid utf8 character at position %d: %q", s.pos, s.src[s.pos])
-		return utf8.RuneError
-	}
-
-	s.width = width
+	// Advance the state of the scanner
 	s.pos += width
 
 	if char == '\n' {
 		s.line++
-		s.previousLineOffset = s.currentLineOffset
 		s.currentLineOffset = s.pos
 	}
 
 	return char
 }
 
-// backup backs up by one rune, can only be called once per call of next.
-func (s *Scanner) backup() {
-	s.pos -= s.width
-	if s.pos < len(s.src) && s.src[s.pos] == '\n' {
-		s.line--
-		s.currentLineOffset = s.previousLineOffset
-	}
-}
-
 // peek returns the next utf8 rune in the input or [eof], but does not
 // advance the scanner. Successive calls to peek return the same char
 // over and over again.
 func (s *Scanner) peek() rune {
-	next := s.next()
-	s.backup()
-
-	return next
+	// No advancing the state
+	char, _ := s.char()
+	return char
 }
 
 // discard brings the start position up to current, effectively discarding
@@ -170,47 +164,29 @@ func (s *Scanner) restHasPrefix(prefix string) bool {
 // The scanner start position is brought up to the current position before returning, effectively
 // ignoring everything it's travelled over in the meantime.
 func (s *Scanner) skip(predicate func(r rune) bool) {
-	for {
-		next := s.next()
-		if predicate(next) {
-			continue
-		}
-
-		if next != eof {
-			s.backup()
-		}
-
-		s.discard()
-
-		return
+	for predicate(s.peek()) {
+		s.next()
 	}
+
+	s.discard()
 }
 
 // take consumes the next rune if it's from the valid set, and returns
 // whether it was accepted.
 func (s *Scanner) take(valid string) bool {
-	if strings.IndexRune(valid, s.next()) >= 0 {
+	if strings.ContainsRune(valid, s.peek()) {
+		s.next()
 		return true
 	}
 
-	s.backup()
 	return false
 }
 
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
 func (s *Scanner) takeWhile(predicate func(r rune) bool) {
-	for {
-		next := s.next()
-		if predicate(next) {
-			continue
-		}
-
-		if next != eof {
-			s.backup()
-		}
-
-		return
+	for predicate(s.peek()) {
+		s.next()
 	}
 }
 
@@ -221,18 +197,17 @@ func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 //
 //	s.takeUntil('\n', '\t') // Consume runes until you hit a newline or a tab
 func (s *Scanner) takeUntil(runes ...rune) {
-	// Implicitly add RuneError
+	// Implicitly also break on RuneError
 	runes = append(runes, utf8.RuneError)
 
 	for {
-		next := s.next()
+		next := s.peek()
 		if slices.Contains(runes, next) {
-			if next != eof {
-				s.backup()
-			}
-
 			return
 		}
+
+		// Otherwise, advance the scanner
+		s.next()
 	}
 }
 
@@ -352,13 +327,12 @@ func scanHash(s *Scanner) stateFn {
 //
 // It assumes the first '/' has already been consumed.
 func scanSlash(s *Scanner) stateFn {
-	if s.next() == '/' {
-		return scanComment
+	if !s.take("/") {
+		s.error("invalid use of '/', two '//' mark a comment start, got '/'")
+		return nil
 	}
 
-	s.discard()
-
-	return scanStart
+	return scanComment
 }
 
 // scanAt scans a literal '@' as in a variable or prompt declaration.
@@ -380,6 +354,11 @@ func scanAt(s *Scanner) stateFn {
 func scanComment(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
+	// Requests may have # @ident = text variables
+	if s.take("@") {
+		return scanAt
+	}
+
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
@@ -392,6 +371,12 @@ func scanComment(s *Scanner) stateFn {
 func scanSeparator(s *Scanner) stateFn {
 	s.takeExact("##")
 	s.emit(token.Separator)
+
+	s.skip(isLineSpace)
+
+	if s.peek() != '\n' && s.peek() != eof {
+		return scanComment
+	}
 
 	// TODO(@FollowTheProcess): This should return the scanRequest state
 	return scanStart
@@ -446,6 +431,12 @@ func isIdent(r rune) bool {
 }
 
 // isText reports whether r is valid in a continuous string of text.
+//
+// The only things that are rejected by this are:
+//
+//   - whitespace
+//   - eof
+//   - bad utf8 runes
 func isText(r rune) bool {
-	return !unicode.IsSpace(r) && r != eof
+	return !unicode.IsSpace(r) && r != eof && r != utf8.RuneError
 }
