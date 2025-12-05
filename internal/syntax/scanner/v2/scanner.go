@@ -354,11 +354,6 @@ func scanAt(s *Scanner) stateFn {
 func scanComment(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
-	// Requests may have # @ident = text variables
-	if s.take("@") {
-		return scanAt
-	}
-
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
@@ -416,16 +411,92 @@ func scanText(s *Scanner) stateFn {
 
 // scanRequest scans inside a HTTP request definition.
 //
-// The opening '###' has already been consumed.
+// The opening '###' and any request comment has already been consumed.
 func scanRequest(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
-	if isUpperAlpha(s.peek()) {
-		// Probably a request method
-		return scanMethod
+	switch char := s.next(); char {
+	case eof:
+		s.emit(token.EOF)
+		return nil
+	case utf8.RuneError:
+		// next() already emits an error for this
+		return nil
+	case '#':
+		return scanRequestHash
+	case '/':
+		return scanRequestSlash
+	default:
+		if isUpperAlpha(char) {
+			// A request method
+			return scanMethod
+		}
+
+		s.errorf("unexpected character: %q", char)
+
+		return nil
+	}
+}
+
+// scanRequestHash scans a a literal '#' in the context of
+// a request local variable or line comment.
+func scanRequestHash(s *Scanner) stateFn {
+	return scanRequestComment
+}
+
+// scanRequestSlash scans a literal '/' as the opener to a slash comment, if
+// the next char is not another '/', it is ignored.
+//
+// It assumes the first '/' has already been consumed.
+func scanRequestSlash(s *Scanner) stateFn {
+	if !s.take("/") {
+		s.error("invalid use of '/', two '//' mark a comment start, got '/'")
+		return nil
 	}
 
-	return scanStart
+	return scanRequestComment
+}
+
+// scanRequestComment scans a line comment inside a request block.
+func scanRequestComment(s *Scanner) stateFn {
+	s.skip(isLineSpace)
+
+	// Requests may have # @ident = text variables
+	if s.take("@") {
+		s.emit(token.At)
+		return scanRequestVariable
+	}
+
+	s.takeUntil('\n', eof)
+	s.emit(token.Comment)
+
+	return scanRequest
+}
+
+// scanRequestVariable scans a request variable declaration.
+//
+// It assumes the opening '@' has already been consumed.
+func scanRequestVariable(s *Scanner) stateFn {
+	s.takeWhile(isIdent)
+
+	// Could be a keyword like timeout etc.
+	text := string(s.src[s.start:s.pos])
+	kind, _ := token.Keyword(text)
+	s.emit(kind)
+
+	s.skip(isLineSpace)
+
+	if s.take("=") {
+		s.emit(token.Eq)
+		s.skip(isLineSpace)
+	}
+
+	if isText(s.peek()) {
+		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
+	return scanRequest
 }
 
 // scanMethod scans a HTTP method.
