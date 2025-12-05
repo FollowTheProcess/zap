@@ -385,7 +385,11 @@ func scanSeparator(s *Scanner) stateFn {
 // scanIdent scans a continuous string of characters as an identifier.
 func scanIdent(s *Scanner) stateFn {
 	s.takeWhile(isIdent)
-	s.emit(token.Ident)
+
+	// Is it a keyword?
+	text := string(s.src[s.start:s.pos])
+	kind, _ := token.Keyword(text)
+	s.emit(kind)
 
 	s.skip(isLineSpace)
 
