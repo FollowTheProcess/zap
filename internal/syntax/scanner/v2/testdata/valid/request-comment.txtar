@@ -1,0 +1,9 @@
+-- src.http --
+### A comment
+GET https://example.com
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=13>
+<Token::MethodGet start=14, end=17>
+<Token::Text start=18, end=37>
+<Token::EOF start=38, end=38>
