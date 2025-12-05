@@ -37,16 +37,7 @@ func TestValid(t *testing.T) {
 
 			scanner := scanner.New(name, []byte(src))
 
-			var tokens []token.Token
-
-			for {
-				tok := scanner.Scan()
-
-				tokens = append(tokens, tok)
-				if tok.Is(token.EOF, token.Error) {
-					break
-				}
-			}
+			tokens := collect(scanner)
 
 			var formattedTokens strings.Builder
 			for _, tok := range tokens {
@@ -98,16 +89,7 @@ func TestInvalid(t *testing.T) {
 
 			scanner := scanner.New(name, []byte(src))
 
-			var tokens []token.Token
-
-			for {
-				tok := scanner.Scan()
-
-				tokens = append(tokens, tok)
-				if tok.Is(token.EOF, token.Error) {
-					break
-				}
-			}
+			tokens := collect(scanner)
 
 			var formattedTokens strings.Builder
 			for _, tok := range tokens {
@@ -120,6 +102,7 @@ func TestInvalid(t *testing.T) {
 			var diagnostics strings.Builder
 			for _, diag := range scanner.Diagnostics() {
 				diagnostics.WriteString(diag.String())
+				diagnostics.WriteByte('\n')
 			}
 
 			gotErrs := diagnostics.String()
@@ -215,4 +198,20 @@ func BenchmarkScanner(b *testing.B) {
 			}
 		}
 	}
+}
+
+// collect gathers up the scanned tokens into a slice.
+func collect(s *scanner.Scanner) []token.Token {
+	var tokens []token.Token
+
+	for {
+		tok := s.Scan()
+
+		tokens = append(tokens, tok)
+		if tok.Is(token.EOF, token.Error) {
+			break
+		}
+	}
+
+	return tokens
 }
