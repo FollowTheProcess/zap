@@ -1,0 +1,11 @@
+-- src.http --
+###
+# I'm a normal comment
+/ <- This is wrong, should be two '//'
+GET https://example.com
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=6, end=26>
+<Token::Error start=27, end=28>
+-- errors.txt --
+single-slash-request.txtar:3:1: invalid use of '/', two '//' mark a comment start, got '/'
