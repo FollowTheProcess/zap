@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -14,6 +15,17 @@ import (
 )
 
 var update = flag.Bool("update", false, "Update snapshots and testdata")
+
+func TestFuzzFail(t *testing.T) {
+	t.Skip("unskip to investigate/debug fuzz fails")
+
+	src := []byte("###\nPOSThttp://\"#")
+	s := scanner.New("fuzz", src)
+	got := collect(s)
+	want := []token.Token{{}}
+
+	test.EqualFunc(t, got, want, slices.Equal)
+}
 
 func TestValid(t *testing.T) {
 	// Force colour for diffs but only locally

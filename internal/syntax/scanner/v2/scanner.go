@@ -135,7 +135,7 @@ func (s *Scanner) char() (rune, int) {
 	}
 
 	r, width := utf8.DecodeRune(s.src[s.pos:])
-	if r == utf8.RuneError && width == 1 {
+	if r == utf8.RuneError || r == 0 {
 		s.errorf("invalid utf8 character at position %d: %q", s.pos, s.src[s.pos])
 		return utf8.RuneError, width
 	}
@@ -538,7 +538,7 @@ func scanText(s *Scanner) stateFn {
 		}
 
 		next := s.peek()
-		if next == '#' || next == '>' || next == '<' || next == eof {
+		if next == '#' || next == '>' || next == '<' || next == eof || next == utf8.RuneError {
 			break
 		}
 
@@ -669,7 +669,7 @@ func scanMethod(s *Scanner) stateFn {
 	s.emit(kind)
 	s.skip(isLineSpace)
 
-	if !s.restHasPrefix("http") && !s.restHasPrefix("{{") {
+	if (!s.restHasPrefix("http://") && !s.restHasPrefix("https://")) && !s.restHasPrefix("{{") {
 		s.errorf("expected URL or interpolation, got %q", s.peek())
 		return nil
 	}
@@ -686,7 +686,7 @@ func scanURL(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
-		s.statePush(scanTextLine)
+		s.statePush(scanURL)
 		return scanOpenInterp
 	}
 
@@ -707,6 +707,12 @@ func scanURL(s *Scanner) stateFn {
 
 	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
+	}
+
+	next := s.peek()
+
+	if next == '#' || s.restHasPrefix("//") || next == eof || next == utf8.RuneError {
+		return scanRequest
 	}
 
 	return scanBody
@@ -826,6 +832,10 @@ func scanBody(s *Scanner) stateFn {
 	}
 
 	s.skip(unicode.IsSpace)
+
+	if s.take("#") {
+		return scanRequestComment
+	}
 
 	if s.peek() != eof {
 		s.statePush(scanBody)
@@ -958,6 +968,10 @@ func isText(r rune) bool {
 
 // isURL reports whether r is valid in a URL.
 func isURL(r rune) bool {
+	if r == eof || r == utf8.RuneError {
+		return false
+	}
+
 	return isAlphaNumeric(r) || strings.ContainsRune("$-_.+!*'(),:/?#[]@&;=", r)
 }
 
