@@ -34,6 +34,7 @@ import (
 const (
 	eof        = rune(-1) // eof signifies we have reached the end of the input.
 	bufferSize = 32       // benchmarks suggest this is the optimum token channel buffer size.
+	stackSize  = 10       // size of the state stack, should be plenty to avoid a re-allocation
 )
 
 // stateFn represents the state of the scanner as a function that does the work
@@ -42,21 +43,30 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner is the http file scanner.
 type Scanner struct {
-	tokens            chan token.Token    // Channel on which to emit scanned tokens.
-	state             stateFn             // The scanner's current state
-	name              string              // Name of the file
-	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
-	src               []byte              // Raw source text
-	start             int                 // The start position of the current token
-	pos               int                 // Current scanner position in src (bytes, 0 indexed)
-	line              int                 // Current line number (1 indexed)
-	currentLineOffset int                 // Offset at which the current line started, used for column calculation
+	tokens      chan token.Token    // Channel on which to emit scanned tokens.
+	state       stateFn             // The scanner's current state
+	name        string              // Name of the file
+	diagnostics []syntax.Diagnostic // Diagnostics gathered during scanning
+	src         []byte              // Raw source text
+
+	// A stack of state functions used to maintain context.
+	//
+	// The idea is to reuse parts of the state machine in various places. For
+	// example, interpolations can appear in multiple contexts, and how do we
+	// know which state to return to when we're done with the '}}'.
+	stack []stateFn
+
+	start             int // The start position of the current token
+	pos               int // Current scanner position in src (bytes, 0 indexed)
+	line              int // Current line number (1 indexed)
+	currentLineOffset int // Offset at which the current line started, used for column calculation
 }
 
 // New returns a new [Scanner].
 func New(name string, src []byte) *Scanner {
 	s := &Scanner{
 		tokens: make(chan token.Token, bufferSize),
+		stack:  make([]stateFn, 0, stackSize),
 		name:   name,
 		src:    src,
 		state:  scanStart,
@@ -87,6 +97,27 @@ func (s *Scanner) Scan() token.Token {
 // Diagnostics returns the list of diagnostics gathered during scanning.
 func (s *Scanner) Diagnostics() []syntax.Diagnostic {
 	return s.diagnostics
+}
+
+// pushState pushes a stateFn onto the stack so the scanner can
+// "remember" where it just came from.
+func (s *Scanner) pushState(state stateFn) {
+	s.stack = append(s.stack, state)
+}
+
+// popState pops a stateFn off the stack so the scanner can return
+// to where it just came from in certain contexts.
+func (s *Scanner) popState() stateFn {
+	size := len(s.stack)
+
+	if size == 0 {
+		panic("pop from empty state stack")
+	}
+
+	last := s.stack[size-1]
+	s.stack = s.stack[:size-1]
+
+	return last
 }
 
 // atEOF reports whether the scanner is at the end of the input.
@@ -299,10 +330,13 @@ func scanStart(s *Scanner) stateFn {
 		// next() already emits an error for this
 		return nil
 	case '#':
+		s.pushState(scanStart) // Come back here when we're done
 		return scanHash
 	case '/':
+		s.pushState(scanStart)
 		return scanSlash
 	case '@':
+		s.pushState(scanStart)
 		return scanAt
 	default:
 		s.errorf("unexpected character: %q", char)
@@ -342,10 +376,10 @@ func scanAt(s *Scanner) stateFn {
 	s.emit(token.At)
 
 	if isAlpha(s.peek()) {
-		return scanIdent
+		return scanGlobalVariable
 	}
 
-	return scanStart
+	return s.popState()
 }
 
 // scanComment scans a line comment started by either a '#' or '//'.
@@ -357,7 +391,7 @@ func scanComment(s *Scanner) stateFn {
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
-	return scanStart
+	return s.popState()
 }
 
 // scanSeparator scans a '###' request separator.
@@ -378,8 +412,8 @@ func scanSeparator(s *Scanner) stateFn {
 	return scanRequest
 }
 
-// scanIdent scans a continuous string of characters as an identifier.
-func scanIdent(s *Scanner) stateFn {
+// scanGlobalVariable scans a global variable declaration.
+func scanGlobalVariable(s *Scanner) stateFn {
 	s.takeWhile(isIdent)
 
 	// Is it a keyword?
@@ -406,7 +440,7 @@ func scanIdent(s *Scanner) stateFn {
 		return scanText
 	}
 
-	return scanStart
+	return s.popState()
 }
 
 // scanOpenInterp scans an opening '{{' marking the beginning
@@ -450,13 +484,11 @@ func scanCloseInterp(s *Scanner) stateFn {
 		return scanText
 	}
 
-	// TODO(@FollowTheProcess): How can we get back to the right state here?
-	//
-	// We might not always be in start
-	return scanStart
+	// Go back to whatever state we were in before entering the interp
+	return s.popState()
 }
 
-// scanPrompt scans a global prompt statement.
+// scanPrompt scans a prompt statement.
 //
 // It assumes the '@prompt' has already been consumed.
 func scanPrompt(s *Scanner) stateFn {
@@ -472,7 +504,7 @@ func scanPrompt(s *Scanner) stateFn {
 		s.emit(token.Text)
 	}
 
-	return scanStart
+	return s.popState()
 }
 
 // scanText scans a continuous string of text.
@@ -500,8 +532,10 @@ func scanRequest(s *Scanner) stateFn {
 		// next() already emits an error for this
 		return nil
 	case '#':
+		s.pushState(scanRequest) // Come back here (not scanStart) when we're done
 		return scanRequestHash
 	case '/':
+		s.pushState(scanRequest)
 		return scanRequestSlash
 	default:
 		if isUpperAlpha(char) {
@@ -546,7 +580,7 @@ func scanRequestComment(s *Scanner) stateFn {
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
-	return scanRequest
+	return s.popState()
 }
 
 // scanRequestVariable scans a request variable declaration.
@@ -563,7 +597,7 @@ func scanRequestVariable(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
 	if kind == token.Prompt {
-		return scanRequestPrompt
+		return scanPrompt
 	}
 
 	if s.take("=") {
@@ -573,25 +607,6 @@ func scanRequestVariable(s *Scanner) stateFn {
 
 	if isText(s.peek()) {
 		s.takeWhile(isText)
-		s.emit(token.Text)
-	}
-
-	return scanRequest
-}
-
-// scanRequestPrompt scans a request prompt statement.
-//
-// It assumes the '@prompt' has already been consumed.
-func scanRequestPrompt(s *Scanner) stateFn {
-	if isIdent(s.peek()) {
-		s.takeWhile(isIdent)
-		s.emit(token.Ident)
-	}
-
-	s.skip(isLineSpace)
-
-	if isAlpha(s.peek()) {
-		s.takeUntil('\n', eof)
 		s.emit(token.Text)
 	}
 
