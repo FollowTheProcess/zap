@@ -135,7 +135,7 @@ func (s *Scanner) char() (rune, int) {
 	}
 
 	r, width := utf8.DecodeRune(s.src[s.pos:])
-	if r == utf8.RuneError && width == 1 {
+	if r == utf8.RuneError || r == 0 {
 		s.errorf("invalid utf8 character at position %d: %q", s.pos, s.src[s.pos])
 		return utf8.RuneError, width
 	}
@@ -421,7 +421,10 @@ func scanGlobalVariable(s *Scanner) stateFn {
 	// Is it a keyword?
 	text := string(s.src[s.start:s.pos])
 	kind, _ := token.Keyword(text)
-	s.emit(kind)
+
+	if s.pos > s.start {
+		s.emit(kind)
+	}
 
 	s.skip(isLineSpace)
 
@@ -435,11 +438,12 @@ func scanGlobalVariable(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
+		s.statePush(scanGlobalVariable)
 		return scanOpenInterp
 	}
 
 	if isText(s.peek()) {
-		return scanText
+		return scanTextLine
 	}
 
 	return s.statePop()
@@ -481,11 +485,6 @@ func scanCloseInterp(s *Scanner) stateFn {
 	s.takeExact("}}")
 	s.emit(token.CloseInterp)
 
-	// If there is content on the same line, carry on
-	if isText(s.peek()) {
-		return scanText
-	}
-
 	// Go back to whatever state we were in before entering the interp
 	return s.statePop()
 }
@@ -509,8 +508,8 @@ func scanPrompt(s *Scanner) stateFn {
 	return s.statePop()
 }
 
-// scanText scans a continuous string of text.
-func scanText(s *Scanner) stateFn {
+// scanTextLine scans a continuous string of text, so long as it's on the same line.
+func scanTextLine(s *Scanner) stateFn {
 	s.takeWhile(isText)
 
 	if s.pos > s.start {
@@ -518,11 +517,43 @@ func scanText(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
-		s.statePush(scanText)
+		s.statePush(scanTextLine)
 		return scanOpenInterp
 	}
 
-	return scanStart
+	return s.statePop()
+}
+
+// scanText scans until it hits an open interp.
+func scanText(s *Scanner) stateFn {
+	for {
+		if s.restHasPrefix("{{") {
+			if s.pos > s.start {
+				s.emit(token.Text)
+			}
+
+			s.statePush(scanText)
+
+			return scanOpenInterp
+		}
+
+		next := s.peek()
+		if next == '#' || next == '>' || next == '<' || next == eof || next == utf8.RuneError {
+			break
+		}
+
+		s.next()
+	}
+
+	// If we absorbed any text, emit it.
+	//
+	// This could in theory be empty because the entire body could have just been an interp, which
+	// seems incredibly unlikely but possible so lets handle it
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
+	return s.statePop()
 }
 
 // scanRequest scans inside a HTTP request definition.
@@ -638,7 +669,7 @@ func scanMethod(s *Scanner) stateFn {
 	s.emit(kind)
 	s.skip(isLineSpace)
 
-	if !s.restHasPrefix("http") && !s.restHasPrefix("{{") {
+	if (!s.restHasPrefix("http://") && !s.restHasPrefix("https://")) && !s.restHasPrefix("{{") {
 		s.errorf("expected URL or interpolation, got %q", s.peek())
 		return nil
 	}
@@ -655,7 +686,7 @@ func scanURL(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
-		s.statePush(scanText)
+		s.statePush(scanURL)
 		return scanOpenInterp
 	}
 
@@ -676,6 +707,12 @@ func scanURL(s *Scanner) stateFn {
 
 	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
+	}
+
+	next := s.peek()
+
+	if next == '#' || s.restHasPrefix("//") || next == eof || next == utf8.RuneError {
+		return scanRequest
 	}
 
 	return scanBody
@@ -711,12 +748,19 @@ func scanHTTPVersion(s *Scanner) stateFn {
 func scanHeader(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
+	if !isAlpha(s.peek()) {
+		return scanBody
+	}
+
 	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
 	}
 
 	s.takeWhile(isIdent)
-	s.emit(token.Ident)
+
+	if s.pos > s.start {
+		s.emit(token.Ident)
+	}
 
 	if s.peek() != ':' {
 		s.errorf("invalid header, expected ':', got %q", s.peek())
@@ -725,23 +769,45 @@ func scanHeader(s *Scanner) stateFn {
 
 	s.take(":")
 	s.emit(token.Colon)
-
 	s.skip(isLineSpace)
 
-	if isText(s.peek()) {
-		s.takeUntil('\n', '{', eof)
-		s.emit(token.Text)
+	// Handle interpolation somewhere inside the header value
+	// e.g. Authorization: Bearer {{ token }}
+	for {
+		if s.restHasPrefix("{{") {
+			// Emit what we have captured up to this point (if there is anything) as Text and then
+			// switch to scanning the interpolation
+			if s.pos > s.start {
+				// We have absorbed stuff, emit it
+				s.emit(token.Text)
+			}
+
+			s.statePush(scanHeader)
+
+			return scanOpenInterp
+		}
+
+		// Scan any text on the same line
+		next := s.peek()
+		if next == '\n' || next == eof || next == utf8.RuneError {
+			break
+		}
+
+		s.next()
 	}
 
-	if s.restHasPrefix("{{") {
-		s.statePush(scanHeader)
-		return scanOpenInterp
+	// If we absorbed any text, emit it.
+	//
+	// This could be empty because the entire header value could have just been an interp
+	// e.g. X-Api-Key: {{ key }}
+	if s.pos > s.start {
+		s.emit(token.Text)
 	}
 
 	s.skip(unicode.IsSpace)
 
 	// If there are more headers, call this function again!
-	if isIdent(s.peek()) {
+	if isAlpha(s.peek()) {
 		return scanHeader
 	}
 
@@ -765,10 +831,16 @@ func scanBody(s *Scanner) stateFn {
 		return scanRightAngle
 	}
 
-	s.takeUntil('#', '>', '<', eof)
-	s.emit(token.Text)
-
 	s.skip(unicode.IsSpace)
+
+	if s.take("#") {
+		return scanRequestComment
+	}
+
+	if s.peek() != eof {
+		s.statePush(scanBody)
+		return scanText
+	}
 
 	// Are we doing the response reference pattern e.g. '<> response.json'
 	if s.take("<") {
@@ -789,16 +861,21 @@ func scanBody(s *Scanner) stateFn {
 //
 // It assumes the '<' has already been consumed.
 func scanLeftAngle(s *Scanner) stateFn {
-	if s.take(">") {
+	if !s.take(">") {
+		if s.pos > s.start {
+			s.emit(token.LeftAngle)
+		}
+	} else {
 		// It's a response reference '<>'
 		s.emit(token.ResponseRef)
-	} else {
-		s.emit(token.LeftAngle)
 	}
 
 	s.skip(isLineSpace)
 
-	// TODO(@FollowTheProcess): Interps here too
+	if s.restHasPrefix("{{") {
+		s.statePush(scanLeftAngle)
+		return scanOpenInterp
+	}
 
 	if isFilePath(s.peek()) {
 		s.takeWhile(isText)
@@ -827,11 +904,16 @@ func scanLeftAngle(s *Scanner) stateFn {
 //
 // It assumes the '>' has already been consumed.
 func scanRightAngle(s *Scanner) stateFn {
-	s.emit(token.RightAngle)
+	if s.pos > s.start {
+		s.emit(token.RightAngle)
+	}
 
 	s.skip(isLineSpace)
 
-	// TODO(@FollowTheProcess): Interp here too
+	if s.restHasPrefix("{{") {
+		s.statePush(scanRightAngle)
+		return scanOpenInterp
+	}
 
 	if isFilePath(s.peek()) {
 		s.takeWhile(isText)
@@ -886,6 +968,10 @@ func isText(r rune) bool {
 
 // isURL reports whether r is valid in a URL.
 func isURL(r rune) bool {
+	if r == eof || r == utf8.RuneError {
+		return false
+	}
+
 	return isAlphaNumeric(r) || strings.ContainsRune("$-_.+!*'(),:/?#[]@&;=", r)
 }
 

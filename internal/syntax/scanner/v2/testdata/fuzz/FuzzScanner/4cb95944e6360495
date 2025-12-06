@@ -1,0 +1,2 @@
+go test fuzz v1
+string("###\nGET https://something.com\n###\nHEAD https://something.com\n###\nPOST https://something.com\n###\nPUT https://something.com\n###\nPATCH https://something.com\n###\nDELETE https://something.com\n###\nCONNECT https://something.com\n###\nTRACE https://so\x00\x00thing.com\n###\nOPTIONS https://something.com\n")
