@@ -398,10 +398,61 @@ func scanIdent(s *Scanner) stateFn {
 		s.skip(isLineSpace)
 	}
 
+	if s.restHasPrefix("{{") {
+		return scanOpenInterp
+	}
+
 	if isText(s.peek()) {
 		return scanText
 	}
 
+	return scanStart
+}
+
+// scanOpenInterp scans an opening '{{' marking the beginning
+// of an interpolation.
+func scanOpenInterp(s *Scanner) stateFn {
+	s.takeExact("{{")
+	s.emit(token.OpenInterp)
+
+	return scanInsideInterp
+}
+
+// scanInsideInterp scans the inside of an interpolation.
+func scanInsideInterp(s *Scanner) stateFn {
+	s.skip(isLineSpace)
+
+	// TODO(@FollowTheProcess): Handle more than just idents
+	//
+	// That's the whole reason I'm rewriting the scanner, to make this easier
+	if isAlpha(s.peek()) {
+		s.takeWhile(isIdent)
+		s.emit(token.Ident)
+	}
+
+	s.skip(isLineSpace)
+
+	if !s.restHasPrefix("}}") {
+		s.error("unterminated interpolation")
+		return nil
+	}
+
+	return scanCloseInterp
+}
+
+// scanCloseInterp scans a closing '}}' marking the end of an interpolation.
+func scanCloseInterp(s *Scanner) stateFn {
+	s.takeExact("}}")
+	s.emit(token.CloseInterp)
+
+	// If there is content on the same line, carry on
+	if isText(s.peek()) {
+		return scanText
+	}
+
+	// TODO(@FollowTheProcess): How can we get back to the right state here?
+	//
+	// We might not always be in start
 	return scanStart
 }
 
