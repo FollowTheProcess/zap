@@ -543,8 +543,13 @@ func scanURL(s *Scanner) stateFn {
 		return scanHeaders
 	}
 
-	// TODO(@FollowTheProcess): Probably should be scan body
-	return scanRequest
+	s.skip(unicode.IsSpace)
+
+	if s.atEOF() || s.restHasPrefix("###") {
+		return scanStart
+	}
+
+	return scanBody
 }
 
 // scanHTTPVersion scans a literal 'HTTP/<version>' declaration.
@@ -567,7 +572,7 @@ func scanHTTPVersion(s *Scanner) stateFn {
 func scanHeaders(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
-	if s.atEOF() {
+	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
 	}
 
@@ -596,12 +601,19 @@ func scanHeaders(s *Scanner) stateFn {
 		return scanHeaders
 	}
 
-	if s.peek() == eof || s.peek() == '#' {
+	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
 	}
 
-	// TODO(@FollowTheProcess): Scan body
-	return nil
+	return scanBody
+}
+
+// scanBody scans a HTTP request body.
+func scanBody(s *Scanner) stateFn {
+	s.takeUntil(eof, '#')
+	s.emit(token.Text)
+
+	return scanStart
 }
 
 // isLineSpace reports whether r is a non line terminating whitespace character,
