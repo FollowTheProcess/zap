@@ -111,6 +111,8 @@ func (s *Scanner) popState() stateFn {
 	size := len(s.stack)
 
 	if size == 0 {
+		// TODO(@FollowTheProcess): Could we be safer and return scanStart here?
+		// Or do an error and return nil
 		panic("pop from empty state stack")
 	}
 
