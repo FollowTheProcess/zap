@@ -99,20 +99,21 @@ func (s *Scanner) Diagnostics() []syntax.Diagnostic {
 	return s.diagnostics
 }
 
-// pushState pushes a stateFn onto the stack so the scanner can
+// statePush pushes a stateFn onto the stack so the scanner can
 // "remember" where it just came from.
-func (s *Scanner) pushState(state stateFn) {
+func (s *Scanner) statePush(state stateFn) {
 	s.stack = append(s.stack, state)
 }
 
-// popState pops a stateFn off the stack so the scanner can return
+// statePop pops a stateFn off the stack so the scanner can return
 // to where it just came from in certain contexts.
-func (s *Scanner) popState() stateFn {
+func (s *Scanner) statePop() stateFn {
 	size := len(s.stack)
 
 	if size == 0 {
 		// TODO(@FollowTheProcess): Could we be safer and return scanStart here?
-		// Or do an error and return nil
+		// Or do an error and return nil, this is helpful for tests and fuzz though
+		// as it will be very obvious if we've done something wrong
 		panic("pop from empty state stack")
 	}
 
@@ -324,6 +325,8 @@ func (s *Scanner) errorf(format string, a ...any) {
 func scanStart(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
+	s.statePush(scanStart) // Remember where we came from
+
 	switch char := s.next(); char {
 	case eof:
 		s.emit(token.EOF)
@@ -332,13 +335,10 @@ func scanStart(s *Scanner) stateFn {
 		// next() already emits an error for this
 		return nil
 	case '#':
-		s.pushState(scanStart) // Come back here when we're done
 		return scanHash
 	case '/':
-		s.pushState(scanStart)
 		return scanSlash
 	case '@':
-		s.pushState(scanStart)
 		return scanAt
 	default:
 		s.errorf("unexpected character: %q", char)
@@ -381,7 +381,7 @@ func scanAt(s *Scanner) stateFn {
 		return scanGlobalVariable
 	}
 
-	return s.popState()
+	return s.statePop()
 }
 
 // scanComment scans a line comment started by either a '#' or '//'.
@@ -393,7 +393,7 @@ func scanComment(s *Scanner) stateFn {
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
-	return s.popState()
+	return s.statePop()
 }
 
 // scanSeparator scans a '###' request separator.
@@ -442,7 +442,7 @@ func scanGlobalVariable(s *Scanner) stateFn {
 		return scanText
 	}
 
-	return s.popState()
+	return s.statePop()
 }
 
 // scanOpenInterp scans an opening '{{' marking the beginning
@@ -487,7 +487,7 @@ func scanCloseInterp(s *Scanner) stateFn {
 	}
 
 	// Go back to whatever state we were in before entering the interp
-	return s.popState()
+	return s.statePop()
 }
 
 // scanPrompt scans a prompt statement.
@@ -506,13 +506,21 @@ func scanPrompt(s *Scanner) stateFn {
 		s.emit(token.Text)
 	}
 
-	return s.popState()
+	return s.statePop()
 }
 
 // scanText scans a continuous string of text.
 func scanText(s *Scanner) stateFn {
 	s.takeWhile(isText)
-	s.emit(token.Text)
+
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
+	if s.restHasPrefix("{{") {
+		s.statePush(scanText)
+		return scanOpenInterp
+	}
 
 	return scanStart
 }
@@ -526,6 +534,8 @@ func scanText(s *Scanner) stateFn {
 func scanRequest(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
+	s.statePush(scanRequest) // Remember we were scanning a request
+
 	switch char := s.next(); char {
 	case eof:
 		s.emit(token.EOF)
@@ -534,10 +544,8 @@ func scanRequest(s *Scanner) stateFn {
 		// next() already emits an error for this
 		return nil
 	case '#':
-		s.pushState(scanRequest) // Come back here (not scanStart) when we're done
 		return scanRequestHash
 	case '/':
-		s.pushState(scanRequest)
 		return scanRequestSlash
 	default:
 		if isUpperAlpha(char) {
@@ -582,7 +590,7 @@ func scanRequestComment(s *Scanner) stateFn {
 	s.takeUntil('\n', eof)
 	s.emit(token.Comment)
 
-	return s.popState()
+	return s.statePop()
 }
 
 // scanRequestVariable scans a request variable declaration.
@@ -640,9 +648,16 @@ func scanMethod(s *Scanner) stateFn {
 
 // scanURL scans a request URL.
 func scanURL(s *Scanner) stateFn {
-	// TODO(@FollowTheProcess): Handle interp
 	s.takeWhile(isURL)
-	s.emit(token.Text)
+
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
+	if s.restHasPrefix("{{") {
+		s.statePush(scanText)
+		return scanOpenInterp
+	}
 
 	s.skip(isLineSpace)
 
@@ -861,7 +876,7 @@ func isIdent(r rune) bool {
 //   - eof
 //   - bad utf8 runes
 func isText(r rune) bool {
-	return !unicode.IsSpace(r) && r != eof && r != utf8.RuneError
+	return !unicode.IsSpace(r) && r != eof && r != utf8.RuneError && r != '{'
 }
 
 // isURL reports whether r is valid in a URL.

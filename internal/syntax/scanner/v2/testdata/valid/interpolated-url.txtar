@@ -1,0 +1,19 @@
+-- src.http --
+@version = v1
+
+### Test
+GET https://api.somewhere.com/{{ version }}/items/1
+-- tokens.txt --
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=8>
+<Token::Eq start=9, end=10>
+<Token::Text start=11, end=13>
+<Token::Separator start=15, end=18>
+<Token::Comment start=19, end=23>
+<Token::MethodGet start=24, end=27>
+<Token::Text start=28, end=54>
+<Token::OpenInterp start=54, end=56>
+<Token::Ident start=57, end=64>
+<Token::CloseInterp start=65, end=67>
+<Token::Text start=67, end=75>
+<Token::EOF start=76, end=76>
