@@ -611,7 +611,17 @@ func scanHTTPVersion(s *Scanner) stateFn {
 
 	s.emit(token.HTTPVersion)
 
-	return scanHeaders
+	s.skip(unicode.IsSpace)
+
+	if isIdent(s.peek()) {
+		return scanHeaders
+	}
+
+	if s.atEOF() || s.restHasPrefix("###") {
+		return scanStart
+	}
+
+	return scanBody
 }
 
 // scanHeaders scans a request header.
@@ -656,9 +666,91 @@ func scanHeaders(s *Scanner) stateFn {
 
 // scanBody scans a HTTP request body.
 func scanBody(s *Scanner) stateFn {
-	s.takeUntil(eof, '#')
+	// Reading the request body from a file
+	if s.take("<") {
+		return scanLeftAngle
+	}
+
+	// Redirecting the response without specifying a body
+	// e.g. in a GET request
+	if s.take(">") {
+		return scanRightAngle
+	}
+
+	s.takeUntil('#', '>', '<', eof)
 	s.emit(token.Text)
 
+	s.skip(unicode.IsSpace)
+
+	// Are we doing the response reference pattern e.g. '<> response.json'
+	if s.take("<") {
+		return scanLeftAngle
+	}
+
+	// Are we redirecting the response *after* a body has been specified
+	// e.g. in a POST request, there may be a body *and* a redirect
+	if s.take(">") {
+		return scanRightAngle
+	}
+
+	return scanStart
+}
+
+// scanLeftAngle scans a '<' in the context of reading a request
+// body from the filepath specified next.
+//
+// It assumes the '<' has already been consumed.
+func scanLeftAngle(s *Scanner) stateFn {
+	if s.take(">") {
+		// It's a response reference '<>'
+		s.emit(token.ResponseRef)
+	} else {
+		s.emit(token.LeftAngle)
+	}
+
+	s.skip(isLineSpace)
+
+	// TODO(@FollowTheProcess): Interps here too
+
+	if isFilePath(s.peek()) {
+		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
+	s.skip(unicode.IsSpace)
+
+	// Is the next thing a response ref '<>', which would be the case
+	// if a request has a body file *and* a response ref
+	if s.take("<") {
+		return scanLeftAngle
+	}
+
+	// Are we redirecting the response *after* a body has been specified by a file
+	if s.take(">") {
+		return scanRightAngle
+	}
+
+	// Back to start because this marks the end of the request
+	return scanStart
+}
+
+// scanRightAngle scans a '>' in the context of redirecting a response body
+// to a filepath specified next.
+//
+// It assumes the '>' has already been consumed.
+func scanRightAngle(s *Scanner) stateFn {
+	s.emit(token.RightAngle)
+
+	s.skip(isLineSpace)
+
+	// TODO(@FollowTheProcess): Interp here too
+
+	if isFilePath(s.peek()) {
+		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
+	// Back to start because this marks the end of the request
 	return scanStart
 }
 
@@ -707,4 +799,9 @@ func isText(r rune) bool {
 // isURL reports whether r is valid in a URL.
 func isURL(r rune) bool {
 	return isAlphaNumeric(r) || strings.ContainsRune("$-_.+!*'(),:/?#[]@&;=", r)
+}
+
+// isFilePath reports whether r could be a valid first character in a filepath.
+func isFilePath(r rune) bool {
+	return isIdent(r) || r == '.' || r == '/' || r == '\\'
 }

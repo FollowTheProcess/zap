@@ -1,0 +1,18 @@
+-- src.http --
+### Body File
+POST https://api.somewhere.com/items/1 HTTP/1.2
+
+< ./input.json
+
+<> ./output.json
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=13>
+<Token::MethodPost start=14, end=18>
+<Token::Text start=19, end=52>
+<Token::HTTPVersion start=53, end=61>
+<Token::LeftAngle start=63, end=64>
+<Token::Text start=65, end=77>
+<Token::ResponseRef start=79, end=81>
+<Token::Text start=82, end=95>
+<Token::EOF start=96, end=96>
