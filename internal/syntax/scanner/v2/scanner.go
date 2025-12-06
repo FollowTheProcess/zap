@@ -765,8 +765,32 @@ func scanBody(s *Scanner) stateFn {
 		return scanRightAngle
 	}
 
-	s.takeUntil('#', '>', '<', eof)
-	s.emit(token.Text)
+	for {
+		if s.restHasPrefix("{{") {
+			if s.pos > s.start {
+				s.emit(token.Text)
+			}
+
+			s.statePush(scanBody)
+
+			return scanOpenInterp
+		}
+
+		next := s.peek()
+		if next == '#' || next == '>' || next == '<' || next == eof {
+			break
+		}
+
+		s.next()
+	}
+
+	// If we absorbed any text, emit it.
+	//
+	// This could in theory be empty because the entire body could have just been an interp, which
+	// seems incredibly unlikely but possible so lets handle it
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
 
 	s.skip(unicode.IsSpace)
 
@@ -789,16 +813,21 @@ func scanBody(s *Scanner) stateFn {
 //
 // It assumes the '<' has already been consumed.
 func scanLeftAngle(s *Scanner) stateFn {
-	if s.take(">") {
+	if !s.take(">") {
+		if s.pos > s.start {
+			s.emit(token.LeftAngle)
+		}
+	} else {
 		// It's a response reference '<>'
 		s.emit(token.ResponseRef)
-	} else {
-		s.emit(token.LeftAngle)
 	}
 
 	s.skip(isLineSpace)
 
-	// TODO(@FollowTheProcess): Interps here too
+	if s.restHasPrefix("{{") {
+		s.statePush(scanLeftAngle)
+		return scanOpenInterp
+	}
 
 	if isFilePath(s.peek()) {
 		s.takeWhile(isText)
@@ -827,11 +856,16 @@ func scanLeftAngle(s *Scanner) stateFn {
 //
 // It assumes the '>' has already been consumed.
 func scanRightAngle(s *Scanner) stateFn {
-	s.emit(token.RightAngle)
+	if s.pos > s.start {
+		s.emit(token.RightAngle)
+	}
 
 	s.skip(isLineSpace)
 
-	// TODO(@FollowTheProcess): Interp here too
+	if s.restHasPrefix("{{") {
+		s.statePush(scanRightAngle)
+		return scanOpenInterp
+	}
 
 	if isFilePath(s.peek()) {
 		s.takeWhile(isText)

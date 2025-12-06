@@ -1,0 +1,25 @@
+-- src.http --
+### Body
+# @id = 123
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here",
+  "id": "{{ id }}",
+  "else": "more"
+}
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=8>
+<Token::At start=11, end=12>
+<Token::Ident start=12, end=14>
+<Token::Eq start=15, end=16>
+<Token::Text start=17, end=20>
+<Token::MethodPost start=21, end=25>
+<Token::Text start=26, end=59>
+<Token::Body start=61, end=95>
+<Token::OpenInterp start=95, end=97>
+<Token::Ident start=98, end=100>
+<Token::CloseInterp start=101, end=103>
+<Token::Body start=103, end=125>
+<Token::EOF start=125, end=125>

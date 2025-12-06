@@ -1,0 +1,60 @@
+-- src.http --
+@token = supersecret
+
+###
+# @name Everything
+# @timeout 30s
+# @no-redirect
+PUT https://api.somewhere.com/items/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{ token }}
+X-Something-Else: yes
+
+{
+  "here": [
+    "arbitrary",
+    "json"
+  ],
+  "is_allowed": {
+    "including": {
+      "nested": [
+        "lists"
+      ]
+    }
+  },
+  "some": "stuff"
+}
+-- tokens.txt --
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=6>
+<Token::Eq start=7, end=8>
+<Token::Text start=9, end=20>
+<Token::Separator start=22, end=25>
+<Token::At start=28, end=29>
+<Token::Name start=29, end=33>
+<Token::Text start=34, end=44>
+<Token::At start=47, end=48>
+<Token::Timeout start=48, end=55>
+<Token::Text start=56, end=59>
+<Token::At start=62, end=63>
+<Token::NoRedirect start=63, end=74>
+<Token::MethodPut start=75, end=78>
+<Token::Text start=79, end=112>
+<Token::Ident start=113, end=125>
+<Token::Colon start=125, end=126>
+<Token::Text start=127, end=143>
+<Token::Ident start=144, end=150>
+<Token::Colon start=150, end=151>
+<Token::Text start=152, end=168>
+<Token::Ident start=169, end=182>
+<Token::Colon start=182, end=183>
+<Token::Text start=184, end=191>
+<Token::OpenInterp start=191, end=193>
+<Token::Ident start=194, end=199>
+<Token::CloseInterp start=200, end=202>
+<Token::Ident start=203, end=219>
+<Token::Colon start=219, end=220>
+<Token::Text start=221, end=224>
+<Token::Text start=226, end=383>
+<Token::EOF start=383, end=383>
