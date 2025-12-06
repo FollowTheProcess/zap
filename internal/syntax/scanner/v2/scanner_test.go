@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -15,21 +14,6 @@ import (
 )
 
 var update = flag.Bool("update", false, "Update snapshots and testdata")
-
-// This is useful to keep around for now for testing/debugging
-// ad hoc things typically found by the fuzzer.
-//
-// Unskip and change src to run.
-func TestRandomFailure(t *testing.T) {
-	t.Skip("manually skipped")
-
-	src := []byte("@aaaaaaaaaaaaaaaa!\xda")
-	s := scanner.New("fuzz", src)
-	got := collect(s)
-	want := []token.Token{{}}
-
-	test.EqualFunc(t, got, want, slices.Equal)
-}
 
 func TestValid(t *testing.T) {
 	// Force colour for diffs but only locally
