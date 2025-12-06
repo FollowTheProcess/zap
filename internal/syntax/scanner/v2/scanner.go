@@ -389,6 +389,10 @@ func scanIdent(s *Scanner) stateFn {
 
 	s.skip(isLineSpace)
 
+	if kind == token.Prompt {
+		return scanPrompt
+	}
+
 	if s.take("=") {
 		s.emit(token.Eq)
 		s.skip(isLineSpace)
@@ -396,6 +400,25 @@ func scanIdent(s *Scanner) stateFn {
 
 	if isText(s.peek()) {
 		return scanText
+	}
+
+	return scanStart
+}
+
+// scanPrompt scans a global prompt statement.
+//
+// It assumes the '@prompt' has already been consumed.
+func scanPrompt(s *Scanner) stateFn {
+	if isIdent(s.peek()) {
+		s.takeWhile(isIdent)
+		s.emit(token.Ident)
+	}
+
+	s.skip(isLineSpace)
+
+	if isAlpha(s.peek()) {
+		s.takeUntil('\n', eof)
+		s.emit(token.Text)
 	}
 
 	return scanStart
@@ -488,6 +511,10 @@ func scanRequestVariable(s *Scanner) stateFn {
 
 	s.skip(isLineSpace)
 
+	if kind == token.Prompt {
+		return scanRequestPrompt
+	}
+
 	if s.take("=") {
 		s.emit(token.Eq)
 		s.skip(isLineSpace)
@@ -495,6 +522,25 @@ func scanRequestVariable(s *Scanner) stateFn {
 
 	if isText(s.peek()) {
 		s.takeWhile(isText)
+		s.emit(token.Text)
+	}
+
+	return scanRequest
+}
+
+// scanRequestPrompt scans a request prompt statement.
+//
+// It assumes the '@prompt' has already been consumed.
+func scanRequestPrompt(s *Scanner) stateFn {
+	if isIdent(s.peek()) {
+		s.takeWhile(isIdent)
+		s.emit(token.Ident)
+	}
+
+	s.skip(isLineSpace)
+
+	if isAlpha(s.peek()) {
+		s.takeUntil('\n', eof)
 		s.emit(token.Text)
 	}
 
