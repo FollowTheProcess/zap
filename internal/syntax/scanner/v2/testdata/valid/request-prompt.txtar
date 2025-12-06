@@ -1,0 +1,18 @@
+-- src.http --
+### Get a Thing
+# @prompt id The ID of a thing to get
+# @prompt no-description
+GET https://api.something.com/v1/thing/
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=15>
+<Token::At start=18, end=19>
+<Token::Prompt start=19, end=25>
+<Token::Ident start=26, end=28>
+<Token::Text start=29, end=53>
+<Token::At start=56, end=57>
+<Token::Prompt start=57, end=63>
+<Token::Ident start=64, end=78>
+<Token::MethodGet start=79, end=82>
+<Token::Text start=83, end=118>
+<Token::EOF start=119, end=119>
