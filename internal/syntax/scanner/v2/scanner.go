@@ -669,7 +669,7 @@ func scanURL(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
 	if isIdent(s.peek()) {
-		return scanHeaders
+		return scanHeader
 	}
 
 	s.skip(unicode.IsSpace)
@@ -697,7 +697,7 @@ func scanHTTPVersion(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
 	if isIdent(s.peek()) {
-		return scanHeaders
+		return scanHeader
 	}
 
 	if s.atEOF() || s.restHasPrefix("###") {
@@ -707,8 +707,8 @@ func scanHTTPVersion(s *Scanner) stateFn {
 	return scanBody
 }
 
-// scanHeaders scans a request header.
-func scanHeaders(s *Scanner) stateFn {
+// scanHeader scans a request header.
+func scanHeader(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
 	if s.atEOF() || s.restHasPrefix("###") {
@@ -729,15 +729,20 @@ func scanHeaders(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
 	if isText(s.peek()) {
-		s.takeWhile(isText)
+		s.takeUntil('\n', '{', eof)
 		s.emit(token.Text)
+	}
+
+	if s.restHasPrefix("{{") {
+		s.statePush(scanHeader)
+		return scanOpenInterp
 	}
 
 	s.skip(unicode.IsSpace)
 
 	// If there are more headers, call this function again!
 	if isIdent(s.peek()) {
-		return scanHeaders
+		return scanHeader
 	}
 
 	if s.atEOF() || s.restHasPrefix("###") {
