@@ -421,7 +421,10 @@ func scanGlobalVariable(s *Scanner) stateFn {
 	// Is it a keyword?
 	text := string(s.src[s.start:s.pos])
 	kind, _ := token.Keyword(text)
-	s.emit(kind)
+
+	if s.pos > s.start {
+		s.emit(kind)
+	}
 
 	s.skip(isLineSpace)
 
@@ -435,6 +438,7 @@ func scanGlobalVariable(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
+		s.statePush(scanGlobalVariable)
 		return scanOpenInterp
 	}
 
@@ -480,11 +484,6 @@ func scanInsideInterp(s *Scanner) stateFn {
 func scanCloseInterp(s *Scanner) stateFn {
 	s.takeExact("}}")
 	s.emit(token.CloseInterp)
-
-	// If there is content on the same line, carry on
-	if isText(s.peek()) {
-		return scanTextLine
-	}
 
 	// Go back to whatever state we were in before entering the interp
 	return s.statePop()
