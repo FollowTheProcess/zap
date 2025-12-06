@@ -439,7 +439,7 @@ func scanGlobalVariable(s *Scanner) stateFn {
 	}
 
 	if isText(s.peek()) {
-		return scanText
+		return scanTextLine
 	}
 
 	return s.statePop()
@@ -483,7 +483,7 @@ func scanCloseInterp(s *Scanner) stateFn {
 
 	// If there is content on the same line, carry on
 	if isText(s.peek()) {
-		return scanText
+		return scanTextLine
 	}
 
 	// Go back to whatever state we were in before entering the interp
@@ -509,8 +509,8 @@ func scanPrompt(s *Scanner) stateFn {
 	return s.statePop()
 }
 
-// scanText scans a continuous string of text.
-func scanText(s *Scanner) stateFn {
+// scanTextLine scans a continuous string of text, so long as it's on the same line.
+func scanTextLine(s *Scanner) stateFn {
 	s.takeWhile(isText)
 
 	if s.pos > s.start {
@@ -518,11 +518,43 @@ func scanText(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
-		s.statePush(scanText)
+		s.statePush(scanTextLine)
 		return scanOpenInterp
 	}
 
-	return scanStart
+	return s.statePop()
+}
+
+// scanText scans until it hits an open interp.
+func scanText(s *Scanner) stateFn {
+	for {
+		if s.restHasPrefix("{{") {
+			if s.pos > s.start {
+				s.emit(token.Text)
+			}
+
+			s.statePush(scanText)
+
+			return scanOpenInterp
+		}
+
+		next := s.peek()
+		if next == '#' || next == '>' || next == '<' || next == eof {
+			break
+		}
+
+		s.next()
+	}
+
+	// If we absorbed any text, emit it.
+	//
+	// This could in theory be empty because the entire body could have just been an interp, which
+	// seems incredibly unlikely but possible so lets handle it
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
+	return s.statePop()
 }
 
 // scanRequest scans inside a HTTP request definition.
@@ -655,7 +687,7 @@ func scanURL(s *Scanner) stateFn {
 	}
 
 	if s.restHasPrefix("{{") {
-		s.statePush(scanText)
+		s.statePush(scanTextLine)
 		return scanOpenInterp
 	}
 
@@ -716,7 +748,10 @@ func scanHeader(s *Scanner) stateFn {
 	}
 
 	s.takeWhile(isIdent)
-	s.emit(token.Ident)
+
+	if s.pos > s.start {
+		s.emit(token.Ident)
+	}
 
 	if s.peek() != ':' {
 		s.errorf("invalid header, expected ':', got %q", s.peek())
@@ -765,34 +800,12 @@ func scanBody(s *Scanner) stateFn {
 		return scanRightAngle
 	}
 
-	for {
-		if s.restHasPrefix("{{") {
-			if s.pos > s.start {
-				s.emit(token.Text)
-			}
-
-			s.statePush(scanBody)
-
-			return scanOpenInterp
-		}
-
-		next := s.peek()
-		if next == '#' || next == '>' || next == '<' || next == eof {
-			break
-		}
-
-		s.next()
-	}
-
-	// If we absorbed any text, emit it.
-	//
-	// This could in theory be empty because the entire body could have just been an interp, which
-	// seems incredibly unlikely but possible so lets handle it
-	if s.pos > s.start {
-		s.emit(token.Text)
-	}
-
 	s.skip(unicode.IsSpace)
+
+	if s.peek() != eof {
+		s.statePush(scanBody)
+		return scanText
+	}
 
 	// Are we doing the response reference pattern e.g. '<> response.json'
 	if s.take("<") {

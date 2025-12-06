@@ -23,4 +23,4 @@ Authorization: Bearer {{ token }}
 <Token::Ident start=69, end=74>
 <Token::CloseInterp start=75, end=77>
 <Token::Text start=79, end=99>
-<Token::Error start=100, end=100>
+<Token::EOF start=100, end=100>
