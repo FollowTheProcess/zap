@@ -789,7 +789,7 @@ func scanHeader(s *Scanner) stateFn {
 
 		// Scan any text on the same line
 		next := s.peek()
-		if next == '\n' || next == eof {
+		if next == '\n' || next == eof || next == utf8.RuneError {
 			break
 		}
 
