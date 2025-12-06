@@ -743,6 +743,10 @@ func scanHTTPVersion(s *Scanner) stateFn {
 func scanHeader(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
 
+	if !isAlpha(s.peek()) {
+		return scanBody
+	}
+
 	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
 	}
@@ -760,23 +764,45 @@ func scanHeader(s *Scanner) stateFn {
 
 	s.take(":")
 	s.emit(token.Colon)
-
 	s.skip(isLineSpace)
 
-	if isText(s.peek()) {
-		s.takeUntil('\n', '{', eof)
-		s.emit(token.Text)
+	// Handle interpolation somewhere inside the header value
+	// e.g. Authorization: Bearer {{ token }}
+	for {
+		if s.restHasPrefix("{{") {
+			// Emit what we have captured up to this point (if there is anything) as Text and then
+			// switch to scanning the interpolation
+			if s.pos > s.start {
+				// We have absorbed stuff, emit it
+				s.emit(token.Text)
+			}
+
+			s.statePush(scanHeader)
+
+			return scanOpenInterp
+		}
+
+		// Scan any text on the same line
+		next := s.peek()
+		if next == '\n' || next == eof {
+			break
+		}
+
+		s.next()
 	}
 
-	if s.restHasPrefix("{{") {
-		s.statePush(scanHeader)
-		return scanOpenInterp
+	// If we absorbed any text, emit it.
+	//
+	// This could be empty because the entire header value could have just been an interp
+	// e.g. X-Api-Key: {{ key }}
+	if s.pos > s.start {
+		s.emit(token.Text)
 	}
 
 	s.skip(unicode.IsSpace)
 
 	// If there are more headers, call this function again!
-	if isIdent(s.peek()) {
+	if isAlpha(s.peek()) {
 		return scanHeader
 	}
 
