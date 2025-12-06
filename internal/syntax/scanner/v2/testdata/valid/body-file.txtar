@@ -1,0 +1,12 @@
+-- src.http --
+###
+POST https://api.something.com/items
+
+< ../requests/input.json
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::MethodPost start=4, end=8>
+<Token::Text start=9, end=40>
+<Token::LeftAngle start=42, end=43>
+<Token::Text start=44, end=66>
+<Token::EOF start=67, end=67>
