@@ -1,15 +1,18 @@
 -- src.http --
-@token = supersecret
+@base = https://example.com
+@timeout = 1m
 
 ###
-# @name Everything
+// @name Everything
 # @timeout 30s
-# @no-redirect
-PUT https://api.somewhere.com/items/1
+# @connection-timeout 10s
+// @no-redirect
+# @token shhh
+PUT https://api.somewhere.com/items/1 HTTP/2
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer {{ token }}
 X-Something-Else: yes
+Authorization: Bearer {{ token }}
 
 {
   "here": [
@@ -25,36 +28,140 @@ X-Something-Else: yes
   },
   "some": "stuff"
 }
+
+### Body
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here"
+}
+
+###
+# @something = value
+# @interp = {{ something }}
+# @prompt id User ID
+# @timeout = 30s
+# @connection-timeout = 10s
+# @no-redirect
+GET https://example.com
+
+### Read the body from ./input.json
+POST https://api.somewhere.com/items/1
+Content-Type: application/json
+
+< input.json
+
+###
+GET {{ base }}/items/1
+
+###
+GET https://example.com
+Accept: */*
+Content-Type: application/json
+X-Api-Key: something
+Authorization: Bearer somesecret token
 -- tokens.txt --
 <Token::At start=0, end=1>
-<Token::Ident start=1, end=6>
-<Token::Eq start=7, end=8>
-<Token::Text start=9, end=20>
-<Token::Separator start=22, end=25>
+<Token::Ident start=1, end=5>
+<Token::Eq start=6, end=7>
+<Token::Text start=8, end=27>
 <Token::At start=28, end=29>
-<Token::Name start=29, end=33>
-<Token::Text start=34, end=44>
-<Token::At start=47, end=48>
-<Token::Timeout start=48, end=55>
-<Token::Text start=56, end=59>
-<Token::At start=62, end=63>
-<Token::NoRedirect start=63, end=74>
-<Token::MethodPut start=75, end=78>
-<Token::Text start=79, end=112>
-<Token::Ident start=113, end=125>
-<Token::Colon start=125, end=126>
-<Token::Text start=127, end=143>
-<Token::Ident start=144, end=150>
-<Token::Colon start=150, end=151>
-<Token::Text start=152, end=168>
-<Token::Ident start=169, end=182>
-<Token::Colon start=182, end=183>
-<Token::Text start=184, end=191>
-<Token::OpenInterp start=191, end=193>
-<Token::Ident start=194, end=199>
-<Token::CloseInterp start=200, end=202>
-<Token::Ident start=203, end=219>
-<Token::Colon start=219, end=220>
-<Token::Text start=221, end=224>
-<Token::Text start=226, end=383>
-<Token::EOF start=383, end=383>
+<Token::Timeout start=29, end=36>
+<Token::Eq start=37, end=38>
+<Token::Text start=39, end=41>
+<Token::Separator start=43, end=46>
+<Token::At start=50, end=51>
+<Token::Name start=51, end=55>
+<Token::Text start=56, end=66>
+<Token::At start=69, end=70>
+<Token::Timeout start=70, end=77>
+<Token::Text start=78, end=81>
+<Token::At start=84, end=85>
+<Token::ConnectionTimeout start=85, end=103>
+<Token::Text start=104, end=107>
+<Token::At start=111, end=112>
+<Token::NoRedirect start=112, end=123>
+<Token::At start=126, end=127>
+<Token::Ident start=127, end=132>
+<Token::Text start=133, end=137>
+<Token::MethodPut start=138, end=141>
+<Token::Text start=142, end=175>
+<Token::HTTPVersion start=176, end=182>
+<Token::Ident start=183, end=195>
+<Token::Colon start=195, end=196>
+<Token::Text start=197, end=213>
+<Token::Ident start=214, end=220>
+<Token::Colon start=220, end=221>
+<Token::Text start=222, end=238>
+<Token::Ident start=239, end=255>
+<Token::Colon start=255, end=256>
+<Token::Text start=257, end=260>
+<Token::Ident start=261, end=274>
+<Token::Colon start=274, end=275>
+<Token::Text start=276, end=283>
+<Token::OpenInterp start=283, end=285>
+<Token::Ident start=286, end=291>
+<Token::CloseInterp start=292, end=294>
+<Token::Text start=296, end=454>
+<Token::Comment start=455, end=462>
+<Token::MethodPost start=463, end=467>
+<Token::Text start=468, end=501>
+<Token::Text start=503, end=530>
+<Token::Comment start=531, end=533>
+<Token::At start=536, end=537>
+<Token::Ident start=537, end=546>
+<Token::Eq start=547, end=548>
+<Token::Text start=549, end=554>
+<Token::At start=557, end=558>
+<Token::Ident start=558, end=564>
+<Token::Eq start=565, end=566>
+<Token::OpenInterp start=567, end=569>
+<Token::Ident start=570, end=579>
+<Token::CloseInterp start=580, end=582>
+<Token::At start=585, end=586>
+<Token::Prompt start=586, end=592>
+<Token::Ident start=593, end=595>
+<Token::Text start=596, end=603>
+<Token::At start=606, end=607>
+<Token::Timeout start=607, end=614>
+<Token::Eq start=615, end=616>
+<Token::Text start=617, end=620>
+<Token::At start=623, end=624>
+<Token::ConnectionTimeout start=624, end=642>
+<Token::Eq start=643, end=644>
+<Token::Text start=645, end=648>
+<Token::At start=651, end=652>
+<Token::NoRedirect start=652, end=663>
+<Token::MethodGet start=664, end=667>
+<Token::Text start=668, end=687>
+<Token::Separator start=689, end=692>
+<Token::Comment start=693, end=724>
+<Token::MethodPost start=725, end=729>
+<Token::Text start=730, end=763>
+<Token::Ident start=764, end=776>
+<Token::Colon start=776, end=777>
+<Token::Text start=778, end=794>
+<Token::LeftAngle start=796, end=797>
+<Token::Text start=798, end=808>
+<Token::Separator start=810, end=813>
+<Token::MethodGet start=814, end=817>
+<Token::OpenInterp start=818, end=820>
+<Token::Ident start=821, end=825>
+<Token::CloseInterp start=826, end=828>
+<Token::Text start=828, end=836>
+<Token::Separator start=838, end=841>
+<Token::MethodGet start=842, end=845>
+<Token::Text start=846, end=865>
+<Token::Ident start=866, end=872>
+<Token::Colon start=872, end=873>
+<Token::Text start=874, end=877>
+<Token::Ident start=878, end=890>
+<Token::Colon start=890, end=891>
+<Token::Text start=892, end=908>
+<Token::Ident start=909, end=918>
+<Token::Colon start=918, end=919>
+<Token::Text start=920, end=929>
+<Token::Ident start=930, end=943>
+<Token::Colon start=943, end=944>
+<Token::Text start=945, end=968>
+<Token::EOF start=969, end=969>
