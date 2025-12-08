@@ -24,6 +24,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -56,10 +57,11 @@ type Scanner struct {
 	// know which state to return to when we're done with the '}}'.
 	stack []stateFn
 
-	start             int // The start position of the current token
-	pos               int // Current scanner position in src (bytes, 0 indexed)
-	line              int // Current line number (1 indexed)
-	currentLineOffset int // Offset at which the current line started, used for column calculation
+	start             int          // The start position of the current token
+	pos               int          // Current scanner position in src (bytes, 0 indexed)
+	line              int          // Current line number (1 indexed)
+	currentLineOffset int          // Offset at which the current line started, used for column calculation
+	mu                sync.RWMutex // Guards diagnostics
 }
 
 // New returns a new [Scanner].
@@ -73,30 +75,28 @@ func New(name string, src []byte) *Scanner {
 		line:   1,
 	}
 
+	// run terminates when the scanning state machine is finished and all the
+	// tokens are drained from s.tokens, so no other synchronisation needed here
+	go s.run()
+
 	return s
 }
 
 // Scan scans the input and returns the next token.
 func (s *Scanner) Scan() token.Token {
-	for {
-		select {
-		case tok := <-s.tokens:
-			return tok
-		default:
-			// Move to the next state
-			s.state = s.state(s)
-
-			if s.state == nil {
-				// No more tokens
-				close(s.tokens)
-			}
-		}
-	}
+	return <-s.tokens
 }
 
 // Diagnostics returns the list of diagnostics gathered during scanning.
 func (s *Scanner) Diagnostics() []syntax.Diagnostic {
-	return s.diagnostics
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Create a copy so caller can't mutate the original diagnostics slice
+	diagCopy := make([]syntax.Diagnostic, 0, len(s.diagnostics))
+	diagCopy = append(diagCopy, s.diagnostics...)
+
+	return diagCopy
 }
 
 // statePush pushes a stateFn onto the stack so the scanner can
@@ -302,12 +302,26 @@ func (s *Scanner) error(msg string) {
 		Msg:      msg,
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.diagnostics = append(s.diagnostics, diag)
 }
 
 // errorf calls error with a formatted message.
 func (s *Scanner) errorf(format string, a ...any) {
 	s.error(fmt.Sprintf(format, a...))
+}
+
+// run starts the state machine for the scanner, it runs with each [scanFn] returning the next
+// state until one returns nil (typically in response to an error or eof), at which point the tokens channel
+// is closed as a signal to the receiver that no more tokens will be sent.
+func (s *Scanner) run() {
+	for state := scanStart; state != nil; {
+		state = state(s)
+	}
+
+	close(s.tokens)
 }
 
 // scanStart is the initial state of the scanner.
@@ -630,10 +644,13 @@ func scanRequestComment(s *Scanner) stateFn {
 func scanRequestVariable(s *Scanner) stateFn {
 	s.takeWhile(isIdent)
 
-	// Could be a keyword like timeout etc.
+	// Is it a keyword?
 	text := string(s.src[s.start:s.pos])
 	kind, _ := token.Keyword(text)
-	s.emit(kind)
+
+	if s.pos > s.start {
+		s.emit(kind)
+	}
 
 	s.skip(isLineSpace)
 
@@ -646,12 +663,16 @@ func scanRequestVariable(s *Scanner) stateFn {
 		s.skip(isLineSpace)
 	}
 
-	if isText(s.peek()) {
-		s.takeWhile(isText)
-		s.emit(token.Text)
+	if s.restHasPrefix("{{") {
+		s.statePush(scanRequestVariable)
+		return scanOpenInterp
 	}
 
-	return scanRequest
+	if isText(s.peek()) {
+		return scanTextLine
+	}
+
+	return s.statePop()
 }
 
 // scanMethod scans a HTTP method.
