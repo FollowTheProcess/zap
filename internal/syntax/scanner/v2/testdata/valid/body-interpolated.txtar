@@ -17,9 +17,9 @@ POST https://api.somewhere.com/items/1
 <Token::Text start=17, end=20>
 <Token::MethodPost start=21, end=25>
 <Token::Text start=26, end=59>
-<Token::Text start=61, end=95>
+<Token::Body start=61, end=95>
 <Token::OpenInterp start=95, end=97>
 <Token::Ident start=98, end=100>
 <Token::CloseInterp start=101, end=103>
-<Token::Text start=103, end=125>
+<Token::Body start=103, end=125>
 <Token::EOF start=125, end=125>
