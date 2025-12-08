@@ -541,7 +541,7 @@ func scanText(s *Scanner) stateFn {
 	for {
 		if s.restHasPrefix("{{") {
 			if s.pos > s.start {
-				s.emit(token.Text)
+				s.emit(token.Body)
 			}
 
 			s.statePush(scanText)
@@ -562,7 +562,7 @@ func scanText(s *Scanner) stateFn {
 	// This could in theory be empty because the entire body could have just been an interp, which
 	// seems incredibly unlikely but possible so lets handle it
 	if s.pos > s.start {
-		s.emit(token.Text)
+		s.emit(token.Body)
 	}
 
 	return s.statePop()
@@ -839,6 +839,10 @@ func scanHeader(s *Scanner) stateFn {
 
 // scanBody scans a HTTP request body.
 func scanBody(s *Scanner) stateFn {
+	if s.restHasPrefix("###") {
+		return scanStart
+	}
+
 	// Reading the request body from a file
 	if s.take("<") {
 		return scanLeftAngle

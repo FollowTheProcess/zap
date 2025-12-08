@@ -102,12 +102,13 @@ Authorization: Bearer somesecret token
 <Token::OpenInterp start=283, end=285>
 <Token::Ident start=286, end=291>
 <Token::CloseInterp start=292, end=294>
-<Token::Text start=296, end=454>
-<Token::Comment start=455, end=462>
+<Token::Body start=296, end=454>
+<Token::Separator start=454, end=457>
+<Token::Comment start=458, end=462>
 <Token::MethodPost start=463, end=467>
 <Token::Text start=468, end=501>
-<Token::Text start=503, end=530>
-<Token::Comment start=531, end=533>
+<Token::Body start=503, end=530>
+<Token::Separator start=530, end=533>
 <Token::At start=536, end=537>
 <Token::Ident start=537, end=546>
 <Token::Eq start=547, end=548>
