@@ -2,5 +2,5 @@
 ### MyRequest
 @something !@£$%^&*()
 -- want.txt --
-unexpected-request-vars.txtar:2:13: parseExpression: unexpected token Error
-unexpected-request-vars.txtar:2:13: unrecognised character: '!'
+unexpected-request-vars.txtar:1:5-14: Error token from scanner
+unexpected-request-vars.txtar:2:1: unexpected character: '@'

@@ -2,4 +2,5 @@
 ### NoMethod
 https://api.something.com/v1
 -- want.txt --
-missing-method.txtar:1:5-13: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got Text
+missing-method.txtar:1:5-13: Error token from scanner
+missing-method.txtar:2:1: unexpected character: 'h'

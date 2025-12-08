@@ -6,10 +6,10 @@ statements:
   - url:
       value: https://example.com
       token:
-        kind: URL
+        kind: Text
         start: 18
         end: 37
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null

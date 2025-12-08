@@ -2,4 +2,4 @@
 ^&*(
 -- want.txt --
 bad-top-level-char.txtar:1:2: Error token from scanner
-bad-top-level-char.txtar:1:2: unrecognised character: '^'
+bad-top-level-char.txtar:1:1: unexpected character: '^'

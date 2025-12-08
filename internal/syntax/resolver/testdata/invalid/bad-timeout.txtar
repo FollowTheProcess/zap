@@ -1,0 +1,7 @@
+# Nonsense timeouts
+
+-- src.http --
+### BadTimeout
+# @timeout = %^&*(
+GET https://github.com/api
+-- diagnostics.json --

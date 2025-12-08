@@ -7,17 +7,17 @@ statements:
       left:
         value: https://api.somewhere.com/
         token:
-          kind: URL
+          kind: Text
           start: 7
           end: 33
-        type: URL
+        type: TextLiteral
       right:
         value: /items/1
         token:
-          kind: URL
+          kind: Text
           start: 46
           end: 54
-        type: URL
+        type: TextLiteral
       interp:
         expr:
           name: version

@@ -19,7 +19,7 @@ import (
 
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
-	"go.followtheprocess.codes/zap/internal/syntax/scanner"
+	"go.followtheprocess.codes/zap/internal/syntax/scanner/v2"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
@@ -438,7 +438,7 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 
 	result.Method = method
 
-	if err = p.expect(token.URL, token.OpenInterp); err != nil {
+	if err = p.expect(token.Text, token.OpenInterp); err != nil {
 		return result, err
 	}
 
@@ -548,8 +548,6 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 		expr, err = p.parseInterpolatedExpression(nil)
 	case token.Ident:
 		expr = p.parseIdent()
-	case token.URL:
-		expr = p.parseURL()
 	case token.Body:
 		expr, err = p.parseBody()
 	default:
@@ -619,7 +617,7 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 
 	precedence := p.current.Precedence()
 
-	if p.next.Is(token.Text, token.OpenInterp, token.Ident, token.URL, token.Body) && p.shouldParseRHS(left) {
+	if p.next.Is(token.Text, token.OpenInterp, token.Body) && p.shouldParseRHS(left) {
 		p.advance()
 
 		right, err := p.parseExpression(precedence)
@@ -659,12 +657,10 @@ func (p *Parser) shouldParseRHS(left ast.Expression) bool {
 	}
 
 	switch left.Kind() {
-	case ast.KindTextLiteral:
+	case ast.KindTextLiteral, ast.KindURL:
 		return p.next.Is(token.Text)
 	case ast.KindIdent:
 		return p.next.Is(token.Ident)
-	case ast.KindURL:
-		return p.next.Is(token.URL)
 	case ast.KindBody:
 		return p.next.Is(token.Body)
 	default:
@@ -681,17 +677,6 @@ func (p *Parser) parseTextLiteral() ast.TextLiteral {
 	}
 
 	return text
-}
-
-// parseURL parses a URL literal.
-func (p *Parser) parseURL() ast.URL {
-	result := ast.URL{
-		Value: p.text(),
-		Token: p.current,
-		Type:  ast.KindURL,
-	}
-
-	return result
 }
 
 // parseHeader parses a Header statement.

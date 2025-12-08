@@ -9,4 +9,4 @@ GET https://blowup.com
 > )(*&^%
 -- want.txt --
 bad-response-file.txtar:8:1-2: Error token from scanner
-bad-response-file.txtar:8:4: unrecognised character: ')'
+bad-response-file.txtar:8:3: unexpected character: ')'
