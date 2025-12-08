@@ -6,7 +6,7 @@ Authorization Bearer secret
 <Token::Separator start=0, end=3>
 <Token::MethodGet start=4, end=7>
 <Token::Text start=8, end=27>
-<Token::Ident start=28, end=41>
+<Token::Header start=28, end=41>
 <Token::Error start=41, end=41>
 -- errors.txt --
 header-no-colon.txtar:3:14: invalid header, expected ':', got ' '

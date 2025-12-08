@@ -45,7 +45,6 @@ type stateFn func(*Scanner) stateFn
 // Scanner is the http file scanner.
 type Scanner struct {
 	tokens      chan token.Token    // Channel on which to emit scanned tokens.
-	state       stateFn             // The scanner's current state
 	name        string              // Name of the file
 	diagnostics []syntax.Diagnostic // Diagnostics gathered during scanning
 	src         []byte              // Raw source text
@@ -71,7 +70,6 @@ func New(name string, src []byte) *Scanner {
 		stack:  make([]stateFn, 0, stackSize),
 		name:   name,
 		src:    src,
-		state:  scanStart,
 		line:   1,
 	}
 
@@ -780,7 +778,7 @@ func scanHeader(s *Scanner) stateFn {
 	s.takeWhile(isIdent)
 
 	if s.pos > s.start {
-		s.emit(token.Ident)
+		s.emit(token.Header)
 	}
 
 	if s.peek() != ':' {

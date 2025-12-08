@@ -16,7 +16,7 @@ Authorization: Bearer {{ token }}
 <Token::Separator start=15, end=18>
 <Token::MethodPost start=19, end=23>
 <Token::Text start=24, end=43>
-<Token::Ident start=44, end=57>
+<Token::Header start=44, end=57>
 <Token::Colon start=57, end=58>
 <Token::Text start=59, end=66>
 <Token::OpenInterp start=66, end=68>
