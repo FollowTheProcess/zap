@@ -200,7 +200,7 @@ func run(options zap.RunOptions) func() {
 		err := app.Run(context.Background(), options)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+			os.Exit(1) //nolint:revive // Needed for testscript
 		}
 	}
 }
@@ -213,7 +213,7 @@ func export(options zap.ExportOptions) func() {
 		err := app.Export(context.Background(), options)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1) //nolint:revive // redundant-test-main-exit, this is testscript main
+			os.Exit(1) //nolint:revive // Needed for testscript
 		}
 	}
 }
