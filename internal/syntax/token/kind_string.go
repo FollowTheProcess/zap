@@ -21,30 +21,29 @@ func _() {
 	_ = x[ResponseRef-10]
 	_ = x[Text-11]
 	_ = x[Body-12]
-	_ = x[URL-13]
-	_ = x[HTTPVersion-14]
-	_ = x[Header-15]
-	_ = x[OpenInterp-16]
-	_ = x[CloseInterp-17]
-	_ = x[Name-18]
-	_ = x[Prompt-19]
-	_ = x[Timeout-20]
-	_ = x[ConnectionTimeout-21]
-	_ = x[NoRedirect-22]
-	_ = x[MethodGet-23]
-	_ = x[MethodHead-24]
-	_ = x[MethodPost-25]
-	_ = x[MethodPut-26]
-	_ = x[MethodDelete-27]
-	_ = x[MethodConnect-28]
-	_ = x[MethodPatch-29]
-	_ = x[MethodOptions-30]
-	_ = x[MethodTrace-31]
+	_ = x[HTTPVersion-13]
+	_ = x[Header-14]
+	_ = x[OpenInterp-15]
+	_ = x[CloseInterp-16]
+	_ = x[Name-17]
+	_ = x[Prompt-18]
+	_ = x[Timeout-19]
+	_ = x[ConnectionTimeout-20]
+	_ = x[NoRedirect-21]
+	_ = x[MethodGet-22]
+	_ = x[MethodHead-23]
+	_ = x[MethodPost-24]
+	_ = x[MethodPut-25]
+	_ = x[MethodDelete-26]
+	_ = x[MethodConnect-27]
+	_ = x[MethodPatch-28]
+	_ = x[MethodOptions-29]
+	_ = x[MethodTrace-30]
 }
 
-const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqColonLeftAngleRightAngleResponseRefTextBodyURLHTTPVersionHeaderOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
+const _Kind_name = "EOFErrorCommentSeparatorAtIdentEqColonLeftAngleRightAngleResponseRefTextBodyHTTPVersionHeaderOpenInterpCloseInterpNamePromptTimeoutConnectionTimeoutNoRedirectMethodGetMethodHeadMethodPostMethodPutMethodDeleteMethodConnectMethodPatchMethodOptionsMethodTrace"
 
-var _Kind_index = [...]uint16{0, 3, 8, 15, 24, 26, 31, 33, 38, 47, 57, 68, 72, 76, 79, 90, 96, 106, 117, 121, 127, 134, 151, 161, 170, 180, 190, 199, 211, 224, 235, 248, 259}
+var _Kind_index = [...]uint16{0, 3, 8, 15, 24, 26, 31, 33, 38, 47, 57, 68, 72, 76, 87, 93, 103, 114, 118, 124, 131, 148, 158, 167, 177, 187, 196, 208, 221, 232, 245, 256}
 
 func (i Kind) String() string {
 	idx := int(i) - 0

@@ -433,8 +433,6 @@ func (r *Resolver) resolveExpression(env *environment, expression ast.Expression
 	switch expr := expression.(type) {
 	case ast.TextLiteral:
 		return expr.Value, nil
-	case ast.URL:
-		return expr.Value, nil
 	case ast.Body:
 		return expr.Value, nil
 	case ast.Ident:

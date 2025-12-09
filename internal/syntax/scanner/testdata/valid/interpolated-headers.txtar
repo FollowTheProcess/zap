@@ -19,7 +19,7 @@ Accept: {{ json }}
 <Token::Separator start=40, end=43>
 <Token::Comment start=44, end=48>
 <Token::MethodGet start=49, end=52>
-<Token::URL start=53, end=86>
+<Token::Text start=53, end=86>
 <Token::Header start=87, end=99>
 <Token::Colon start=99, end=100>
 <Token::OpenInterp start=101, end=103>

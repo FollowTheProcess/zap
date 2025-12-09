@@ -13,5 +13,5 @@ GET https://api.somewhere.com/items/1
 <Token::Comment start=38, end=59>
 <Token::Comment start=63, end=69>
 <Token::MethodGet start=70, end=73>
-<Token::URL start=74, end=107>
+<Token::Text start=74, end=107>
 <Token::EOF start=108, end=108>

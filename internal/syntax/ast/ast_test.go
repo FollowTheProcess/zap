@@ -36,14 +36,14 @@ func TestNode(t *testing.T) {
 		},
 		{
 			name: "url literal",
-			node: ast.URL{
+			node: ast.TextLiteral{
 				Value: "https://example.com",
-				Token: token.Token{Kind: token.URL, Start: 0, End: 19},
-				Type:  ast.KindURL,
+				Token: token.Token{Kind: token.Text, Start: 0, End: 19},
+				Type:  ast.KindTextLiteral,
 			},
-			start: token.Token{Kind: token.URL, Start: 0, End: 19},
-			end:   token.Token{Kind: token.URL, Start: 0, End: 19},
-			kind:  ast.KindURL,
+			start: token.Token{Kind: token.Text, Start: 0, End: 19},
+			end:   token.Token{Kind: token.Text, Start: 0, End: 19},
+			kind:  ast.KindTextLiteral,
 		},
 		{
 			name: "ident",
@@ -240,7 +240,7 @@ func TestNode(t *testing.T) {
 				},
 				URL: ast.TextLiteral{
 					Value: "https://example.com",
-					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Token: token.Token{Kind: token.Text, Start: 9, End: 28},
 					Type:  ast.KindTextLiteral,
 				},
 				Method: ast.Method{
@@ -260,7 +260,7 @@ func TestNode(t *testing.T) {
 				Body: nil,
 				URL: ast.TextLiteral{
 					Value: "https://example.com",
-					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Token: token.Token{Kind: token.Text, Start: 9, End: 28},
 					Type:  ast.KindTextLiteral,
 				},
 				Method: ast.Method{
@@ -271,7 +271,7 @@ func TestNode(t *testing.T) {
 				Type: ast.KindRequest,
 			},
 			start: token.Token{Kind: token.Separator, Start: 0, End: 3},
-			end:   token.Token{Kind: token.URL, Start: 9, End: 28},
+			end:   token.Token{Kind: token.Text, Start: 9, End: 28},
 			kind:  ast.KindRequest,
 		},
 		{
@@ -308,7 +308,7 @@ func TestNode(t *testing.T) {
 				},
 				URL: ast.TextLiteral{
 					Value: "https://example.com",
-					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Token: token.Token{Kind: token.Text, Start: 9, End: 28},
 					Type:  ast.KindTextLiteral,
 				},
 				Method: ast.Method{
@@ -340,7 +340,7 @@ func TestNode(t *testing.T) {
 				},
 				URL: ast.TextLiteral{
 					Value: "https://example.com",
-					Token: token.Token{Kind: token.URL, Start: 9, End: 28},
+					Token: token.Token{Kind: token.Text, Start: 9, End: 28},
 					Type:  ast.KindTextLiteral,
 				},
 				Method: ast.Method{
@@ -375,10 +375,10 @@ func TestNode(t *testing.T) {
 			// |------ left ------|-- interp --|- right -|
 			name: "full interp",
 			node: ast.InterpolatedExpression{
-				Left: ast.URL{
+				Left: ast.TextLiteral{
 					Value: "https://example.com/",
-					Token: token.Token{Kind: token.URL, Start: 0, End: 20},
-					Type:  ast.KindURL,
+					Token: token.Token{Kind: token.Text, Start: 0, End: 20},
+					Type:  ast.KindTextLiteral,
 				},
 				Interp: ast.Interp{
 					Expr: ast.Ident{
@@ -390,15 +390,15 @@ func TestNode(t *testing.T) {
 					Close: token.Token{Kind: token.CloseInterp, Start: 31, End: 33},
 					Type:  ast.KindInterp,
 				},
-				Right: ast.URL{
+				Right: ast.TextLiteral{
 					Value: "/items/123",
-					Token: token.Token{Kind: token.URL, Start: 33, End: 43},
-					Type:  ast.KindURL,
+					Token: token.Token{Kind: token.Text, Start: 33, End: 43},
+					Type:  ast.KindTextLiteral,
 				},
 				Type: ast.KindInterpolatedExpression,
 			},
-			start: token.Token{Kind: token.URL, Start: 0, End: 20},
-			end:   token.Token{Kind: token.URL, Start: 33, End: 43},
+			start: token.Token{Kind: token.Text, Start: 0, End: 20},
+			end:   token.Token{Kind: token.Text, Start: 33, End: 43},
 			kind:  ast.KindInterpolatedExpression,
 		},
 		{
@@ -417,15 +417,15 @@ func TestNode(t *testing.T) {
 					Close: token.Token{Kind: token.CloseInterp, Start: 11, End: 13},
 					Type:  ast.KindInterp,
 				},
-				Right: ast.URL{
+				Right: ast.TextLiteral{
 					Value: "/items/3",
-					Token: token.Token{Kind: token.URL, Start: 13, End: 21},
-					Type:  ast.KindURL,
+					Token: token.Token{Kind: token.Text, Start: 13, End: 21},
+					Type:  ast.KindTextLiteral,
 				},
 				Type: ast.KindInterpolatedExpression,
 			},
 			start: token.Token{Kind: token.OpenInterp, Start: 0, End: 2},
-			end:   token.Token{Kind: token.URL, Start: 13, End: 21},
+			end:   token.Token{Kind: token.Text, Start: 13, End: 21},
 			kind:  ast.KindInterpolatedExpression,
 		},
 		{
@@ -433,10 +433,10 @@ func TestNode(t *testing.T) {
 			// |------ left ------|-- interp ---|
 			name: "interp no right",
 			node: ast.InterpolatedExpression{
-				Left: ast.URL{
+				Left: ast.TextLiteral{
 					Value: "https://example.com/",
-					Token: token.Token{Kind: token.URL, Start: 0, End: 20},
-					Type:  ast.KindURL,
+					Token: token.Token{Kind: token.Text, Start: 0, End: 20},
+					Type:  ast.KindTextLiteral,
 				},
 				Interp: ast.Interp{
 					Expr: ast.Ident{
@@ -451,7 +451,7 @@ func TestNode(t *testing.T) {
 				Right: nil,
 				Type:  ast.KindInterpolatedExpression,
 			},
-			start: token.Token{Kind: token.URL, Start: 0, End: 20},
+			start: token.Token{Kind: token.Text, Start: 0, End: 20},
 			end:   token.Token{Kind: token.CloseInterp, Start: 32, End: 34},
 			kind:  ast.KindInterpolatedExpression,
 		},

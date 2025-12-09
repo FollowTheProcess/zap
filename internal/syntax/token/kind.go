@@ -20,7 +20,6 @@ const (
 	ResponseRef                   // ResponseRef
 	Text                          // Text
 	Body                          // Body
-	URL                           // URL
 	HTTPVersion                   // HTTPVersion
 	Header                        // Header
 	OpenInterp                    // OpenInterp

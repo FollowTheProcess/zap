@@ -12,7 +12,6 @@ const (
 	KindVarStatement                       // VarStatement
 	KindIdent                              // Ident
 	KindTextLiteral                        // TextLiteral
-	KindURL                                // URL
 	KindInterp                             // Interp
 	KindPrompt                             // Prompt
 	KindRequest                            // Request

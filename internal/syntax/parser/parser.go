@@ -19,7 +19,7 @@ import (
 
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
-	"go.followtheprocess.codes/zap/internal/syntax/scanner/v2"
+	"go.followtheprocess.codes/zap/internal/syntax/scanner"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
@@ -657,7 +657,7 @@ func (p *Parser) shouldParseRHS(left ast.Expression) bool {
 	}
 
 	switch left.Kind() {
-	case ast.KindTextLiteral, ast.KindURL:
+	case ast.KindTextLiteral:
 		return p.next.Is(token.Text)
 	case ast.KindIdent:
 		return p.next.Is(token.Ident)
