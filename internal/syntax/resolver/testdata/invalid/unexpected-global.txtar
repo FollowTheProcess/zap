@@ -1,5 +1,0 @@
-# Bad global variable value
-
--- src.http --
-@base = @£$%^&*()
--- diagnostics.json --
