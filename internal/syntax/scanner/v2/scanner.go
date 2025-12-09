@@ -763,6 +763,51 @@ func scanHTTPVersion(s *Scanner) stateFn {
 	return scanBody
 }
 
+// scanHeaderValue scans a header value, including any interpolation.
+func scanHeaderValue(s *Scanner) stateFn {
+	// Handle interpolation somewhere inside the header value
+	// e.g. Authorization: Bearer {{ token }}
+	for {
+		if s.restHasPrefix("{{") {
+			// Emit what we have captured up to this point (if there is anything) as Text and then
+			// switch to scanning the interpolation
+			if s.pos > s.start {
+				// We have absorbed stuff, emit it
+				s.emit(token.Text)
+			}
+
+			s.statePush(scanHeaderValue)
+
+			return scanOpenInterp
+		}
+
+		// Scan any text on the same line
+		next := s.peek()
+		if next == '\n' || next == eof || next == utf8.RuneError {
+			break
+		}
+
+		s.next()
+	}
+
+	// If we absorbed any text, emit it.
+	//
+	// This could be empty because the entire header value could have just been an interp
+	// e.g. X-Api-Key: {{ key }}
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
+	s.skip(unicode.IsSpace)
+
+	// If there are more headers, go there
+	if isAlpha(s.peek()) {
+		return scanHeader
+	}
+
+	return scanBody
+}
+
 // scanHeader scans a request header.
 func scanHeader(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
@@ -792,49 +837,9 @@ func scanHeader(s *Scanner) stateFn {
 
 	// Handle interpolation somewhere inside the header value
 	// e.g. Authorization: Bearer {{ token }}
-	for {
-		if s.restHasPrefix("{{") {
-			// Emit what we have captured up to this point (if there is anything) as Text and then
-			// switch to scanning the interpolation
-			if s.pos > s.start {
-				// We have absorbed stuff, emit it
-				s.emit(token.Text)
-			}
+	s.statePush(scanHeader)
 
-			s.statePush(scanHeader)
-
-			return scanOpenInterp
-		}
-
-		// Scan any text on the same line
-		next := s.peek()
-		if next == '\n' || next == eof || next == utf8.RuneError {
-			break
-		}
-
-		s.next()
-	}
-
-	// If we absorbed any text, emit it.
-	//
-	// This could be empty because the entire header value could have just been an interp
-	// e.g. X-Api-Key: {{ key }}
-	if s.pos > s.start {
-		s.emit(token.Text)
-	}
-
-	s.skip(unicode.IsSpace)
-
-	// If there are more headers, call this function again!
-	if isAlpha(s.peek()) {
-		return scanHeader
-	}
-
-	if s.atEOF() || s.restHasPrefix("###") {
-		return scanStart
-	}
-
-	return scanBody
+	return scanHeaderValue
 }
 
 // scanBody scans a HTTP request body.

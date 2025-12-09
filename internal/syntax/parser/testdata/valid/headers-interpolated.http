@@ -1,0 +1,10 @@
+@accept = application/json;charset=utf8
+@json = json
+@something = yes
+
+### With Headers
+POST https://api.company.org/v1/token?cache=true
+Accept: {{ accept }}
+Content-Type: application/{{ json }}
+X-Something: hello-{{ something }}-middle
+Content-Length: 69
