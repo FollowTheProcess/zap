@@ -10,4 +10,4 @@ requests:
     comment: Response redirect
     method: GET
     url: https://api.somewhere.com/items/1
-    responseFile: ./response.json
+    responseFile: response.json

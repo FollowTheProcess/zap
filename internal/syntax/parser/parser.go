@@ -77,8 +77,6 @@ func (p *Parser) Parse() (ast.File, error) {
 
 	for !p.current.Is(token.EOF) {
 		if p.current.Is(token.Error) {
-			p.error("Error token from scanner")
-
 			if abortErr := p.synchronise(); abortErr != nil {
 				return file, fmt.Errorf("%w: %w", ErrAbort, abortErr)
 			}
@@ -136,7 +134,6 @@ func (p *Parser) advance() {
 func (p *Parser) expect(kinds ...token.Kind) error {
 	if p.next.Is(token.Error) {
 		// Nobody expects an error!
-		p.error("Error token from scanner")
 		return ErrParse
 	}
 

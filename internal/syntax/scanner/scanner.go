@@ -276,12 +276,10 @@ func (s *Scanner) emit(kind token.Kind) {
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
 func (s *Scanner) error(msg string) stateFn {
-	s.emit(token.Error)
-
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
-	startCol := s.start - s.currentLineOffset
-	endCol := s.pos - s.currentLineOffset
+	startCol := 1 + (s.start - s.currentLineOffset)
+	endCol := 1 + (s.pos - s.currentLineOffset)
 
 	// If startCol and endCol only differ by 1, it's pointing
 	// at a single character so we don't need a range, just point
@@ -289,6 +287,10 @@ func (s *Scanner) error(msg string) stateFn {
 	if math.Abs(float64(startCol-endCol)) <= 1 {
 		endCol = startCol
 	}
+
+	// This needs to be below startCol and endCol calculations because emit
+	// brings start up to pos
+	s.emit(token.Error)
 
 	position := syntax.Position{
 		Name:     s.name,
@@ -901,9 +903,12 @@ func scanLeftAngle(s *Scanner) stateFn {
 		return scanOpenInterp
 	}
 
-	if isFilePath(s.peek()) {
+	if isText(s.peek()) {
 		s.takeWhile(isText)
-		s.emit(token.Text)
+
+		if s.pos > s.start {
+			s.emit(token.Text)
+		}
 	}
 
 	s.skip(unicode.IsSpace)

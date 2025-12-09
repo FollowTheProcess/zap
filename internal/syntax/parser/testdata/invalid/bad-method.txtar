@@ -10,5 +10,4 @@ DESTROY https://api.something.com/v1
 ### Okay
 GET https://api.somethingelse.com/v1
 -- want.txt --
-bad-method.txtar:1:5-14: Error token from scanner
-bad-method.txtar:2:7: expected HTTP method, got "DESTROY"
+bad-method.txtar:2:1-8: expected HTTP method, got "DESTROY"
