@@ -20,8 +20,6 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
-// TODO(@FollowTheProcess): Make errorf return an error and just return it as an error
-
 const (
 	// PromptPlaceholderGlobal is the placeholder prefix for a global prompt variable.
 	//
@@ -140,8 +138,9 @@ func (r *Resolver) position(node ast.Node) syntax.Position {
 	}
 }
 
-// error reports a resolve error with a fixed message.
-func (r *Resolver) error(node ast.Node, msg string) {
+// error reports a resolve error with a fixed message, adding it to
+// the reported diagnostics but also returning it.
+func (r *Resolver) error(node ast.Node, msg string) error {
 	r.hadErrors = true
 
 	diag := syntax.Diagnostic{
@@ -150,11 +149,14 @@ func (r *Resolver) error(node ast.Node, msg string) {
 	}
 
 	r.diagnostics = append(r.diagnostics, diag)
+
+	return fmt.Errorf("%w: %s", ErrResolve, diag.String())
 }
 
-// errorf calls error with a formatted message.
-func (r *Resolver) errorf(node ast.Node, format string, a ...any) {
-	r.error(node, fmt.Sprintf(format, a...))
+// errorf calls error with a formatted message, adding it to
+// the resolver diagnostics but also returning it.
+func (r *Resolver) errorf(node ast.Node, format string, a ...any) error {
+	return r.error(node, fmt.Sprintf(format, a...))
 }
 
 // resolveStatement resolves a generic [ast.Statement], adding the fields to
@@ -190,7 +192,7 @@ func (r *Resolver) resolveFileStatement(env *environment, file *spec.File, state
 		file.Requests = append(file.Requests, request)
 
 	default:
-		return fmt.Errorf("unexpected global statement: %T", stmt)
+		return r.errorf(stmt, "unexpected global statement: %T", stmt)
 	}
 
 	return nil
@@ -212,8 +214,7 @@ func (r *Resolver) resolveGlobalVarStatement(env *environment, file *spec.File, 
 
 	value, err := r.resolveExpression(env, statement.Value)
 	if err != nil {
-		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
-		return err
+		return r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
 	}
 
 	if !isKeyword {
@@ -223,8 +224,7 @@ func (r *Resolver) resolveGlobalVarStatement(env *environment, file *spec.File, 
 		}
 
 		if err := env.define(key, value); err != nil {
-			r.error(statement, err.Error())
-			return err
+			return r.error(statement, err.Error())
 		}
 
 		file.Vars[key] = value
@@ -239,16 +239,14 @@ func (r *Resolver) resolveGlobalVarStatement(env *environment, file *spec.File, 
 	case token.Timeout:
 		duration, err := time.ParseDuration(value)
 		if err != nil {
-			r.errorf(statement.Value, "invalid timeout value: %v", err)
-			return err
+			return r.errorf(statement.Value, "invalid timeout value: %v", err)
 		}
 
 		file.Timeout = duration
 	case token.ConnectionTimeout:
 		duration, err := time.ParseDuration(value)
 		if err != nil {
-			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
-			return err
+			return r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
 		}
 
 		file.ConnectionTimeout = duration
@@ -274,8 +272,7 @@ func (r *Resolver) resolveGlobalPromptStatement(
 	}
 
 	if _, exists := file.Prompts[name]; exists {
-		r.errorf(statement, "prompt %s already declared", name)
-		return fmt.Errorf("prompt %s already declared", name)
+		return r.errorf(statement, "prompt %s already declared", name)
 	}
 
 	// Shouldn't need this because file is declared top level with all this
@@ -296,8 +293,7 @@ func (r *Resolver) resolveGlobalPromptStatement(
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
 	if err := env.define(name, PromptPlaceholderGlobal+name); err != nil {
-		r.errorf(statement, "prompt %s shadows global variable of the same name: %v", name, err)
-		return err
+		return r.errorf(statement, "prompt %s shadows global variable of the same name: %v", name, err)
 	}
 
 	file.Prompts[name] = prompt
@@ -354,15 +350,13 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 
 	rawURL, err := r.resolveExpression(env, in.URL)
 	if err != nil {
-		r.errorf(in.URL, "failed to resolve URL expression: %v", err)
-		return spec.Request{}, err
+		return spec.Request{}, r.errorf(in.URL, "failed to resolve URL expression: %v", err)
 	}
 
 	// Validate the URL here
 	parsed, err := url.ParseRequestURI(rawURL)
 	if err != nil {
-		r.errorf(in.URL, "invalid URL %s: %v", rawURL, err)
-		return spec.Request{}, err
+		return spec.Request{}, r.errorf(in.URL, "invalid URL %s: %v", rawURL, err)
 	}
 
 	request.URL = parsed.String()
@@ -393,16 +387,17 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 
 		redirect, err = r.resolveExpression(env, in.ResponseRedirect.File)
 		if err != nil {
-			r.errorf(in.ResponseRedirect, "invalid response redirect expression: %v", err)
-			return spec.Request{}, err
+			return spec.Request{}, r.errorf(in.ResponseRedirect, "invalid response redirect expression: %v", err)
 		}
 
 		redirect = filepath.Clean(redirect)
 
 		if !fs.ValidPath(redirect) {
-			// TODO(@FollowTheProcess): Make errorf return an error
-			r.errorf(in.ResponseRedirect.File, "%q is not a valid filepath for use in a response redirect", redirect)
-			return spec.Request{}, fmt.Errorf("%q is not a valid filepath for use in a response redirect", redirect)
+			return spec.Request{}, r.errorf(
+				in.ResponseRedirect.File,
+				"%q is not a valid filepath for use in a response redirect",
+				redirect,
+			)
 		}
 
 		request.ResponseFile = redirect
@@ -413,16 +408,17 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 
 		reference, err = r.resolveExpression(env, in.ResponseReference.File)
 		if err != nil {
-			r.errorf(in.ResponseReference, "invalid response reference expression: %v", err)
-			return spec.Request{}, err
+			return spec.Request{}, r.errorf(in.ResponseReference, "invalid response reference expression: %v", err)
 		}
 
 		reference = filepath.Clean(reference)
 
 		if !fs.ValidPath(reference) {
-			// TODO(@FollowTheProcess): Make errorf return an error
-			r.errorf(in.ResponseReference.File, "%q is not a valid filepath for use in a response reference", reference)
-			return spec.Request{}, fmt.Errorf("%q is not a valid filepath for use in a response reference", reference)
+			return spec.Request{}, r.errorf(
+				in.ResponseReference.File,
+				"%q is not a valid filepath for use in a response reference",
+				reference,
+			)
 		}
 
 		request.ResponseRef = reference
@@ -490,8 +486,7 @@ func (r *Resolver) resolveHTTPMethod(method ast.Method) (string, error) {
 	case token.MethodTrace:
 		return http.MethodTrace, nil
 	default:
-		r.error(method, "invalid HTTP method")
-		return "", errors.New("invalid HTTP method")
+		return "", r.error(method, "invalid HTTP method")
 	}
 }
 
@@ -515,8 +510,7 @@ func (r *Resolver) resolveRequestVarStatement(
 
 	value, err := r.resolveExpression(env, statement.Value)
 	if err != nil {
-		r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
-		return err
+		return r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
 	}
 
 	if !isKeyword {
@@ -526,8 +520,7 @@ func (r *Resolver) resolveRequestVarStatement(
 		}
 
 		if err := env.define(key, value); err != nil {
-			r.error(statement, err.Error())
-			return err
+			return r.error(statement, err.Error())
 		}
 
 		request.Vars[key] = value
@@ -542,16 +535,14 @@ func (r *Resolver) resolveRequestVarStatement(
 	case token.Timeout:
 		duration, err := time.ParseDuration(value)
 		if err != nil {
-			r.errorf(statement.Value, "invalid timeout value: %v", err)
-			return err
+			return r.errorf(statement.Value, "invalid timeout value: %v", err)
 		}
 
 		request.Timeout = duration
 	case token.ConnectionTimeout:
 		duration, err := time.ParseDuration(value)
 		if err != nil {
-			r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
-			return err
+			return r.errorf(statement.Value, "invalid connection-timeout value: %v", err)
 		}
 
 		request.ConnectionTimeout = duration
@@ -577,8 +568,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 	}
 
 	if _, exists := request.Prompts[name]; exists {
-		r.errorf(statement, "prompt %s already declared", name)
-		return fmt.Errorf("prompt %s already declared", name)
+		return r.errorf(statement, "prompt %s already declared", name)
 	}
 
 	// Shouldn't need this because request is declared top level with all this
@@ -598,8 +588,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
 	if err := env.define(name, PromptPlaceholderLocal+name); err != nil {
-		r.errorf(statement, "prompt %s shadows local variable of the same name: %v", name, err)
-		return err
+		return r.errorf(statement, "prompt %s shadows local variable of the same name: %v", name, err)
 	}
 
 	request.Prompts[name] = prompt
@@ -611,8 +600,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 func (r *Resolver) resolveHeader(env *environment, in ast.Header) (key, value string, err error) {
 	value, err = r.resolveExpression(env, in.Value)
 	if err != nil {
-		r.errorf(in, "invalid value expression for header %s: %v", in.Key, err)
-		return "", "", err
+		return "", "", r.errorf(in, "invalid value expression for header %s: %v", in.Key, err)
 	}
 
 	return in.Key, value, nil
@@ -648,9 +636,7 @@ func (r *Resolver) resolveBody(env *environment, request *spec.Request, expressi
 
 		value = filepath.Clean(value)
 		if !fs.ValidPath(value) {
-			// TODO(@FollowTheProcess): here too
-			r.errorf(expr, "%q is not a valid filepath for a request body", value)
-			return fmt.Errorf("%q is not a valid filepath for a request body", value)
+			return r.errorf(expr, "%q is not a valid filepath for a request body", value)
 		}
 
 		request.BodyFile = value
@@ -666,20 +652,17 @@ func (r *Resolver) resolveBody(env *environment, request *spec.Request, expressi
 func (r *Resolver) resolveInterpolatedExpression(env *environment, expr ast.InterpolatedExpression) (string, error) {
 	leftResolved, err := r.resolveExpression(env, expr.Left)
 	if err != nil {
-		r.errorf(expr, "could not resolve LHS of interpolated expression: %v", err)
-		return "", err
+		return "", r.errorf(expr, "could not resolve LHS of interpolated expression: %v", err)
 	}
 
 	interpResolved, err := r.resolveExpression(env, expr.Interp)
 	if err != nil {
-		r.errorf(expr, "could not resolve interp of interpolated expression: %v", err)
-		return "", err
+		return "", r.errorf(expr, "could not resolve interp of interpolated expression: %v", err)
 	}
 
 	rightResolved, err := r.resolveExpression(env, expr.Right)
 	if err != nil {
-		r.errorf(expr, "could not resolve RHS of interpolated expression: %v", err)
-		return "", err
+		return "", r.errorf(expr, "could not resolve RHS of interpolated expression: %v", err)
 	}
 
 	return leftResolved + interpResolved + rightResolved, nil

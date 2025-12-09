@@ -15,7 +15,7 @@ GET https://api.something.com/{{ missing }}/thing/{{ id }}
     }
   },
   {
-    "msg": "failed to resolve URL expression: use of undeclared variable missing",
+    "msg": "failed to resolve URL expression: resolve error: undeclared-var-in-interp.txtar:3:5-59: could not resolve interp of interpolated expression: use of undeclared variable missing",
     "position": {
       "name": "undeclared-var-in-interp.txtar",
       "offset": 58,
