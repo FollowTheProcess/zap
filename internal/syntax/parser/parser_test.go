@@ -23,7 +23,9 @@ var (
 func TestFuzzFail(t *testing.T) {
 	t.Skip("manually skip")
 
-	src := []byte("### Body\nPOST https://api.somewhere.com/items/1\n\n{\n  \"somethi\xfeS\xe7C\xb3\x8f?ng\": \"here\"\n}\n\n<> response.json\n")
+	src := []byte(
+		"### Body\nPOST https://api.somewhere.com/items/1\n\n{\n  \"somethi\xfeS\xe7C\xb3\x8f?ng\": \"here\"\n}\n\n<> response.json\n",
+	)
 	p := parser.New("fuzz", src)
 
 	_, err := p.Parse()
