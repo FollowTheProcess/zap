@@ -7,7 +7,6 @@ package resolver
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -390,17 +389,7 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 			return spec.Request{}, r.errorf(in.ResponseRedirect, "invalid response redirect expression: %v", err)
 		}
 
-		redirect = filepath.Clean(redirect)
-
-		if !fs.ValidPath(redirect) {
-			return spec.Request{}, r.errorf(
-				in.ResponseRedirect.File,
-				"%q is not a valid filepath for use in a response redirect",
-				redirect,
-			)
-		}
-
-		request.ResponseFile = redirect
+		request.ResponseFile = filepath.Clean(redirect)
 	}
 
 	if in.ResponseReference != nil {
@@ -411,17 +400,7 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 			return spec.Request{}, r.errorf(in.ResponseReference, "invalid response reference expression: %v", err)
 		}
 
-		reference = filepath.Clean(reference)
-
-		if !fs.ValidPath(reference) {
-			return spec.Request{}, r.errorf(
-				in.ResponseReference.File,
-				"%q is not a valid filepath for use in a response reference",
-				reference,
-			)
-		}
-
-		request.ResponseRef = reference
+		request.ResponseRef = filepath.Clean(reference)
 	}
 
 	// Bubble up all the errors at once
@@ -634,12 +613,7 @@ func (r *Resolver) resolveBody(env *environment, request *spec.Request, expressi
 			return err
 		}
 
-		value = filepath.Clean(value)
-		if !fs.ValidPath(value) {
-			return r.errorf(expr, "%q is not a valid filepath for a request body", value)
-		}
-
-		request.BodyFile = value
+		request.BodyFile = filepath.Clean(value)
 
 		return nil
 	default:
