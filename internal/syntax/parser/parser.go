@@ -23,9 +23,15 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
-// ErrParse is a generic parsing error, details on the error are passed
-// to the parser's [syntax.ErrorHandler] at the moment it occurs.
-var ErrParse = errors.New("parse error")
+var (
+	// ErrParse is a generic parsing error, details on the error are passed
+	// to the parser's [syntax.ErrorHandler] at the moment it occurs.
+	ErrParse = errors.New("parse error")
+
+	// ErrAbort is a fatal parsing error, this means the parser encountered
+	// pathological syntax it was not able to recover from and has aborted.
+	ErrAbort = errors.New("fatal parse error, aborting")
+)
 
 // Parser is the http file parser.
 type Parser struct {
@@ -72,14 +78,20 @@ func (p *Parser) Parse() (ast.File, error) {
 	for !p.current.Is(token.EOF) {
 		if p.current.Is(token.Error) {
 			p.error("Error token from scanner")
-			p.synchronise()
+
+			if abortErr := p.synchronise(); abortErr != nil {
+				return file, fmt.Errorf("%w: %w", ErrAbort, abortErr)
+			}
 
 			continue
 		}
 
 		statement, err := p.parseStatement()
 		if err != nil {
-			p.synchronise()
+			if abortErr := p.synchronise(); abortErr != nil {
+				return file, fmt.Errorf("%w: %w", ErrAbort, abortErr)
+			}
+
 			continue
 		}
 
@@ -226,14 +238,34 @@ func (p *Parser) bytes() []byte {
 //
 // synchronise discards tokens until it sees the next Separator, EOF after which
 // point the parser should be back in sync and can continue normally.
-func (p *Parser) synchronise() {
+//
+// It does this up to a maximum limit, which if reached will cause synchronise
+// to return a non-nil error, indicating that no progress has been made while
+// synchronising and the parser should abort.
+func (p *Parser) synchronise() error {
+	p.hadErrors = true
+
+	// We try a max of 5 times to synchronise, if we haven't found
+	// something good by then, bail out.
+	const maxAttempts = 5
+
+	attempt := 0
+
 	for {
 		p.advance()
 
-		if p.current.Is(token.Separator, token.EOF) {
+		attempt++
+
+		if p.current.Is(token.Separator, token.EOF) || attempt >= maxAttempts {
 			break
 		}
 	}
+
+	if attempt >= maxAttempts {
+		return fmt.Errorf("%w: could not synchronise parser after %d attempts", ErrAbort, maxAttempts)
+	}
+
+	return nil
 }
 
 // parseStatement parses a statement.
@@ -491,6 +523,9 @@ func (p *Parser) parseRequest() (ast.Request, error) {
 		}
 
 		result.Body = bodyFile
+	case token.Error:
+		p.error("parse error while parsing request body")
+		return result, ErrParse
 	default:
 		// Nothing, not all requests have a body
 	}

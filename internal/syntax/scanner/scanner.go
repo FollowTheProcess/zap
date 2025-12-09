@@ -135,7 +135,10 @@ func (s *Scanner) char() (rune, int) {
 	r, width := utf8.DecodeRune(s.src[s.pos:])
 	if r == utf8.RuneError || r == 0 {
 		s.errorf("invalid utf8 character at position %d: %q", s.pos, s.src[s.pos])
-		return utf8.RuneError, width
+		// Prevent cascading errors by "consuming" all remaining input
+		s.pos = len(s.src)
+
+		return utf8.RuneError, 0
 	}
 
 	return r, width
@@ -272,13 +275,13 @@ func (s *Scanner) emit(kind token.Kind) {
 
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
-func (s *Scanner) error(msg string) {
+func (s *Scanner) error(msg string) stateFn {
+	s.emit(token.Error)
+
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
-	startCol := 1 + s.start - s.currentLineOffset
-	endCol := 1 + s.pos - s.currentLineOffset
-
-	s.emit(token.Error)
+	startCol := s.start - s.currentLineOffset
+	endCol := s.pos - s.currentLineOffset
 
 	// If startCol and endCol only differ by 1, it's pointing
 	// at a single character so we don't need a range, just point
@@ -304,11 +307,13 @@ func (s *Scanner) error(msg string) {
 	defer s.mu.Unlock()
 
 	s.diagnostics = append(s.diagnostics, diag)
+
+	return nil
 }
 
 // errorf calls error with a formatted message.
-func (s *Scanner) errorf(format string, a ...any) {
-	s.error(fmt.Sprintf(format, a...))
+func (s *Scanner) errorf(format string, a ...any) stateFn {
+	return s.error(fmt.Sprintf(format, a...))
 }
 
 // run starts the state machine for the scanner, it runs with each [scanFn] returning the next
@@ -353,8 +358,7 @@ func scanStart(s *Scanner) stateFn {
 	case '@':
 		return scanAt
 	default:
-		s.errorf("unexpected character: %q", char)
-		return nil
+		return s.errorf("unexpected character: %q", char)
 	}
 }
 
@@ -376,8 +380,7 @@ func scanHash(s *Scanner) stateFn {
 // It assumes the first '/' has already been consumed.
 func scanSlash(s *Scanner) stateFn {
 	if !s.take("/") {
-		s.error("invalid use of '/', two '//' mark a comment start, got '/'")
-		return nil
+		return s.error("invalid use of '/', two '//' mark a comment start, got '/'")
 	}
 
 	return scanComment
@@ -485,8 +488,7 @@ func scanInsideInterp(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
 	if !s.restHasPrefix("}}") {
-		s.error("unterminated interpolation")
-		return nil
+		return s.error("unterminated interpolation")
 	}
 
 	return scanCloseInterp
@@ -595,9 +597,7 @@ func scanRequest(s *Scanner) stateFn {
 			return scanMethod
 		}
 
-		s.errorf("unexpected character: %q", char)
-
-		return nil
+		return s.errorf("unexpected character: %q", char)
 	}
 }
 
@@ -613,8 +613,7 @@ func scanRequestHash(s *Scanner) stateFn {
 // It assumes the first '/' has already been consumed.
 func scanRequestSlash(s *Scanner) stateFn {
 	if !s.take("/") {
-		s.error("invalid use of '/', two '//' mark a comment start, got '/'")
-		return nil
+		return s.error("invalid use of '/', two '//' mark a comment start, got '/'")
 	}
 
 	return scanRequestComment
@@ -681,16 +680,14 @@ func scanMethod(s *Scanner) stateFn {
 
 	kind, isMethod := token.Method(text)
 	if !isMethod {
-		s.errorf("expected HTTP method, got %q", text)
-		return nil
+		return s.errorf("expected HTTP method, got %q", text)
 	}
 
 	s.emit(kind)
 	s.skip(isLineSpace)
 
 	if (!s.restHasPrefix("http://") && !s.restHasPrefix("https://")) && !s.restHasPrefix("{{") {
-		s.errorf("expected URL or interpolation, got %q", s.peek())
-		return nil
+		return s.errorf("expected URL or interpolation, got %q", s.peek())
 	}
 
 	return scanURL
@@ -827,8 +824,7 @@ func scanHeader(s *Scanner) stateFn {
 	}
 
 	if s.peek() != ':' {
-		s.errorf("invalid header, expected ':', got %q", s.peek())
-		return nil
+		return s.errorf("invalid header, expected ':', got %q", s.peek())
 	}
 
 	s.take(":")

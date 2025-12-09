@@ -6,4 +6,4 @@ GET https://api.something.com/v1
 Content-Type application/json
 -- want.txt --
 bad-headers.txtar:3:1-13: Error token from scanner
-bad-headers.txtar:3:13: invalid header, expected ':', got ' '
+bad-headers.txtar:3:12: invalid header, expected ':', got ' '

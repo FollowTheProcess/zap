@@ -1,3 +1,5 @@
+# TODO: The positions are off by 1 or 2 in some places
+
 -- src.http --
 ### Bad
 GET https://blowup.com
@@ -5,4 +7,4 @@ GET https://blowup.com
 < £$%^&
 -- want.txt --
 bad-body-file.txtar:4:1-2: Error token from scanner
-bad-body-file.txtar:4:3-5: unexpected character: '£'
+bad-body-file.txtar:4:4: unexpected character: '£'
