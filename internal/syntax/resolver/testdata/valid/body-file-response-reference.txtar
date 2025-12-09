@@ -16,5 +16,5 @@ requests:
     comment: Read the body from ./input.json
     method: POST
     url: https://api.somewhere.com/items/1
-    bodyFile: ./input.json
+    bodyFile: input.json
     responseRef: output.json

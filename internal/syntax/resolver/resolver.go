@@ -7,8 +7,10 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -17,6 +19,8 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
+
+// TODO(@FollowTheProcess): Make errorf return an error and just return it as an error
 
 const (
 	// PromptPlaceholderGlobal is the placeholder prefix for a global prompt variable.
@@ -393,6 +397,14 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 			return spec.Request{}, err
 		}
 
+		redirect = filepath.Clean(redirect)
+
+		if !fs.ValidPath(redirect) {
+			// TODO(@FollowTheProcess): Make errorf return an error
+			r.errorf(in.ResponseRedirect.File, "%q is not a valid filepath for use in a response redirect", redirect)
+			return spec.Request{}, fmt.Errorf("%q is not a valid filepath for use in a response redirect", redirect)
+		}
+
 		request.ResponseFile = redirect
 	}
 
@@ -403,6 +415,14 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 		if err != nil {
 			r.errorf(in.ResponseReference, "invalid response reference expression: %v", err)
 			return spec.Request{}, err
+		}
+
+		reference = filepath.Clean(reference)
+
+		if !fs.ValidPath(reference) {
+			// TODO(@FollowTheProcess): Make errorf return an error
+			r.errorf(in.ResponseReference.File, "%q is not a valid filepath for use in a response reference", reference)
+			return spec.Request{}, fmt.Errorf("%q is not a valid filepath for use in a response reference", reference)
 		}
 
 		request.ResponseRef = reference
@@ -624,6 +644,13 @@ func (r *Resolver) resolveBody(env *environment, request *spec.Request, expressi
 		value, err := r.resolveExpression(env, expr)
 		if err != nil {
 			return err
+		}
+
+		value = filepath.Clean(value)
+		if !fs.ValidPath(value) {
+			// TODO(@FollowTheProcess): here too
+			r.errorf(expr, "%q is not a valid filepath for a request body", value)
+			return fmt.Errorf("%q is not a valid filepath for a request body", value)
 		}
 
 		request.BodyFile = value

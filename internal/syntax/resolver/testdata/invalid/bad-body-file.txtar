@@ -1,0 +1,21 @@
+# A valid (from scanner and parser) piece of text assigned to a body file
+# but it's clearly not a valid filepath
+
+-- src.http --
+### Bad
+GET https://blowup.com
+
+< ../..
+-- diagnostics.json --
+[
+  {
+    "msg": "\"../..\" is not a valid filepath for a request body",
+    "position": {
+      "name": "bad-body-file.txtar",
+      "offset": 32,
+      "line": 4,
+      "startCol": 1,
+      "endCol": 8
+    }
+  }
+]
