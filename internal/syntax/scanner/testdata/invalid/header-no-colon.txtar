@@ -9,4 +9,4 @@ Authorization Bearer secret
 <Token::Header start=28, end=41>
 <Token::Error start=41, end=41>
 -- errors.txt --
-header-no-colon.txtar:3:14: invalid header, expected ':', got ' '
+header-no-colon.txtar:3:13: invalid header, expected ':', got ' '

@@ -6,10 +6,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 8
         end: 29
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -32,10 +32,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 39
         end: 60
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -58,10 +58,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 70
         end: 91
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -84,10 +84,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 100
         end: 121
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -110,10 +110,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 132
         end: 153
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -136,10 +136,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 165
         end: 186
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -162,10 +162,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 199
         end: 220
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -188,10 +188,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 231
         end: 252
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null
@@ -214,10 +214,10 @@ statements:
   - url:
       value: https://something.com
       token:
-        kind: URL
+        kind: Text
         start: 265
         end: 286
-      type: URL
+      type: TextLiteral
     body: null
     responseRedirect: null
     responseReference: null

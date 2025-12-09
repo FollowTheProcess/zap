@@ -1,0 +1,19 @@
+# Nonsense timeouts
+
+-- src.http --
+### BadTimeout
+# @timeout = %^&*(
+GET https://github.com/api
+-- diagnostics.json --
+[
+  {
+    "msg": "invalid timeout value: time: invalid duration \"%^\u0026*(\"",
+    "position": {
+      "name": "bad-timeout.txtar",
+      "offset": 28,
+      "line": 2,
+      "startCol": 14,
+      "endCol": 19
+    }
+  }
+]

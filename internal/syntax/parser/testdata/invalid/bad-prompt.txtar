@@ -1,4 +1,5 @@
 -- src.http --
 @prompt ###
 -- want.txt --
+bad-prompt.txtar:1:2-8: expected Ident, got Separator
 bad-prompt.txtar:1:12: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got EOF

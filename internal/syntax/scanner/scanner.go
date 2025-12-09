@@ -1,29 +1,29 @@
-// Package scanner implement a lexical scanner for .http files, reading the raw source text
-// and emitting a stream of tokens.
+// Package scanner implements a lexical scanner for .http files, reading the raw source
+// text and emitting a stream of tokens.
 //
-// Unlike parsing a general purpose programming language, the .http file syntax is very context
-// dependent and there's not a lot of symbols or structure to distinguish these contexts from
-// one another e.g. a programming language may have braces, brackets etc. where as in .http files
-// it's a bit more implicit.
+// The scanner is a concurrent, state-function based scanner similar to that described by
+// Rob Pike in his talk [Lexical Scanning in Go], based on the implementation of [text/template].
 //
-// For instance a HTTP header just looks like regular text, there are no quotes to distinguish
-// it as a string.
+// The scanner proceeds one utf8 rune at a time until a particular token is recognised, the token
+// is then emitted over a channel where it may be consumed by the parser. The state of the scanner
+// is maintained between token emits unlike a more traditional switch-based lexer.
 //
-// Because of this, the scanner implemented here is context dependent and will only allow certain
-// tokens in certain contexts. This adds a bit of complexity but reduces it in the parser, as with
-// everything, this is a trade off.
+// This is useful for http files as they are not a completely context-free grammar, there are no
+// quotes to begin a string for example, the start of a request header can look like a request
+// method etc.
 //
-// In the [spec] it treats certain whitespace as significant e.g. a GET <url> must be followed by a single
-// newline '\n' or '\r\n'. In this implementation whitespace is entirely ignored. This produces a more
-// robust implementation as it can handle discrepancies in formatting.
+// A similar approach is taken in [BurntSushi/toml].
 //
-// [spec]: https://github.com/JetBrains/http-request-in-editor-spec
+// [Lexical Scanning in Go]: https://go.dev/talks/2011/lex.slide#1
+// [BurntSushi/toml]: https://github.com/BurntSushi/toml/blob/master/lex.go
 package scanner
 
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"slices"
+	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
@@ -34,30 +34,40 @@ import (
 
 const (
 	eof        = rune(-1) // eof signifies we have reached the end of the input.
-	bufferSize = 32       // benchmarks suggest this is the optimum token channel buffer size
+	bufferSize = 32       // benchmarks suggest this is the optimum token channel buffer size.
+	stackSize  = 10       // size of the state stack, should be plenty to avoid a re-allocation
 )
 
-// scanFn represents the state of the scanner as a function that does the work
+// stateFn represents the state of the scanner as a function that does the work
 // associated with the current state, then returns the next state.
-type scanFn func(*Scanner) scanFn
+type stateFn func(*Scanner) stateFn
 
 // Scanner is the http file scanner.
 type Scanner struct {
-	tokens            chan token.Token    // Channel on which to emit scanned tokens
-	name              string              // Name of the file
-	diagnostics       []syntax.Diagnostic // Diagnostics gathered during scanning
-	src               []byte              // Raw source text
-	start             int                 // The start position of the current token
-	pos               int                 // Current scanner position in src (bytes, 0 indexed)
-	line              int                 // Current line number, 1 indexed
-	currentLineOffset int                 // Offset at which the current line started
-	mu                sync.RWMutex        // Guards diagnostics
+	tokens      chan token.Token    // Channel on which to emit scanned tokens.
+	name        string              // Name of the file
+	diagnostics []syntax.Diagnostic // Diagnostics gathered during scanning
+	src         []byte              // Raw source text
+
+	// A stack of state functions used to maintain context.
+	//
+	// The idea is to reuse parts of the state machine in various places. For
+	// example, interpolations can appear in multiple contexts, and how do we
+	// know which state to return to when we're done with the '}}'.
+	stack []stateFn
+
+	start             int          // The start position of the current token
+	pos               int          // Current scanner position in src (bytes, 0 indexed)
+	line              int          // Current line number (1 indexed)
+	currentLineOffset int          // Offset at which the current line started, used for column calculation
+	mu                sync.RWMutex // Guards diagnostics
 }
 
-// New returns a new [Scanner] and kicks off the state machine in a goroutine.
+// New returns a new [Scanner].
 func New(name string, src []byte) *Scanner {
 	s := &Scanner{
 		tokens: make(chan token.Token, bufferSize),
+		stack:  make([]stateFn, 0, stackSize),
 		name:   name,
 		src:    src,
 		line:   1,
@@ -87,15 +97,60 @@ func (s *Scanner) Diagnostics() []syntax.Diagnostic {
 	return diagCopy
 }
 
-// next returns the next utf8 rune in the input, or [eof], and advances the scanner
-// over that rune such that successive calls to [Scanner.next] iterate through
-// src one rune at a time.
-func (s *Scanner) next() rune {
-	if s.pos >= len(s.src) {
-		return eof
+// statePush pushes a stateFn onto the stack so the scanner can
+// "remember" where it just came from.
+func (s *Scanner) statePush(state stateFn) {
+	s.stack = append(s.stack, state)
+}
+
+// statePop pops a stateFn off the stack so the scanner can return
+// to where it just came from in certain contexts.
+func (s *Scanner) statePop() stateFn {
+	size := len(s.stack)
+
+	if size == 0 {
+		// TODO(@FollowTheProcess): Could we be safer and return scanStart here?
+		// Or do an error and return nil, this is helpful for tests and fuzz though
+		// as it will be very obvious if we've done something wrong
+		panic("pop from empty state stack")
 	}
 
-	char, width := utf8.DecodeRune(s.src[s.pos:])
+	last := s.stack[size-1]
+	s.stack = s.stack[:size-1]
+
+	return last
+}
+
+// atEOF reports whether the scanner is at the end of the input.
+func (s *Scanner) atEOF() bool {
+	return s.pos >= len(s.src)
+}
+
+// char returns the next utf8 rune in the input or [eof], along with it's width.
+func (s *Scanner) char() (rune, int) {
+	if s.atEOF() {
+		return eof, 0
+	}
+
+	r, width := utf8.DecodeRune(s.src[s.pos:])
+	if r == utf8.RuneError || r == 0 {
+		s.errorf("invalid utf8 character at position %d: %q", s.pos, s.src[s.pos])
+		// Prevent cascading errors by "consuming" all remaining input
+		s.pos = len(s.src)
+
+		return utf8.RuneError, 0
+	}
+
+	return r, width
+}
+
+// next returns the next utf8 rune in the input or [eof], and advances
+// the scanner over that rune such that successive calls to next iterate
+// through src one rune at a time.
+func (s *Scanner) next() rune {
+	char, width := s.char()
+
+	// Advance the state of the scanner
 	s.pos += width
 
 	if char == '\n' {
@@ -106,28 +161,35 @@ func (s *Scanner) next() rune {
 	return char
 }
 
-// peek returns the next utf8 rune in the input, or [eof], but does not
-// advance the scanner.
-//
-// Successive calls to peek simply return the same rune again and again.
+// peek returns the next utf8 rune in the input or [eof], but does not
+// advance the scanner. Successive calls to peek return the same char
+// over and over again.
 func (s *Scanner) peek() rune {
-	if s.pos >= len(s.src) {
-		return eof
-	}
-
-	char, _ := utf8.DecodeRune(s.src[s.pos:])
-
+	// No advancing the state
+	char, _ := s.char()
 	return char
 }
 
+// discard brings the start position up to current, effectively discarding
+// any text the scanner has "collected" up to this point.
+func (s *Scanner) discard() {
+	s.start = s.pos
+}
+
 // rest returns the rest of the input from the current scanner position,
-// or nil if the scanner is at EOF.
+// or nil if the scanner is an EOF.
 func (s *Scanner) rest() []byte {
-	if s.pos >= len(s.src) {
+	if s.atEOF() {
 		return nil
 	}
 
 	return s.src[s.pos:]
+}
+
+// restHasPrefix reports whether the remainder of the input begins with the
+// provided run of characters.
+func (s *Scanner) restHasPrefix(prefix string) bool {
+	return bytes.HasPrefix(s.rest(), []byte(prefix))
 }
 
 // skip ignores any characters for which the predicate returns true, stopping at the
@@ -141,13 +203,18 @@ func (s *Scanner) skip(predicate func(r rune) bool) {
 		s.next()
 	}
 
-	s.start = s.pos
+	s.discard()
 }
 
-// restHasPrefix reports whether the remainder of the input begins with the
-// provided run of characters.
-func (s *Scanner) restHasPrefix(prefix string) bool {
-	return bytes.HasPrefix(s.rest(), []byte(prefix))
+// take consumes the next rune if it's from the valid set, and returns
+// whether it was accepted.
+func (s *Scanner) take(valid string) bool {
+	if strings.ContainsRune(valid, s.peek()) {
+		s.next()
+		return true
+	}
+
+	return false
 }
 
 // takeWhile consumes characters so long as the predicate returns true, stopping at the
@@ -165,11 +232,15 @@ func (s *Scanner) takeWhile(predicate func(r rune) bool) {
 //
 //	s.takeUntil('\n', '\t') // Consume runes until you hit a newline or a tab
 func (s *Scanner) takeUntil(runes ...rune) {
+	// Implicitly also break on RuneError
+	runes = append(runes, utf8.RuneError)
+
 	for {
 		next := s.peek()
 		if slices.Contains(runes, next) {
 			return
 		}
+
 		// Otherwise, advance the scanner
 		s.next()
 	}
@@ -184,10 +255,8 @@ func (s *Scanner) takeExact(match string) {
 		return
 	}
 
-	for _, char := range match {
-		if s.peek() == char {
-			s.next()
-		}
+	for range match {
+		s.next()
 	}
 }
 
@@ -200,29 +269,26 @@ func (s *Scanner) emit(kind token.Kind) {
 		End:   s.pos,
 	}
 
-	s.start = s.pos
-}
-
-// run starts the state machine for the scanner, it runs with each [scanFn] returning the next
-// state until one returns nil (typically in response to an error or eof), at which point the tokens channel
-// is closed as a signal to the receiver that no more tokens will be sent.
-func (s *Scanner) run() {
-	for state := scanStart; state != nil; {
-		state = state(s)
-	}
-
-	close(s.tokens)
+	// We've just emitted it, no need to keep it
+	s.discard()
 }
 
 // error calculates the position information and calls the installed error handler
 // with the information, emitting an error token in the process.
-func (s *Scanner) error(msg string) {
+func (s *Scanner) error(msg string) stateFn {
 	s.emit(token.Error)
 
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
-	startCol := 1 + s.start - s.currentLineOffset
-	endCol := 1 + s.pos - s.currentLineOffset
+	startCol := s.start - s.currentLineOffset
+	endCol := s.pos - s.currentLineOffset
+
+	// If startCol and endCol only differ by 1, it's pointing
+	// at a single character so we don't need a range, just point
+	// at the start of the char.
+	if math.Abs(float64(startCol-endCol)) <= 1 {
+		endCol = startCol
+	}
 
 	position := syntax.Position{
 		Name:     s.name,
@@ -241,35 +307,49 @@ func (s *Scanner) error(msg string) {
 	defer s.mu.Unlock()
 
 	s.diagnostics = append(s.diagnostics, diag)
+
+	return nil
 }
 
 // errorf calls error with a formatted message.
-func (s *Scanner) errorf(format string, a ...any) {
-	s.error(fmt.Sprintf(format, a...))
+func (s *Scanner) errorf(format string, a ...any) stateFn {
+	return s.error(fmt.Sprintf(format, a...))
+}
+
+// run starts the state machine for the scanner, it runs with each [scanFn] returning the next
+// state until one returns nil (typically in response to an error or eof), at which point the tokens channel
+// is closed as a signal to the receiver that no more tokens will be sent.
+func (s *Scanner) run() {
+	for state := scanStart; state != nil; {
+		state = state(s)
+	}
+
+	close(s.tokens)
 }
 
 // scanStart is the initial state of the scanner.
 //
-// At the start (or top) state, the only things that can be encountered in a valid .http
-// file are:
+// The only things it can encounter at the top level of a valid
+// http file are:
 //
 //   - '#' for comments and request separators
 //   - '/' for comments
 //   - '@' for global variables
 //
-// Everything else must only appear in certain contexts e.g. HTTP methods may *only* appear
-// immediately after a separator. HTTP versions may *only* appear after a URL etc.
+// Everything else must only appear in certain contexts.
 //
 // Whitespace is ignored.
-func scanStart(s *Scanner) scanFn {
+func scanStart(s *Scanner) stateFn {
 	s.skip(unicode.IsSpace)
+
+	s.statePush(scanStart) // Remember where we came from
 
 	switch char := s.next(); char {
 	case eof:
 		s.emit(token.EOF)
 		return nil
 	case utf8.RuneError:
-		s.errorf("invalid utf8 character: %U", char)
+		// next() already emits an error for this
 		return nil
 	case '#':
 		return scanHash
@@ -278,397 +358,429 @@ func scanStart(s *Scanner) scanFn {
 	case '@':
 		return scanAt
 	default:
-		if isIdent(char) {
-			return scanText
-		}
-
-		s.errorf("unrecognised character: %q", char)
-
-		return nil
+		return s.errorf("unexpected character: %q", char)
 	}
 }
 
-// scanHash scans a '#' character, either as the beginning token for a comment
-// or as the first character of a '###' request separator.
-func scanHash(s *Scanner) scanFn {
-	if s.peek() == '#' {
-		// It's a request separator
+// scanHash scans a literal '#' either as the opener to a comment
+// or the first char in a request separator.
+//
+// It assumes the '#' has already been consumed.
+func scanHash(s *Scanner) stateFn {
+	if s.restHasPrefix("##") {
 		return scanSeparator
 	}
 
 	return scanComment
 }
 
-// scanSlash scans a '/' character, either as the beginning of a '//' style comment
-// or as part of some other text we don't care about.
-func scanSlash(s *Scanner) scanFn {
-	if s.peek() != '/' {
-		// Ignore
-		s.next()
-		return scanStart
+// scanSlash scans a literal '/' as the opener to a slash comment, if
+// the next char is not another '/', it is ignored.
+//
+// It assumes the first '/' has already been consumed.
+func scanSlash(s *Scanner) stateFn {
+	if !s.take("/") {
+		return s.error("invalid use of '/', two '//' mark a comment start, got '/'")
 	}
-
-	s.next() // Consume the second '/'
 
 	return scanComment
 }
 
-// scanComment scans a line comment started by either a '#' or '//'.
+// scanAt scans a literal '@' as in a variable or prompt declaration.
 //
-// The comment opening character(s) have already been consumed.
-func scanComment(s *Scanner) scanFn {
-	// It must be a comment, skip any leading whitespace between the marker
-	// and the comment text
-	s.skip(isLineSpace)
-
-	// Requests may have '{//|#} @ident [=] <text>' to set request-scoped
-	// variables
-	if s.peek() == '@' {
-		s.next() // Consume the '@'
-		return scanAt
-	}
-
-	// Absorb everything until the end of the line or eof
-	s.takeUntil('\n', eof)
-
-	s.emit(token.Comment)
-
-	return scanStart
-}
-
-// scanSeparator scans the literal '###' used as a request separator.
-func scanSeparator(s *Scanner) scanFn {
-	// The first '#' has already been consumed by scanStart
-	s.takeExact("##")
-	s.emit(token.Separator)
-
-	// If there is text on the same line as the separator it is a request comment
-	s.skip(isLineSpace)
-
-	if s.peek() != '\n' && s.peek() != eof {
-		return scanComment
-	}
-
-	return scanStart
-}
-
-// isLineSpace reports whether r is a non line terminating whitespace character,
-// imagine [unicode.IsSpace] but without '\n' or '\r'.
-func isLineSpace(r rune) bool {
-	return r == ' ' || r == '\t'
-}
-
-// scanAt scans an '@' character, used to declare a variable either globally
-// scoped at the top level `@name = thing` or request scoped `# @name = thing`.
-func scanAt(s *Scanner) scanFn {
+// It assumes the '@' has already been consumed.
+func scanAt(s *Scanner) stateFn {
 	s.emit(token.At)
 
 	if isAlpha(s.peek()) {
-		// The name of the variable e.g. @ident [=] <value>
-		return scanIdent
+		return scanGlobalVariable
 	}
 
-	return scanStart
+	return s.statePop()
 }
 
-// scanIdent scans an ident, that is; a continuous sequence of
-// characters that are valid as an identifier.
-func scanIdent(s *Scanner) scanFn {
+// scanComment scans a line comment started by either a '#' or '//'.
+//
+// It assumed he comment opening character(s) have already been consumed.
+func scanComment(s *Scanner) stateFn {
+	s.skip(isLineSpace)
+
+	s.takeUntil('\n', eof)
+	s.emit(token.Comment)
+
+	return s.statePop()
+}
+
+// scanSeparator scans a '###' request separator.
+//
+// It assumes the first '#' has already been consumed.
+func scanSeparator(s *Scanner) stateFn {
+	s.takeExact("##")
+	s.emit(token.Separator)
+
+	// Is there a request comment?
+	s.skip(isLineSpace)
+
+	if s.peek() != '\n' && s.peek() != eof {
+		s.takeUntil('\n', eof)
+		s.emit(token.Comment)
+	}
+
+	return scanRequest
+}
+
+// scanGlobalVariable scans a global variable declaration.
+func scanGlobalVariable(s *Scanner) stateFn {
 	s.takeWhile(isIdent)
 
-	// Is it a keyword? If so token.Keyword will return it's
-	// proper token type, else [token.Ident].
-	// Either way we need to emit it and then check for an optional '='
+	// Is it a keyword?
 	text := string(s.src[s.start:s.pos])
 	kind, _ := token.Keyword(text)
-	s.emit(kind)
+
+	if s.pos > s.start {
+		s.emit(kind)
+	}
+
 	s.skip(isLineSpace)
 
-	switch {
-	case kind == token.Prompt:
-		// Prompts are handled in a special way as you may have e.g.
-		// @prompt username <Arbitrary description on a single line>
+	if kind == token.Prompt {
 		return scanPrompt
-	case s.peek() == '=':
-		// @var = <value>
-		return scanEq
-	case s.restHasPrefix("http"):
-		// It's a URL
-		return scanURL
-	case isAlphaNumeric(s.peek()):
-		// @var <value>
-		// Note: value could be a timeout, hence alpha numeric
-		return scanText
-	case s.restHasPrefix("{{"):
-		// @var {{ <value> }}
-		return scanInterp
-	default:
-		return scanStart
-	}
-}
-
-// scanPrompt scans a variable prompt e.g. @prompt username [description].
-//
-// The '@' and the 'prompt' have already been consumed and their tokens emitted.
-func scanPrompt(s *Scanner) scanFn {
-	// The first thing up should be the name of the variable we're prompting
-	// for, which follows standard ident rules
-	s.takeWhile(isIdent)
-	s.emit(token.Ident)
-
-	// Arbitrary space is allowed so long as it's on the same line
-	s.skip(isLineSpace)
-
-	// If the next thing looks like regular text, this is the optional
-	// description for the prompt
-	if isAlphaNumeric(s.peek()) {
-		s.takeUntil('\n', eof)
-		s.emit(token.Text)
 	}
 
-	return scanStart
-}
-
-// scanEq scans a '=' character, as used in a variable declaration.
-func scanEq(s *Scanner) scanFn {
-	s.next()
-	s.emit(token.Eq)
-
-	s.skip(isLineSpace)
-
-	switch {
-	case s.restHasPrefix("http"):
-		return scanURL
-	case isAlphaNumeric(s.peek()):
-		return scanText
-	case s.restHasPrefix("{{"):
-		return scanInterp
-	default:
-		return scanStart
+	if s.take("=") {
+		s.emit(token.Eq)
+		s.skip(isLineSpace)
 	}
+
+	if s.restHasPrefix("{{") {
+		s.statePush(scanGlobalVariable)
+		return scanOpenInterp
+	}
+
+	if isText(s.peek()) {
+		return scanTextLine
+	}
+
+	return s.statePop()
 }
 
-// scanInterp scans an entire interpolation of {{ <contents> }}.
-func scanInterp(s *Scanner) scanFn {
+// scanOpenInterp scans an opening '{{' marking the beginning
+// of an interpolation.
+func scanOpenInterp(s *Scanner) stateFn {
 	s.takeExact("{{")
 	s.emit(token.OpenInterp)
 
-	// TODO(@FollowTheProcess): More can go here but for now let's assume
-	// it's always an ident
+	return scanInsideInterp
+}
+
+// scanInsideInterp scans the inside of an interpolation.
+func scanInsideInterp(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
+	// TODO(@FollowTheProcess): Handle more than just idents
+	//
+	// That's the whole reason I'm rewriting the scanner, to make this easier
 	if isAlpha(s.peek()) {
-		// We don't actually want to move to the next state yet
-		// after the ident, just scan it
-		scanIdent(s)
+		s.takeWhile(isIdent)
+		s.emit(token.Ident)
 	}
 
 	s.skip(isLineSpace)
 
 	if !s.restHasPrefix("}}") {
-		s.error("unterminated interpolation")
-		return nil
+		return s.error("unterminated interpolation")
 	}
 
+	return scanCloseInterp
+}
+
+// scanCloseInterp scans a closing '}}' marking the end of an interpolation.
+func scanCloseInterp(s *Scanner) stateFn {
 	s.takeExact("}}")
 	s.emit(token.CloseInterp)
 
-	// If there is content on the same line, carry on
-	if isText(s.peek()) {
-		return scanText
-	}
-
-	return scanStart
+	// Go back to whatever state we were in before entering the interp
+	return s.statePop()
 }
 
-// scanText scans a series of continuous text characters (no whitespace).
-func scanText(s *Scanner) scanFn {
-	s.takeWhile(isText)
+// scanPrompt scans a prompt statement.
+//
+// It assumes the '@prompt' has already been consumed.
+func scanPrompt(s *Scanner) stateFn {
+	if isIdent(s.peek()) {
+		s.takeWhile(isIdent)
+		s.emit(token.Ident)
+	}
 
-	// Is it a HTTP Method? If so token.Method will return it's
-	// proper token type, else [token.Text].
-	text := string(s.src[s.start:s.pos])
-	kind, wasMethod := token.Method(text)
-	s.emit(kind)
 	s.skip(isLineSpace)
 
-	// If it was a HTTP method, we should now have a url following it
-	if wasMethod {
-		return scanURL
+	if isAlpha(s.peek()) {
+		s.takeUntil('\n', eof)
+		s.emit(token.Text)
 	}
 
-	// There might be another interp on this line
-	if s.restHasPrefix("{{") {
-		return scanInterp
-	}
-
-	return scanStart
+	return s.statePop()
 }
 
-// scanURL scans a series of continuous characters (no whitespace), so long as they are
-// valid in a URL, and emits a URL token.
-func scanURL(s *Scanner) scanFn {
-	// The first bit is templated e.g. `GET {{ base }}/v1/endpoint`
+// scanTextLine scans a continuous string of text, so long as it's on the same line.
+func scanTextLine(s *Scanner) stateFn {
+	s.takeWhile(isText)
+
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		s.statePush(scanTextLine)
+		return scanOpenInterp
 	}
 
-	if !s.restHasPrefix("http") {
-		s.error("HTTP methods must be followed by a valid URL")
-		return nil
-	}
+	return s.statePop()
+}
 
-	// Handle interpolation somewhere inside the URL
-	// e.g. https://api.somewhere.com/{{ version }}/items/1
+// scanText scans until it hits an open interp.
+func scanText(s *Scanner) stateFn {
 	for {
 		if s.restHasPrefix("{{") {
-			// Emit what we have captured up to this point (if there is anything) as URL and then
-			// switch to scanning the interpolation
-			if s.start != s.pos {
-				// We have absorbed stuff, emit it
-				s.emit(token.URL)
+			if s.pos > s.start {
+				s.emit(token.Body)
 			}
 
-			scanInterp(s)
+			s.statePush(scanText)
+
+			return scanOpenInterp
 		}
 
-		// Scan URL-like characters
 		next := s.peek()
-		if !isText(next) {
-			// This ain't a URL!
+		if next == '#' || next == '>' || next == '<' || next == eof || next == utf8.RuneError {
 			break
 		}
 
 		s.next()
 	}
 
-	// If we absorbed a URL, emit it.
+	// If we absorbed any text, emit it.
 	//
-	// This could be empty because the entire URL could have just been an interp
-	// e.g. GET {{ url }} or the URL could end in an interp e.g. GET https://api.somewhere.com/v1/items/{{ id }}
-	if s.start != s.pos {
-		s.emit(token.URL)
+	// This could in theory be empty because the entire body could have just been an interp, which
+	// seems incredibly unlikely but possible so lets handle it
+	if s.pos > s.start {
+		s.emit(token.Body)
 	}
 
-	// Does it have a HTTP version after it?
-	// e.g. GET https://api.somewhere/com/v1/items HTTP/1.2
+	return s.statePop()
+}
+
+// scanRequest scans inside a HTTP request definition.
+//
+// The opening '###' and any request comment has already been consumed.
+//
+// The only thing allowed top level in a request is '#', '//' and
+// a request method.
+func scanRequest(s *Scanner) stateFn {
+	s.skip(unicode.IsSpace)
+
+	s.statePush(scanRequest) // Remember we were scanning a request
+
+	switch char := s.next(); char {
+	case eof:
+		s.emit(token.EOF)
+		return nil
+	case utf8.RuneError:
+		// next() already emits an error for this
+		return nil
+	case '#':
+		return scanRequestHash
+	case '/':
+		return scanRequestSlash
+	default:
+		if isUpperAlpha(char) {
+			return scanMethod
+		}
+
+		return s.errorf("unexpected character: %q", char)
+	}
+}
+
+// scanRequestHash scans a a literal '#' in the context of
+// a request local variable or line comment.
+func scanRequestHash(s *Scanner) stateFn {
+	return scanRequestComment
+}
+
+// scanRequestSlash scans a literal '/' as the opener to a slash comment, if
+// the next char is not another '/', it is ignored.
+//
+// It assumes the first '/' has already been consumed.
+func scanRequestSlash(s *Scanner) stateFn {
+	if !s.take("/") {
+		return s.error("invalid use of '/', two '//' mark a comment start, got '/'")
+	}
+
+	return scanRequestComment
+}
+
+// scanRequestComment scans a line comment inside a request block.
+func scanRequestComment(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
+	// Requests may have # @ident = text variables
+	if s.take("@") {
+		s.emit(token.At)
+		return scanRequestVariable
+	}
+
+	s.takeUntil('\n', eof)
+	s.emit(token.Comment)
+
+	return s.statePop()
+}
+
+// scanRequestVariable scans a request variable declaration.
+//
+// It assumes the opening '@' has already been consumed.
+func scanRequestVariable(s *Scanner) stateFn {
+	s.takeWhile(isIdent)
+
+	// Is it a keyword?
+	text := string(s.src[s.start:s.pos])
+	kind, _ := token.Keyword(text)
+
+	if s.pos > s.start {
+		s.emit(kind)
+	}
+
+	s.skip(isLineSpace)
+
+	if kind == token.Prompt {
+		return scanPrompt
+	}
+
+	if s.take("=") {
+		s.emit(token.Eq)
+		s.skip(isLineSpace)
+	}
+
+	if s.restHasPrefix("{{") {
+		s.statePush(scanRequestVariable)
+		return scanOpenInterp
+	}
+
+	if isText(s.peek()) {
+		return scanTextLine
+	}
+
+	return s.statePop()
+}
+
+// scanMethod scans a HTTP method.
+func scanMethod(s *Scanner) stateFn {
+	s.takeWhile(isUpperAlpha)
+
+	text := string(s.src[s.start:s.pos])
+
+	kind, isMethod := token.Method(text)
+	if !isMethod {
+		return s.errorf("expected HTTP method, got %q", text)
+	}
+
+	s.emit(kind)
+	s.skip(isLineSpace)
+
+	if (!s.restHasPrefix("http://") && !s.restHasPrefix("https://")) && !s.restHasPrefix("{{") {
+		return s.errorf("expected URL or interpolation, got %q", s.peek())
+	}
+
+	return scanURL
+}
+
+// scanURL scans a request URL.
+func scanURL(s *Scanner) stateFn {
+	s.takeWhile(isURL)
+
+	if s.pos > s.start {
+		s.emit(token.Text)
+	}
+
+	if s.restHasPrefix("{{") {
+		s.statePush(scanURL)
+		return scanOpenInterp
+	}
+
+	s.skip(isLineSpace)
+
+	// Is there a HTTP version?
 	if s.restHasPrefix("HTTP/") {
-		// Yes!
 		return scanHTTPVersion
 	}
 
-	// Is the next thing headers?
 	s.skip(unicode.IsSpace)
 
-	if isAlpha(s.peek()) {
-		return scanHeaders
+	if isIdent(s.peek()) {
+		return scanHeader
 	}
 
-	// Either this was a URL in a request and the next thing is another
-	// request or the end. Or it was a URL in a global or request variable
-	// so the next thing could be an '@' for another variable declaration
-	if s.restHasPrefix("###") || s.peek() == '@' || s.peek() == eof {
+	s.skip(unicode.IsSpace)
+
+	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
 	}
 
-	// Must be a request body
+	next := s.peek()
+
+	if next == '#' || s.restHasPrefix("//") || next == eof || next == utf8.RuneError {
+		return scanRequest
+	}
+
 	return scanBody
 }
 
-// scanHTTPVersion scans a HTTP/<version> literal.
-//
-// The next characters are known to be 'HTTP/', this function consumes the entire
-// thing e.g. 'HTTP/1.2' or 'HTTP/2'.
-func scanHTTPVersion(s *Scanner) scanFn {
+// scanHTTPVersion scans a literal 'HTTP/<version>' declaration.
+func scanHTTPVersion(s *Scanner) stateFn {
 	s.takeExact("HTTP/")
 
-	// Now the version which could be an integer or a decimal
-	for isDigit(s.peek()) {
-		s.next()
+	s.takeWhile(isDigit)
 
-		if s.peek() == '.' {
-			s.next() // Consume the '.'
-			// Now what follows *must* be a digit or it's malformed
-			if !isDigit(s.peek()) {
-				s.errorf("bad number literal in HTTP version, illegal char %q, expected numeric digit", s.peek())
-				return nil
-			}
-			// Consume any remaining digits
-			s.takeWhile(isDigit)
-		}
+	if s.take(".") {
+		// It's e.g 1.2
+		s.takeWhile(isDigit)
 	}
 
 	s.emit(token.HTTPVersion)
 
-	// The only thing allowed to follow a HTTP version is a list of headers,
-	// a request body, or request separator (next request)
 	s.skip(unicode.IsSpace)
 
-	if isAlpha(s.peek()) {
-		// Headers
-		return scanHeaders
+	if isIdent(s.peek()) {
+		return scanHeader
 	}
 
-	// Either another request or the end
-	if s.peek() == '#' || s.peek() == eof {
-		return scanStart
-	}
-
-	// Either another request or the end
-	if s.peek() == '#' || s.peek() == eof {
+	if s.atEOF() || s.restHasPrefix("###") {
 		return scanStart
 	}
 
 	return scanBody
 }
 
-// scanHeaders scans a series of HTTP headers, one per line, emitting
-// tokens as it goes.
-//
-// It stops when it sees the next character is not a valid ident character
-// and so could not be another header.
-func scanHeaders(s *Scanner) scanFn {
-	s.takeWhile(isIdent)
-
-	// Header without a colon or value e.g. 'Content-Type'
-	// this is unfinished so is an error, like an unterminated interpolation.
-	if s.peek() == eof {
-		s.error("unexpected eof")
-		return nil
-	}
-
-	s.emit(token.Header)
-
-	if s.peek() != ':' {
-		s.errorf("expected ':', got %q", s.peek())
-		return nil
-	}
-
-	// Consume the ':' now we know it exists, and skip over any whitespace
-	// on the same line until we get to the header value
-	s.next()
-	s.emit(token.Colon)
-	s.skip(isLineSpace)
-
+// scanHeaderValue scans a header value, including any interpolation.
+func scanHeaderValue(s *Scanner) stateFn {
 	// Handle interpolation somewhere inside the header value
 	// e.g. Authorization: Bearer {{ token }}
 	for {
 		if s.restHasPrefix("{{") {
 			// Emit what we have captured up to this point (if there is anything) as Text and then
 			// switch to scanning the interpolation
-			if s.start != s.pos {
+			if s.pos > s.start {
 				// We have absorbed stuff, emit it
 				s.emit(token.Text)
 			}
 
-			scanInterp(s)
+			s.statePush(scanHeaderValue)
+
+			return scanOpenInterp
 		}
 
 		// Scan any text on the same line
 		next := s.peek()
-		if next == '\n' || next == eof {
+		if next == '\n' || next == eof || next == utf8.RuneError {
 			break
 		}
 
@@ -679,105 +791,114 @@ func scanHeaders(s *Scanner) scanFn {
 	//
 	// This could be empty because the entire header value could have just been an interp
 	// e.g. X-Api-Key: {{ key }}
-	if s.start != s.pos {
+	if s.pos > s.start {
 		s.emit(token.Text)
 	}
 
-	// Now for the fun bit, call itself if there are more headers
 	s.skip(unicode.IsSpace)
 
+	// If there are more headers, go there
 	if isAlpha(s.peek()) {
-		return scanHeaders
+		return scanHeader
 	}
 
-	// After headers is either a body, another request separator, or eof
-	if s.peek() == '#' || s.peek() == eof {
-		return scanStart
-	}
-
-	// Must be a body
 	return scanBody
 }
 
-// scanBody scans a HTTP request body, either as:
-//
-//   - '< {filepath}' (Reading the request body from the file)
-//   - raw text body specified inline
-func scanBody(s *Scanner) scanFn {
-	if s.peek() == '<' {
+// scanHeader scans a request header.
+func scanHeader(s *Scanner) stateFn {
+	s.skip(unicode.IsSpace)
+
+	if !isAlpha(s.peek()) {
+		return scanBody
+	}
+
+	if s.atEOF() || s.restHasPrefix("###") {
+		return scanStart
+	}
+
+	s.takeWhile(isIdent)
+
+	if s.pos > s.start {
+		s.emit(token.Header)
+	}
+
+	if s.peek() != ':' {
+		return s.errorf("invalid header, expected ':', got %q", s.peek())
+	}
+
+	s.take(":")
+	s.emit(token.Colon)
+	s.skip(isLineSpace)
+
+	// Handle interpolation somewhere inside the header value
+	// e.g. Authorization: Bearer {{ token }}
+	s.statePush(scanHeader)
+
+	return scanHeaderValue
+}
+
+// scanBody scans a HTTP request body.
+func scanBody(s *Scanner) stateFn {
+	if s.restHasPrefix("###") {
+		return scanStart
+	}
+
+	// Reading the request body from a file
+	if s.take("<") {
 		return scanLeftAngle
 	}
 
-	// Are we redirecting the response, without specifying a body
-	// e.g. in a GET request, there is no body but we still might redirect
-	// the response
-	if s.peek() == '>' {
+	// Redirecting the response without specifying a body
+	// e.g. in a GET request
+	if s.take(">") {
 		return scanRightAngle
-	}
-
-	// Handle interpolation somewhere inside the body
-	for {
-		if s.restHasPrefix("{{") {
-			// Emit what we have captured up to this point (if there is anything) as Body and then
-			// switch to scanning the interpolation
-			if s.start != s.pos {
-				// We have absorbed stuff, emit it
-				s.emit(token.Body)
-			}
-
-			scanInterp(s)
-		}
-
-		// Scan any text
-		next := s.peek()
-		if next == '#' || next == '>' || next == '<' || next == eof {
-			break
-		}
-
-		s.next()
-	}
-
-	// If we absorbed any text, emit it.
-	//
-	// This could in theory be empty because the entire header body could have just been an interp, which
-	// seems incredibly unlikely but we support that for headers etc. so might as well do it here
-	if s.start != s.pos {
-		s.emit(token.Body)
 	}
 
 	s.skip(unicode.IsSpace)
 
+	if s.take("#") {
+		return scanRequestComment
+	}
+
+	if s.peek() != eof {
+		s.statePush(scanBody)
+		return scanText
+	}
+
 	// Are we doing the response reference pattern e.g. '<> response.json'
-	if s.peek() == '<' {
+	if s.take("<") {
 		return scanLeftAngle
 	}
 
 	// Are we redirecting the response *after* a body has been specified
 	// e.g. in a POST request, there may be a body *and* a redirect
-	if s.peek() == '>' {
+	if s.take(">") {
 		return scanRightAngle
 	}
 
 	return scanStart
 }
 
-// scanLeftAngle scans a '<' literal in the context of a request body
-// read from file.
-func scanLeftAngle(s *Scanner) scanFn {
-	s.next() // Consume the '<'
-
-	if s.peek() == '>' {
-		// It's a response ref i.e. '<>'
-		s.next()
-		s.emit(token.ResponseRef)
+// scanLeftAngle scans a '<' in the context of reading a request
+// body from the filepath specified next.
+//
+// It assumes the '<' has already been consumed.
+func scanLeftAngle(s *Scanner) stateFn {
+	if !s.take(">") {
+		if s.pos > s.start {
+			s.emit(token.LeftAngle)
+		}
 	} else {
-		s.emit(token.LeftAngle)
+		// It's a response reference '<>'
+		s.emit(token.ResponseRef)
 	}
 
 	s.skip(isLineSpace)
 
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		s.statePush(scanLeftAngle)
+		return scanOpenInterp
 	}
 
 	if isFilePath(s.peek()) {
@@ -789,28 +910,33 @@ func scanLeftAngle(s *Scanner) scanFn {
 
 	// Is the next thing a response ref '<>', which would be the case
 	// if a request has a body file *and* a response ref
-	if s.peek() == '<' {
+	if s.take("<") {
 		return scanLeftAngle
 	}
 
 	// Are we redirecting the response *after* a body has been specified by a file
-	if s.peek() == '>' {
+	if s.take(">") {
 		return scanRightAngle
 	}
 
+	// Back to start because this marks the end of the request
 	return scanStart
 }
 
-// scanRightAngle scans a '>' literal in the context of a response redirect
-// to a local file.
-func scanRightAngle(s *Scanner) scanFn {
-	s.next() // Consume the '>'
-	s.emit(token.RightAngle)
+// scanRightAngle scans a '>' in the context of redirecting a response body
+// to a filepath specified next.
+//
+// It assumes the '>' has already been consumed.
+func scanRightAngle(s *Scanner) stateFn {
+	if s.pos > s.start {
+		s.emit(token.RightAngle)
+	}
 
 	s.skip(isLineSpace)
 
 	if s.restHasPrefix("{{") {
-		return scanInterp
+		s.statePush(scanRightAngle)
+		return scanOpenInterp
 	}
 
 	if isFilePath(s.peek()) {
@@ -818,17 +944,14 @@ func scanRightAngle(s *Scanner) scanFn {
 		s.emit(token.Text)
 	}
 
+	// Back to start because this marks the end of the request
 	return scanStart
 }
 
-// isAlpha reports whether r is an alpha character.
-func isAlpha(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
-}
-
-// isIdent reports whether r is a valid identifier character.
-func isIdent(r rune) bool {
-	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
+// isLineSpace reports whether r is a non line terminating whitespace character,
+// imagine [unicode.IsSpace] but without '\n' or '\r'.
+func isLineSpace(r rune) bool {
+	return r == ' ' || r == '\t'
 }
 
 // isDigit reports whether r is a valid ASCII digit.
@@ -836,14 +959,44 @@ func isDigit(r rune) bool {
 	return r >= '0' && r <= '9'
 }
 
-// isAlphaNumeric reports whether r is an alpha-numeric character.
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isUpperAlpha reports whether r is an upper case alpha character.
+func isUpperAlpha(r rune) bool {
+	return r >= 'A' && r <= 'Z'
+}
+
+// isAlphaNumeric reports whether r is a valid alpha-numeric character.
 func isAlphaNumeric(r rune) bool {
 	return isAlpha(r) || isDigit(r)
 }
 
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlphaNumeric(r) || r == '_' || r == '-'
+}
+
 // isText reports whether r is valid in a continuous string of text.
+//
+// The only things that are rejected by this are:
+//
+//   - whitespace
+//   - eof
+//   - bad utf8 runes
 func isText(r rune) bool {
-	return !unicode.IsSpace(r) && r != eof && r != '{' && r != '}'
+	return !unicode.IsSpace(r) && r != eof && r != utf8.RuneError && r != '{'
+}
+
+// isURL reports whether r is valid in a URL.
+func isURL(r rune) bool {
+	if r == eof || r == utf8.RuneError {
+		return false
+	}
+
+	return isAlphaNumeric(r) || strings.ContainsRune("$-_.+!*'(),:/?#[]@&;=", r)
 }
 
 // isFilePath reports whether r could be a valid first character in a filepath.

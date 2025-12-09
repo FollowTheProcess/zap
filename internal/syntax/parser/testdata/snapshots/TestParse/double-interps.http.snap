@@ -7,25 +7,25 @@ statements:
       left:
         value: https://
         token:
-          kind: URL
+          kind: Text
           start: 7
           end: 15
-        type: URL
+        type: TextLiteral
       right:
         left:
           value: .somewhere.com/
           token:
-            kind: URL
+            kind: Text
             start: 25
             end: 40
-          type: URL
+          type: TextLiteral
         right:
           value: /items/1
           token:
-            kind: URL
+            kind: Text
             start: 53
             end: 61
-          type: URL
+          type: TextLiteral
         interp:
           expr:
             name: version

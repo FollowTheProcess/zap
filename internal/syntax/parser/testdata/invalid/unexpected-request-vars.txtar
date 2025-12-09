@@ -1,6 +1,5 @@
 -- src.http --
 ### MyRequest
-@something !@£$%^&*()
+# @something !@£$%^&*()
 -- want.txt --
-unexpected-request-vars.txtar:2:13: parseExpression: unexpected token Error
-unexpected-request-vars.txtar:2:13: unrecognised character: '!'
+unexpected-request-vars.txtar:2:25: expected one of [MethodConnect MethodDelete MethodGet MethodHead MethodOptions MethodPatch MethodPost MethodPut MethodTrace], got EOF

@@ -11,9 +11,9 @@ GET https://api.somewhere.com/{{ version }}/items/1
 <Token::Separator start=15, end=18>
 <Token::Comment start=19, end=23>
 <Token::MethodGet start=24, end=27>
-<Token::URL start=28, end=54>
+<Token::Text start=28, end=54>
 <Token::OpenInterp start=54, end=56>
 <Token::Ident start=57, end=64>
 <Token::CloseInterp start=65, end=67>
-<Token::URL start=67, end=75>
+<Token::Text start=67, end=75>
 <Token::EOF start=76, end=76>

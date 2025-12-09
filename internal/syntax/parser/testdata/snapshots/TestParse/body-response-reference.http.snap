@@ -6,10 +6,10 @@ statements:
   - url:
       value: https://api.somewhere.com/items/1
       token:
-        kind: URL
+        kind: Text
         start: 14
         end: 47
-      type: URL
+      type: TextLiteral
     body:
       value: |-
         {

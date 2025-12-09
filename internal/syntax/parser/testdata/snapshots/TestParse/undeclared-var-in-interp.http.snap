@@ -1,0 +1,103 @@
+source: parser_test.go
+expression: parsed
+---
+name: undeclared-var-in-interp.http
+statements:
+  - url:
+      left:
+        value: https://api.something.com/
+        token:
+          kind: Text
+          start: 58
+          end: 84
+        type: TextLiteral
+      right:
+        left:
+          value: /thing/
+          token:
+            kind: Text
+            start: 97
+            end: 104
+          type: TextLiteral
+        right: null
+        interp:
+          expr:
+            name: id
+            token:
+              kind: Ident
+              start: 107
+              end: 109
+            type: Ident
+          open:
+            kind: OpenInterp
+            start: 104
+            end: 106
+          close:
+            kind: CloseInterp
+            start: 110
+            end: 112
+          type: Interp
+        type: InterpolatedExpression
+      interp:
+        expr:
+          name: missing
+          token:
+            kind: Ident
+            start: 87
+            end: 94
+          type: Ident
+        open:
+          kind: OpenInterp
+          start: 84
+          end: 86
+        close:
+          kind: CloseInterp
+          start: 95
+          end: 97
+        type: Interp
+      type: InterpolatedExpression
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment:
+      text: Get a Thing
+      token:
+        kind: Comment
+        start: 4
+        end: 15
+      type: Comment
+    vars: []
+    prompts:
+      - ident:
+          name: id
+          token:
+            kind: Ident
+            start: 26
+            end: 28
+          type: Ident
+        description:
+          value: The ID of a thing to get
+          token:
+            kind: Text
+            start: 29
+            end: 53
+          type: TextLiteral
+        at:
+          kind: At
+          start: 18
+          end: 19
+        type: Prompt
+    headers: []
+    method:
+      token:
+        kind: MethodGet
+        start: 54
+        end: 57
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File

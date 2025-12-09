@@ -1,6 +1,6 @@
 -- src.http --
 ### Get a Thing
-@prompt id The ID of a thing to get
+# @prompt id The ID of a thing to get
 GET https://api.something.com/{{ missing }}/thing/{{ id }}
 -- diagnostics.json --
 [
@@ -8,7 +8,7 @@ GET https://api.something.com/{{ missing }}/thing/{{ id }}
     "msg": "could not resolve interp of interpolated expression: use of undeclared variable missing",
     "position": {
       "name": "undeclared-var-in-interp.txtar",
-      "offset": 56,
+      "offset": 58,
       "line": 3,
       "startCol": 5,
       "endCol": 59
@@ -18,7 +18,7 @@ GET https://api.something.com/{{ missing }}/thing/{{ id }}
     "msg": "failed to resolve URL expression: use of undeclared variable missing",
     "position": {
       "name": "undeclared-var-in-interp.txtar",
-      "offset": 56,
+      "offset": 58,
       "line": 3,
       "startCol": 5,
       "endCol": 59

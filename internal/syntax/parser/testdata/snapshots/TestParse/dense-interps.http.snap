@@ -6,10 +6,10 @@ statements:
   - value:
       value: https://example.com
       token:
-        kind: URL
+        kind: Text
         start: 8
         end: 27
-      type: URL
+      type: TextLiteral
     ident:
       name: base
       token:

@@ -1,27 +1,18 @@
 -- src.http --
-@prompt version The version of the API
+@prompt id The user id
+@prompt no-description
 
-### Get a Thing
-@prompt id The ID of a thing to get
-GET https://api.something.com/{{ version }}/thing/{{ id }}
+###
+GET https://example.com
 -- tokens.txt --
 <Token::At start=0, end=1>
 <Token::Prompt start=1, end=7>
-<Token::Ident start=8, end=15>
-<Token::Text start=16, end=38>
-<Token::Separator start=40, end=43>
-<Token::Comment start=44, end=55>
-<Token::At start=56, end=57>
-<Token::Prompt start=57, end=63>
-<Token::Ident start=64, end=66>
-<Token::Text start=67, end=91>
-<Token::MethodGet start=92, end=95>
-<Token::URL start=96, end=122>
-<Token::OpenInterp start=122, end=124>
-<Token::Ident start=125, end=132>
-<Token::CloseInterp start=133, end=135>
-<Token::URL start=135, end=142>
-<Token::OpenInterp start=142, end=144>
-<Token::Ident start=145, end=147>
-<Token::CloseInterp start=148, end=150>
-<Token::EOF start=151, end=151>
+<Token::Ident start=8, end=10>
+<Token::Text start=11, end=22>
+<Token::At start=23, end=24>
+<Token::Prompt start=24, end=30>
+<Token::Ident start=31, end=45>
+<Token::Separator start=47, end=50>
+<Token::MethodGet start=51, end=54>
+<Token::Text start=55, end=74>
+<Token::EOF start=75, end=75>

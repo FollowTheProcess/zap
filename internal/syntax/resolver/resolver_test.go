@@ -46,6 +46,7 @@ func TestValid(t *testing.T) {
 			p := parser.New(name, []byte(src))
 
 			parsed, err := p.Parse()
+			t.Logf("Diagnostics: %+v\n", p.Diagnostics())
 			test.Ok(t, err, test.Context("unexpected parser error"))
 
 			res := resolver.New(name, []byte(src))

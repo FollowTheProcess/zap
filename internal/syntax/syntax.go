@@ -8,6 +8,18 @@ import (
 	"fmt"
 )
 
+// TODO(@FollowTheProcess): The parsing pipeline depends on one another in tests
+//
+// Which means a bug in the scanner fails the parser tests, I'd like to decouple as e.g.
+// the resolver currently runs the parser (and thus the scanner) in its tests in order
+// to generate the AST.
+//
+// I'm imagining a global set of testcases (probably txtar) with:
+// src.http -> scanner -> tokens.txt -> parser -> ast.(yaml|json) -> resolver -> resolved.{yaml|json)
+//
+// Each stage reads from the output of the previous stage in the file and writes the input to the next,
+// with updates driven with the -update flag so the output is fixed
+
 // Position is an arbitrary source file position including file, line
 // and column information. It can also express a range of source via StartCol
 // and EndCol, this is useful for error reporting.

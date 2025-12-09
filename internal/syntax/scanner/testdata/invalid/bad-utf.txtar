@@ -1,6 +1,0 @@
--- src.http --
-\uFFFD
--- tokens.txt --
-<Token::Error start=0, end=1>
--- errors.txt --
-bad-utf.txtar:1:2: unrecognised character: '\\'
