@@ -14,6 +14,7 @@ const (
 	At                            // At
 	Ident                         // Ident
 	Eq                            // Eq
+	Dollar                        // Dollar
 	Colon                         // Colon
 	LeftAngle                     // LeftAngle
 	RightAngle                    // RightAngle

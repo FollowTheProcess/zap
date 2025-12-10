@@ -479,6 +479,10 @@ func scanOpenInterp(s *Scanner) stateFn {
 func scanInsideInterp(s *Scanner) stateFn {
 	s.skip(isLineSpace)
 
+	if s.take("$") {
+		s.emit(token.Dollar)
+	}
+
 	// TODO(@FollowTheProcess): Handle more than just idents
 	//
 	// That's the whole reason I'm rewriting the scanner, to make this easier
