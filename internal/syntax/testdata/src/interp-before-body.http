@@ -1,0 +1,9 @@
+@token = shhh
+
+###
+POST https://example.com
+Authorization: Bearer {{ token }}
+
+{
+  "body": "here"
+}

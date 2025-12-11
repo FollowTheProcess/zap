@@ -1,0 +1,8 @@
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=8>
+<Token::MethodPost start=9, end=13>
+<Token::Text start=14, end=47>
+<Token::Body start=49, end=76>
+<Token::ResponseRef start=76, end=78>
+<Token::Text start=79, end=92>
+<Token::EOF start=93, end=93>

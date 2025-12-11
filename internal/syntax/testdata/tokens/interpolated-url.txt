@@ -1,0 +1,11 @@
+<Token::At start=0, end=1>
+<Token::Ident start=1, end=5>
+<Token::Eq start=6, end=7>
+<Token::Text start=8, end=27>
+<Token::Separator start=29, end=32>
+<Token::MethodGet start=33, end=36>
+<Token::OpenInterp start=37, end=39>
+<Token::Ident start=40, end=44>
+<Token::CloseInterp start=45, end=47>
+<Token::Text start=47, end=55>
+<Token::EOF start=56, end=56>

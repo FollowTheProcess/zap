@@ -1,0 +1,6 @@
+<Token::Separator start=0, end=3>
+<Token::MethodGet start=4, end=7>
+<Token::Text start=8, end=27>
+<Token::ResponseRef start=29, end=31>
+<Token::Text start=32, end=45>
+<Token::EOF start=46, end=46>

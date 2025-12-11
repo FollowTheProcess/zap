@@ -1,0 +1,10 @@
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=35>
+<Token::MethodPost start=36, end=40>
+<Token::Text start=41, end=74>
+<Token::Header start=75, end=87>
+<Token::Colon start=87, end=88>
+<Token::Text start=89, end=105>
+<Token::LeftAngle start=107, end=108>
+<Token::Text start=109, end=119>
+<Token::EOF start=120, end=120>

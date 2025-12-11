@@ -1,0 +1,14 @@
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=8>
+<Token::At start=11, end=12>
+<Token::Ident start=12, end=24>
+<Token::Eq start=25, end=26>
+<Token::Text start=27, end=40>
+<Token::MethodPost start=41, end=45>
+<Token::Text start=46, end=79>
+<Token::Body start=81, end=108>
+<Token::ResponseRef start=108, end=110>
+<Token::OpenInterp start=111, end=113>
+<Token::Ident start=114, end=126>
+<Token::CloseInterp start=127, end=129>
+<Token::EOF start=130, end=130>

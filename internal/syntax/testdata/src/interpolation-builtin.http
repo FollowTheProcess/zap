@@ -1,0 +1,4 @@
+@id = {{ $guid }}
+
+### Test
+GET https://example.com/{{ id }}

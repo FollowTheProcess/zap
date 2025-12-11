@@ -1,0 +1,18 @@
+###
+GET https://something.com
+###
+HEAD https://something.com
+###
+POST https://something.com
+###
+PUT https://something.com
+###
+PATCH https://something.com
+###
+DELETE https://something.com
+###
+CONNECT https://something.com
+###
+TRACE https://something.com
+###
+OPTIONS https://something.com

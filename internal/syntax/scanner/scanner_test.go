@@ -20,27 +20,30 @@ func TestValid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
-	files, err := filepath.Glob(pattern)
+	cwd, err := os.Getwd()
 	test.Ok(t, err)
+
+	parent := filepath.Dir(cwd)
+
+	inputs := filepath.Join(parent, "testdata", "src", "*.http")
+	files, err := filepath.Glob(inputs)
+	test.Ok(t, err)
+
+	outputDir := filepath.Join(parent, "testdata", "tokens")
 
 	for _, file := range files {
 		name := filepath.Base(file)
+		stem := strings.TrimSuffix(name, filepath.Ext(name))
+		outputFile := filepath.Join(outputDir, stem+".txt")
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
-			archive, err := txtar.ParseFile(file)
+			contents, err := os.ReadFile(file)
 			test.Ok(t, err)
 
-			src, ok := archive.Read("src.http")
-			test.True(t, ok, test.Context("%s missing src.http", file))
-
-			want, ok := archive.Read("tokens.txt")
-			test.True(t, ok, test.Context("%s missing tokens.txt", file))
-
-			scanner := scanner.New(name, []byte(src))
-
-			tokens := collect(scanner)
+			s := scanner.New(name, contents)
+			tokens := collect(s)
 
 			var formattedTokens strings.Builder
 			for _, tok := range tokens {
@@ -50,19 +53,19 @@ func TestValid(t *testing.T) {
 
 			got := formattedTokens.String()
 
-			t.Logf("Diagnostics: %+v\n", scanner.Diagnostics())
+			t.Logf("Diagnostics: %+v\n", s.Diagnostics())
 
 			if *update {
-				err := archive.Write("tokens.txt", got)
-				test.Ok(t, err)
-
-				err = txtar.DumpFile(file, archive)
+				err = os.WriteFile(outputFile, []byte(got), 0o644)
 				test.Ok(t, err)
 
 				return
 			}
 
-			test.Diff(t, got, want)
+			want, err := os.ReadFile(outputFile)
+			test.Ok(t, err)
+
+			test.Diff(t, got, string(want))
 		})
 	}
 }
@@ -134,29 +137,27 @@ func TestInvalid(t *testing.T) {
 }
 
 func FuzzScanner(f *testing.F) {
+	cwd, err := os.Getwd()
+	test.Ok(f, err)
+
+	parent := filepath.Dir(cwd)
+
 	// Get all the .http source from testdata for the corpus
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
-	files, err := filepath.Glob(pattern)
+	inputs := filepath.Join(parent, "testdata", "src", "*.http")
+	files, err := filepath.Glob(inputs)
 	test.Ok(f, err)
 
 	for _, file := range files {
-		archive, err := txtar.ParseFile(file)
+		src, err := os.ReadFile(file)
 		test.Ok(f, err)
-
-		if archive == nil {
-			f.Fatal("txtar.ParseFile returned nil archive")
-		}
-
-		src, ok := archive.Read("src.http")
-		test.True(f, ok, test.Context("%s missing src.http", file))
 
 		f.Add(src)
 	}
 
 	// Property: The scanner never panics or loops indefinitely, fuzz
 	// by default will catch both of these
-	f.Fuzz(func(t *testing.T, src string) {
-		scanner := scanner.New("fuzz", []byte(src))
+	f.Fuzz(func(t *testing.T, src []byte) {
+		scanner := scanner.New("fuzz", src)
 
 		for {
 			tok := scanner.Scan()
@@ -182,19 +183,17 @@ func FuzzScanner(f *testing.F) {
 }
 
 func BenchmarkScanner(b *testing.B) {
-	file := filepath.Join("testdata", "valid", "full.txtar")
-	archive, err := txtar.ParseFile(file)
+	cwd, err := os.Getwd()
 	test.Ok(b, err)
 
-	if archive == nil {
-		b.Fatal("txtar.ParseFile returned nil archive")
-	}
+	parent := filepath.Dir(cwd)
 
-	src, ok := archive.Read("src.http")
-	test.True(b, ok, test.Context("%s missing src.http", file))
+	file := filepath.Join(parent, "testdata", "benchmarks", "full.http")
+	src, err := os.ReadFile(file)
+	test.Ok(b, err)
 
 	for b.Loop() {
-		s := scanner.New("bench", []byte(src))
+		s := scanner.New("bench", src)
 
 		for {
 			tok := s.Scan()

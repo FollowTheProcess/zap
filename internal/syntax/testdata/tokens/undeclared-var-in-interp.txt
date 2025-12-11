@@ -1,0 +1,16 @@
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=15>
+<Token::At start=18, end=19>
+<Token::Prompt start=19, end=25>
+<Token::Ident start=26, end=28>
+<Token::Text start=29, end=53>
+<Token::MethodGet start=54, end=57>
+<Token::Text start=58, end=84>
+<Token::OpenInterp start=84, end=86>
+<Token::Ident start=87, end=94>
+<Token::CloseInterp start=95, end=97>
+<Token::Text start=97, end=104>
+<Token::OpenInterp start=104, end=106>
+<Token::Ident start=107, end=109>
+<Token::CloseInterp start=110, end=112>
+<Token::EOF start=113, end=113>

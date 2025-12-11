@@ -1,0 +1,9 @@
+### Body
+# @response_file = response.json
+POST https://api.somewhere.com/items/1
+
+{
+  "something": "here"
+}
+
+> {{ response_file }}

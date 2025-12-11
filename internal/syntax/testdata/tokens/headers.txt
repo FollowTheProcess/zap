@@ -1,0 +1,16 @@
+<Token::Separator start=0, end=3>
+<Token::MethodGet start=4, end=7>
+<Token::Text start=8, end=27>
+<Token::Header start=28, end=34>
+<Token::Colon start=34, end=35>
+<Token::Text start=36, end=39>
+<Token::Header start=40, end=52>
+<Token::Colon start=52, end=53>
+<Token::Text start=54, end=70>
+<Token::Header start=71, end=80>
+<Token::Colon start=80, end=81>
+<Token::Text start=82, end=91>
+<Token::Header start=92, end=105>
+<Token::Colon start=105, end=106>
+<Token::Text start=107, end=130>
+<Token::EOF start=131, end=131>
