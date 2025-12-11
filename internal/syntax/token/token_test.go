@@ -17,28 +17,6 @@ var (
 	_ = flag.Bool("clean", false, "Clean all snapshots and recreate")
 )
 
-func FuzzTokenString(f *testing.F) {
-	// Generate some random integers as seeds
-	for range 100 {
-		f.Add(rand.Int(), rand.Int(), rand.Int())
-	}
-
-	f.Fuzz(func(t *testing.T, kind, start, end int) {
-		tok := token.Token{
-			Kind:  token.Kind(kind),
-			Start: start,
-			End:   end,
-		}
-
-		got := tok.String()
-
-		// It should always look like this, regardless of the numbers
-		want := fmt.Sprintf("<Token::%s start=%d, end=%d>", token.Kind(kind), start, end)
-
-		test.Equal(t, got, want)
-	})
-}
-
 func TestKeyword(t *testing.T) {
 	tests := []struct {
 		text string     // Text input
@@ -115,4 +93,154 @@ func TestPrecedence(t *testing.T) {
 			test.Equal(t, tok.Precedence(), tt.want)
 		})
 	}
+}
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    token.Token
+		wantErr bool
+	}{
+		{
+			name:  "valid Ident",
+			input: "<Token::Ident start=10, end=20>",
+			want:  token.Token{Kind: token.Ident, Start: 10, End: 20},
+		},
+		{
+			name:  "valid EOF",
+			input: "<Token::EOF start=0, end=0>",
+			want:  token.Token{Kind: token.EOF, Start: 0, End: 0},
+		},
+		{
+			name:  "valid Header",
+			input: "<Token::Header start=123, end=456>",
+			want:  token.Token{Kind: token.Header, Start: 123, End: 456},
+		},
+		{
+			name:    "missing prefix",
+			input:   "Token::Ident start=10, end=20>",
+			wantErr: true,
+		},
+		{
+			name:    "missing suffix",
+			input:   "<Token::Ident start=10, end=20",
+			wantErr: true,
+		},
+		{
+			name:    "missing space before fields",
+			input:   "<Token::Identstart=10, end=20>",
+			wantErr: true,
+		},
+		{
+			name:    "invalid kind",
+			input:   "<Token::NotARealKind start=10, end=20>",
+			wantErr: true,
+		},
+		{
+			name:    "missing start field",
+			input:   "<Token::Ident end=20>",
+			wantErr: true,
+		},
+		{
+			name:    "missing end field",
+			input:   "<Token::Ident start=10>",
+			wantErr: true,
+		},
+		{
+			name:    "invalid numeric format",
+			input:   "<Token::Ident start=ten, end=20>",
+			wantErr: true,
+		},
+		{
+			name:    "extra trailing characters",
+			input:   "<Token::Ident start=10, end=20>garbage",
+			wantErr: true,
+		},
+		{
+			name:    "extra internal whitespace not allowed",
+			input:   "<Token::Ident   start=10, end=20>",
+			wantErr: true,
+		},
+		{
+			name:    "comma missing",
+			input:   "<Token::Ident start=10 end=20>",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := token.Parse(tt.input)
+			test.WantErr(t, err, tt.wantErr)
+
+			if err == nil {
+				test.Equal(t, got, tt.want)
+			}
+		})
+	}
+}
+
+func FuzzTokenString(f *testing.F) {
+	// Generate some random integers as seeds
+	for range 100 {
+		f.Add(rand.Int(), rand.Int(), rand.Int())
+	}
+
+	f.Fuzz(func(t *testing.T, kind, start, end int) {
+		tok := token.Token{
+			Kind:  token.Kind(kind),
+			Start: start,
+			End:   end,
+		}
+
+		got := tok.String()
+
+		// It should always look like this, regardless of the numbers
+		want := fmt.Sprintf("<Token::%s start=%d, end=%d>", token.Kind(kind), start, end)
+
+		test.Equal(t, got, want)
+	})
+}
+
+func FuzzParse(f *testing.F) {
+	f.Add("<Token::Ident start=10, end=20>")
+	f.Add("<Token::EOF start=0, end=0>")
+	f.Add("<Token::Header start=123, end=456>")
+	f.Add("<Token::MethodPost start=1, end=999>")
+	f.Add("<Token::EOF start=0, end=0>")
+	f.Add("<Token::At start=-1, end=20>")               // invalid numeric
+	f.Add("<Token::MethodGet start=10, end=-1>")        // invalid numeric
+	f.Add("<Token::Name start=, end=>")                 // broken fields
+	f.Add("Token::ConnectionTimeout start=10, end=20>") // missing prefix
+	f.Add("<Token::Ident start=10, end=20")             // missing suffix
+
+	f.Fuzz(func(t *testing.T, input string) {
+		tok, err := token.Parse(input)
+		if err != nil {
+			// Parser should reject malformed input safely.
+			return
+		}
+
+		// If no error, ensure round-trip integrity:
+		// String() -> ParseToken() must be reversible.
+		roundTrip := tok.String()
+		gotBack, err := token.Parse(roundTrip)
+		test.Ok(t, err, test.Context("Round trip failed"))
+		test.Equal(t, gotBack, tok)
+
+		// Indexes should be positive
+		test.False(t, tok.Start < 0, test.Context("start (%d) less than zero: %#v", tok.Start, tok))
+		test.False(t, tok.End < 0, test.Context("end (%d) less than zero: %#v", tok.End, tok))
+
+		// End should always be >= Start
+		test.True(t, tok.End >= tok.Start, test.Context("End (%d) should always be >= Start (%d)", tok.End, tok.Start))
+
+		// Kind must be in the valid range
+		test.True(
+			t,
+			tok.Kind >= token.EOF && tok.Kind <= token.MethodTrace,
+			test.Context("invalid Kind parsed: %#v", tok),
+		)
+	})
 }

@@ -2,8 +2,10 @@
 package token
 
 import (
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 const (
@@ -91,4 +93,66 @@ func Method(text string) (kind Kind, ok bool) {
 // IsMethod reports whether the given kind is a HTTP Method.
 func IsMethod(kind Kind) bool {
 	return kind >= MethodGet && kind <= MethodTrace
+}
+
+const (
+	tokenPrefix = "<Token::"
+	tokenSuffix = ">"
+)
+
+// Parse parses a Token from the canonical String() format:
+//
+//	<Token::KIND start=123, end=456>
+func Parse(s string) (Token, error) {
+	if s == "" {
+		return Token{}, errors.New("cannot parse token from empty string")
+	}
+
+	if !strings.HasPrefix(s, tokenPrefix) || !strings.HasSuffix(s, tokenSuffix) {
+		return Token{}, fmt.Errorf("invalid token format: %q", s)
+	}
+
+	// Trim prefix/suffix
+	inner := strings.TrimSuffix(strings.TrimPrefix(s, tokenPrefix), tokenSuffix)
+
+	// Expected format inside:
+	//   KIND start=123, end=456
+	//
+	// First split off the KIND part (before the first space)
+	firstSpace := strings.IndexByte(inner, ' ')
+	if firstSpace == -1 {
+		return Token{}, fmt.Errorf("invalid token format (missing fields): %q", s)
+	}
+
+	kindStr := inner[:firstSpace]
+	rest := inner[firstSpace+1:]
+
+	// Parse Kind
+	kind, err := ParseKind(kindStr)
+	if err != nil {
+		return Token{}, fmt.Errorf("invalid kind %q: %w", kindStr, err)
+	}
+
+	// Now parse: start=123, end=456
+	// A robust way is to use fmt.Sscanf with exact matching:
+	var start, end int
+
+	n, err := fmt.Sscanf(rest, "start=%d, end=%d", &start, &end)
+	if err != nil || n != 2 {
+		return Token{}, fmt.Errorf("invalid start/end fields in %q: %w", s, err)
+	}
+
+	if start < 0 {
+		return Token{}, fmt.Errorf("invalid start position (%d), cannot be negative", start)
+	}
+
+	if end < 0 {
+		return Token{}, fmt.Errorf("invalid end position (%d), cannot be negative", end)
+	}
+
+	if end < start {
+		return Token{}, fmt.Errorf("invalid start/end positions (%d/%d), end must be >= start", start, end)
+	}
+
+	return Token{Kind: kind, Start: start, End: end}, nil
 }

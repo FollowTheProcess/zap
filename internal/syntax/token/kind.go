@@ -1,5 +1,7 @@
 package token
 
+import "fmt"
+
 // Kind is the kind of a token.
 type Kind int
 
@@ -44,4 +46,27 @@ const (
 // MarshalText implements [encoding.TextMarshaler] for [Kind].
 func (k Kind) MarshalText() ([]byte, error) {
 	return []byte(k.String()), nil
+}
+
+//nolint:gochecknoglobals // This is okay.
+var kindByString map[string]Kind
+
+//nolint:gochecknoinits // Simplest way of doing this.
+func init() {
+	kindByString = make(map[string]Kind)
+
+	// Populate reverse lookup table using stringer-generated names
+	for k := EOF; k <= MethodTrace; k++ {
+		kindByString[k.String()] = k
+	}
+}
+
+// ParseKind parses a [Kind] from it's canonical string representation.
+func ParseKind(s string) (Kind, error) {
+	k, ok := kindByString[s]
+	if !ok {
+		return EOF, fmt.Errorf("unknown kind: %q", s)
+	}
+
+	return k, nil
 }
