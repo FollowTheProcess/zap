@@ -203,7 +203,7 @@ func FuzzTokenString(f *testing.F) {
 	})
 }
 
-func FuzzParse(f *testing.F) {
+func FuzzTokenParse(f *testing.F) {
 	f.Add("<Token::Ident start=10, end=20>")
 	f.Add("<Token::EOF start=0, end=0>")
 	f.Add("<Token::Header start=123, end=456>")
