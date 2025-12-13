@@ -11,10 +11,10 @@ GET https://somewhere.com/{{ id }}
     "msg": "prompt id shadows local variable of the same name: variable id already defined",
     "position": {
       "name": "prompt-shadow-local.txtar",
-      "offset": 18,
+      "offset": 26,
       "line": 3,
-      "startCol": 3,
-      "endCol": 25
+      "startCol": 11,
+      "endCol": 13
     }
   }
 ]

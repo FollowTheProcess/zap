@@ -149,7 +149,7 @@ func (r *Resolver) error(node ast.Node, msg string) error {
 
 	r.diagnostics = append(r.diagnostics, diag)
 
-	return fmt.Errorf("%w: %s", ErrResolve, diag.String())
+	return fmt.Errorf("%w: %s", ErrResolve, diag.Msg)
 }
 
 // errorf calls error with a formatted message, adding it to
@@ -213,7 +213,7 @@ func (r *Resolver) resolveGlobalVarStatement(env *environment, file *spec.File, 
 
 	value, err := r.resolveExpression(env, statement.Value)
 	if err != nil {
-		return r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
+		return r.errorf(statement.Value, "failed to resolve value expression for key %s: %v", key, err)
 	}
 
 	if !isKeyword {
@@ -223,7 +223,7 @@ func (r *Resolver) resolveGlobalVarStatement(env *environment, file *spec.File, 
 		}
 
 		if err := env.define(key, value); err != nil {
-			return r.error(statement, err.Error())
+			return r.error(statement.Value, err.Error())
 		}
 
 		file.Vars[key] = value
@@ -292,7 +292,7 @@ func (r *Resolver) resolveGlobalPromptStatement(
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
 	if err := env.define(name, PromptPlaceholderGlobal+name); err != nil {
-		return r.errorf(statement, "prompt %s shadows global variable of the same name: %v", name, err)
+		return r.errorf(statement.Ident, "prompt %s shadows global variable of the same name: %v", name, err)
 	}
 
 	file.Prompts[name] = prompt
@@ -386,7 +386,7 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 
 		redirect, err = r.resolveExpression(env, in.ResponseRedirect.File)
 		if err != nil {
-			return spec.Request{}, r.errorf(in.ResponseRedirect, "invalid response redirect expression: %v", err)
+			return spec.Request{}, r.errorf(in.ResponseRedirect.File, "invalid response redirect expression: %v", err)
 		}
 
 		request.ResponseFile = filepath.Clean(redirect)
@@ -397,7 +397,7 @@ func (r *Resolver) resolveRequestStatement(env *environment, in ast.Request) (sp
 
 		reference, err = r.resolveExpression(env, in.ResponseReference.File)
 		if err != nil {
-			return spec.Request{}, r.errorf(in.ResponseReference, "invalid response reference expression: %v", err)
+			return spec.Request{}, r.errorf(in.ResponseReference.File, "invalid response reference expression: %v", err)
 		}
 
 		request.ResponseRef = filepath.Clean(reference)
@@ -489,7 +489,7 @@ func (r *Resolver) resolveRequestVarStatement(
 
 	value, err := r.resolveExpression(env, statement.Value)
 	if err != nil {
-		return r.errorf(statement, "failed to resolve value expression for key %s: %v", key, err)
+		return r.errorf(statement.Value, "failed to resolve value expression for key %s: %v", key, err)
 	}
 
 	if !isKeyword {
@@ -499,7 +499,7 @@ func (r *Resolver) resolveRequestVarStatement(
 		}
 
 		if err := env.define(key, value); err != nil {
-			return r.error(statement, err.Error())
+			return r.error(statement.Ident, err.Error())
 		}
 
 		request.Vars[key] = value
@@ -547,7 +547,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 	}
 
 	if _, exists := request.Prompts[name]; exists {
-		return r.errorf(statement, "prompt %s already declared", name)
+		return r.errorf(statement.Ident, "prompt %s already declared", name)
 	}
 
 	// Shouldn't need this because request is declared top level with all this
@@ -567,7 +567,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 	//
 	// Won't think 'id' is missing and fail because it's not defined yet.
 	if err := env.define(name, PromptPlaceholderLocal+name); err != nil {
-		return r.errorf(statement, "prompt %s shadows local variable of the same name: %v", name, err)
+		return r.errorf(statement.Ident, "prompt %s shadows local variable of the same name: %v", name, err)
 	}
 
 	request.Prompts[name] = prompt
@@ -579,7 +579,7 @@ func (r *Resolver) resolveRequestPromptStatement(
 func (r *Resolver) resolveHeader(env *environment, in ast.Header) (key, value string, err error) {
 	value, err = r.resolveExpression(env, in.Value)
 	if err != nil {
-		return "", "", r.errorf(in, "invalid value expression for header %s: %v", in.Key, err)
+		return "", "", r.errorf(in.Value, "invalid value expression for header %s: %v", in.Key, err)
 	}
 
 	return in.Key, value, nil
@@ -626,17 +626,17 @@ func (r *Resolver) resolveBody(env *environment, request *spec.Request, expressi
 func (r *Resolver) resolveInterpolatedExpression(env *environment, expr ast.InterpolatedExpression) (string, error) {
 	leftResolved, err := r.resolveExpression(env, expr.Left)
 	if err != nil {
-		return "", r.errorf(expr, "could not resolve LHS of interpolated expression: %v", err)
+		return "", r.errorf(expr.Left, "could not resolve LHS of interpolated expression: %v", err)
 	}
 
 	interpResolved, err := r.resolveExpression(env, expr.Interp)
 	if err != nil {
-		return "", r.errorf(expr, "could not resolve interp of interpolated expression: %v", err)
+		return "", r.errorf(expr.Interp, "could not resolve interp of interpolated expression: %v", err)
 	}
 
 	rightResolved, err := r.resolveExpression(env, expr.Right)
 	if err != nil {
-		return "", r.errorf(expr, "could not resolve RHS of interpolated expression: %v", err)
+		return "", r.errorf(expr.Right, "could not resolve RHS of interpolated expression: %v", err)
 	}
 
 	return leftResolved + interpResolved + rightResolved, nil
