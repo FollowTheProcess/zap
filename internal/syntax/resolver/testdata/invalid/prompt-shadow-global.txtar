@@ -9,10 +9,10 @@
     "msg": "prompt id shadows global variable of the same name: variable id already defined",
     "position": {
       "name": "prompt-shadow-global.txtar",
-      "offset": 10,
+      "offset": 18,
       "line": 2,
-      "startCol": 1,
-      "endCol": 23
+      "startCol": 9,
+      "endCol": 11
     }
   }
 ]

@@ -13,19 +13,19 @@ GET https://example.com/1
     "msg": "prompt id already declared",
     "position": {
       "name": "redeclared-request-prompts.txtar",
-      "offset": 52,
+      "offset": 60,
       "line": 4,
-      "startCol": 3,
-      "endCol": 28
+      "startCol": 11,
+      "endCol": 13
     }
   },
   {
     "msg": "prompt no-description already declared",
     "position": {
       "name": "redeclared-request-prompts.txtar",
-      "offset": 80,
+      "offset": 88,
       "line": 5,
-      "startCol": 3,
+      "startCol": 11,
       "endCol": 25
     }
   }
