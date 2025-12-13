@@ -1,0 +1,4 @@
+@id = {{ $uuid }}
+
+### Test
+GET https://example.com/{{ id }}

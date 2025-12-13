@@ -40,6 +40,48 @@ func (i Ident) Kind() Kind {
 // statementNode marks an [Ident] as an [ast.Expression].
 func (i Ident) expressionNode() {}
 
+// Builtin is a built in identifier, prefixed with a '$'.
+//
+// E.g. 'uuid' is a perfectly fine identifier for any user to use for a variable
+// but '$uuid' is a builtin that returns a random UUIDv4.
+//
+// The Builtin AST node is functionality identical to an [Ident], but must
+// be separate to allow differentiating builtins from regular idents.
+type Builtin struct {
+	// Name is the name of the builtin ident.
+	Name string `yaml:"name"`
+
+	// Dollar is the [token.Dollar] token marking
+	// the builtin.
+	Dollar token.Token `yaml:"dollar"`
+
+	// The [token.Ident] token.
+	Token token.Token `yaml:"token"`
+
+	// Type is the kind of ast node, in this case [KindBuiltin].
+	Type Kind `yaml:"type"`
+}
+
+// Start returns the first token in the Builtin, which is
+// the [token.Dollar] opening it.
+func (b Builtin) Start() token.Token {
+	return b.Dollar
+}
+
+// End returns the last token in the Builtin, which is
+// the [token.Ident].
+func (b Builtin) End() token.Token {
+	return b.Token
+}
+
+// Kind returns [KindBuiltin].
+func (b Builtin) Kind() Kind {
+	return b.Type
+}
+
+// statementNode marks a [Builtin] as an [ast.Expression].
+func (b Builtin) expressionNode() {}
+
 // TextLiteral is a literal text expression.
 type TextLiteral struct {
 	// The text value (unquoted)

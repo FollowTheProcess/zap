@@ -1,0 +1,85 @@
+source: parser_test.go
+expression: parsed
+---
+name: interpolation-builtin-body.http
+statements:
+  - url:
+      value: https://example.com/123
+      token:
+        kind: Text
+        start: 9
+        end: 32
+      type: TextLiteral
+    body:
+      left:
+        value: |-
+          {
+            "id": "
+        token:
+          kind: Body
+          start: 65
+          end: 76
+        type: Body
+      right:
+        value: |-
+          "
+          }
+        token:
+          kind: Body
+          start: 87
+          end: 91
+        type: Body
+      interp:
+        expr:
+          name: uuid
+          dollar:
+            kind: Dollar
+            start: 79
+            end: 80
+          token:
+            kind: Ident
+            start: 80
+            end: 84
+          type: Builtin
+        open:
+          kind: OpenInterp
+          start: 76
+          end: 78
+        close:
+          kind: CloseInterp
+          start: 85
+          end: 87
+        type: Interp
+      type: InterpolatedExpression
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment: null
+    vars: []
+    prompts: []
+    headers:
+      - value:
+          value: application/json
+          token:
+            kind: Text
+            start: 47
+            end: 63
+          type: TextLiteral
+        key: Content-Type
+        token:
+          kind: Header
+          start: 33
+          end: 45
+        type: Header
+    method:
+      token:
+        kind: MethodPost
+        start: 4
+        end: 8
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File

@@ -1,0 +1,14 @@
+-- src.http --
+@id = {{ $uuid }}
+
+### Test
+GET https://example.com/{{ id }}
+-- want.yaml --
+name: interpolation-builtin-global.txtar
+vars:
+  id: d0a43b68-b9a1-4e89-bd21-b06fc59fefb5
+requests:
+  - name: '#1'
+    comment: Test
+    method: GET
+    url: https://example.com/d0a43b68-b9a1-4e89-bd21-b06fc59fefb5

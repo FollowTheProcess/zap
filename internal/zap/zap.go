@@ -15,6 +15,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
+	"go.followtheprocess.codes/zap/internal/syntax/resolver/builtins"
 )
 
 // Zap represents the zap program.
@@ -75,7 +76,7 @@ func (z Zap) parseFile(file string) (spec.File, error) {
 		return spec.File{}, err
 	}
 
-	res := resolver.New(file, src)
+	res := resolver.New(file, src, builtins.NewLibrary())
 
 	resolved, err := res.Resolve(parsed)
 	if err != nil {

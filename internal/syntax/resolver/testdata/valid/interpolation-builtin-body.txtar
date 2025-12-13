@@ -1,0 +1,21 @@
+-- src.http --
+###
+POST https://example.com/123
+Content-Type: application/json
+
+{
+  "id": "{{ $uuid }}"
+}
+-- want.yaml --
+name: interpolation-builtin-body.txtar
+requests:
+  - headers:
+      Content-Type:
+        - application/json
+    name: '#1'
+    method: POST
+    url: https://example.com/123
+    body: |-
+      {
+        "id": "d0a43b68-b9a1-4e89-bd21-b06fc59fefb5"
+      }

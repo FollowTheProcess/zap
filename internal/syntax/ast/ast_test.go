@@ -57,6 +57,18 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindIdent,
 		},
 		{
+			name: "builtin",
+			node: ast.Builtin{
+				Name:   "test",
+				Dollar: token.Token{Kind: token.Dollar, Start: 0, End: 1},
+				Token:  token.Token{Kind: token.Ident, Start: 1, End: 4},
+				Type:   ast.KindBuiltin,
+			},
+			start: token.Token{Kind: token.Dollar, Start: 0, End: 1},
+			end:   token.Token{Kind: token.Ident, Start: 1, End: 4},
+			kind:  ast.KindBuiltin,
+		},
+		{
 			name: "var statement",
 			// @variable = sometext
 			node: ast.VarStatement{

@@ -1,0 +1,7 @@
+###
+POST https://example.com/123
+Content-Type: application/json
+
+{
+  "id": "{{ $uuid }}"
+}
