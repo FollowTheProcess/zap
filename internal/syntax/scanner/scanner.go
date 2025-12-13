@@ -273,9 +273,8 @@ func (s *Scanner) emit(kind token.Kind) {
 	s.discard()
 }
 
-// error calculates the position information and calls the installed error handler
-// with the information, emitting an error token in the process.
-func (s *Scanner) error(msg string) stateFn {
+// position uses the scanner's current offset to calculate a reportable [syntax.Position].
+func (s *Scanner) position() syntax.Position {
 	// Column is the number of bytes between the last newline and the current position
 	// +1 because columns are 1 indexed
 	startCol := 1 + (s.start - s.currentLineOffset)
@@ -288,22 +287,26 @@ func (s *Scanner) error(msg string) stateFn {
 		endCol = startCol
 	}
 
-	// This needs to be below startCol and endCol calculations because emit
-	// brings start up to pos
-	s.emit(token.Error)
-
-	position := syntax.Position{
+	return syntax.Position{
 		Name:     s.name,
 		Offset:   s.pos,
 		Line:     s.line,
 		StartCol: startCol,
 		EndCol:   endCol,
 	}
+}
 
+// error calculates the position information and calls the installed error handler
+// with the information, emitting an error token in the process.
+func (s *Scanner) error(msg string) stateFn {
 	diag := syntax.Diagnostic{
-		Position: position,
+		Position: s.position(),
 		Msg:      msg,
 	}
+
+	// This needs to be below the call to s.position() as emit
+	// sets s.start = s.pos
+	s.emit(token.Error)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -334,9 +337,10 @@ func (s *Scanner) run() {
 // The only things it can encounter at the top level of a valid
 // http file are:
 //
-//   - '#' for comments and request separators
+//   - '#' for comments
 //   - '/' for comments
 //   - '@' for global variables
+//   - '###' marking the start of a request (also handled by scanHash)
 //
 // Everything else must only appear in certain contexts.
 //
