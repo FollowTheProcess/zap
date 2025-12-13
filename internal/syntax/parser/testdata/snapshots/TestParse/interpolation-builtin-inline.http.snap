@@ -1,0 +1,62 @@
+source: parser_test.go
+expression: parsed
+---
+name: interpolation-builtin-inline.http
+statements:
+  - url:
+      left:
+        value: https://example.com/
+        token:
+          kind: Text
+          start: 13
+          end: 33
+        type: TextLiteral
+      right: null
+      interp:
+        expr:
+          name: uuid
+          dollar:
+            kind: Dollar
+            start: 36
+            end: 37
+          token:
+            kind: Ident
+            start: 37
+            end: 41
+          type: Builtin
+        open:
+          kind: OpenInterp
+          start: 33
+          end: 35
+        close:
+          kind: CloseInterp
+          start: 42
+          end: 44
+        type: Interp
+      type: InterpolatedExpression
+    body: null
+    responseRedirect: null
+    responseReference: null
+    httpVersion: null
+    comment:
+      text: Test
+      token:
+        kind: Comment
+        start: 4
+        end: 8
+      type: Comment
+    vars: []
+    prompts: []
+    headers: []
+    method:
+      token:
+        kind: MethodGet
+        start: 9
+        end: 12
+      type: Method
+    sep:
+      kind: Separator
+      start: 0
+      end: 3
+    type: Request
+type: File

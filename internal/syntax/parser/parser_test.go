@@ -43,6 +43,7 @@ func TestParse(t *testing.T) {
 			p := parser.New(name, src)
 
 			parsed, err := p.Parse()
+			t.Logf("Diagnostics: %+v\n", p.Diagnostics())
 			test.Ok(t, err)
 
 			snap.Snap(parsed)

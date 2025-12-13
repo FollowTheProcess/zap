@@ -1,0 +1,13 @@
+-- src.http --
+### Test
+GET https://example.com/{{ $uuid }}
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::Comment start=4, end=8>
+<Token::MethodGet start=9, end=12>
+<Token::Text start=13, end=33>
+<Token::OpenInterp start=33, end=35>
+<Token::Dollar start=36, end=37>
+<Token::Ident start=37, end=41>
+<Token::CloseInterp start=42, end=44>
+<Token::EOF start=45, end=45>

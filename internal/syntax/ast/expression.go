@@ -51,6 +51,10 @@ type Builtin struct {
 	// Name is the ident's name.
 	Name string `yaml:"name"`
 
+	// Dollar is the [token.Dollar] token marking
+	// the builtin.
+	Dollar token.Token `yaml:"dollar"`
+
 	// The [token.Ident] token.
 	Token token.Token `yaml:"token"`
 
@@ -58,13 +62,13 @@ type Builtin struct {
 	Type Kind `yaml:"type"`
 }
 
-// Start returns the first meaningful token in the Builtin, which is
-// the [token.Ident].
+// Start returns the first token in the Builtin, which is
+// the [token.Dollar] opening it.
 func (b Builtin) Start() token.Token {
-	return b.Token
+	return b.Dollar
 }
 
-// End returns the last token in the Builtin, which is also
+// End returns the last token in the Builtin, which is
 // the [token.Ident].
 func (b Builtin) End() token.Token {
 	return b.Token

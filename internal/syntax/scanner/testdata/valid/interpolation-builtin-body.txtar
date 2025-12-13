@@ -1,0 +1,22 @@
+-- src.http --
+###
+POST https://example.com/123
+Content-Type: application/json
+
+{
+  "id": "{{ $uuid }}"
+}
+-- tokens.txt --
+<Token::Separator start=0, end=3>
+<Token::MethodPost start=4, end=8>
+<Token::Text start=9, end=32>
+<Token::Header start=33, end=45>
+<Token::Colon start=45, end=46>
+<Token::Text start=47, end=63>
+<Token::Body start=65, end=76>
+<Token::OpenInterp start=76, end=78>
+<Token::Dollar start=79, end=80>
+<Token::Ident start=80, end=84>
+<Token::CloseInterp start=85, end=87>
+<Token::Body start=87, end=91>
+<Token::EOF start=91, end=91>

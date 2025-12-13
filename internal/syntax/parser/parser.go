@@ -580,6 +580,8 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 		expr, err = p.parseInterpolatedExpression(nil)
 	case token.Ident:
 		expr = p.parseIdent()
+	case token.Dollar:
+		expr, err = p.parseBuiltin()
 	case token.Body:
 		expr, err = p.parseBody()
 	default:
@@ -740,12 +742,32 @@ func (p *Parser) parseHeader() (ast.Header, error) {
 // parseIdent parses an Ident.
 func (p *Parser) parseIdent() ast.Ident {
 	ident := ast.Ident{
-		Name:  strings.TrimSpace(p.text()),
+		Name:  p.text(),
 		Token: p.current,
 		Type:  ast.KindIdent,
 	}
 
 	return ident
+}
+
+// parseBuiltin parses a Builtin identifier.
+func (p *Parser) parseBuiltin() (ast.Builtin, error) {
+	builtin := ast.Builtin{
+		Dollar: p.current,
+		Type:   ast.KindBuiltin,
+	}
+
+	if err := p.expect(token.Ident); err != nil {
+		return builtin, err
+	}
+
+	// TODO(@FollowTheProcess): Maybe Ident should be a child node in Builtin then?
+
+	// Now effectively just an ident
+	builtin.Token = p.current
+	builtin.Name = p.text()
+
+	return builtin, nil
 }
 
 // parseInterp parses an interpolation expression, i.e.
@@ -756,8 +778,7 @@ func (p *Parser) parseInterp() (ast.Interp, error) {
 		Type: ast.KindInterp,
 	}
 
-	// TODO(@FollowTheProcess): For now we'll assume only idents are allowed here
-	if err := p.expect(token.Ident); err != nil {
+	if err := p.expect(token.Ident, token.Dollar); err != nil {
 		return result, err
 	}
 

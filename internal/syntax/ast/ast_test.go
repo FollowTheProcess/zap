@@ -58,13 +58,14 @@ func TestNode(t *testing.T) {
 		},
 		{
 			name: "builtin",
-			node: ast.Ident{
-				Name:  "test",
-				Token: token.Token{Kind: token.Ident, Start: 0, End: 4},
-				Type:  ast.KindBuiltin,
+			node: ast.Builtin{
+				Name:   "test",
+				Dollar: token.Token{Kind: token.Dollar, Start: 0, End: 1},
+				Token:  token.Token{Kind: token.Ident, Start: 1, End: 4},
+				Type:   ast.KindBuiltin,
 			},
-			start: token.Token{Kind: token.Ident, Start: 0, End: 4},
-			end:   token.Token{Kind: token.Ident, Start: 0, End: 4},
+			start: token.Token{Kind: token.Dollar, Start: 0, End: 1},
+			end:   token.Token{Kind: token.Ident, Start: 1, End: 4},
 			kind:  ast.KindBuiltin,
 		},
 		{
