@@ -95,6 +95,19 @@ func TestCurlExporter(t *testing.T) {
 			},
 		},
 		{
+			name: "with large body",
+			file: spec.File{
+				Name: "with body",
+				Requests: []spec.Request{
+					{
+						Method: http.MethodPost,
+						URL:    "https://somewhere.org/api/items/1",
+						Body:   largeBody,
+					},
+				},
+			},
+		},
+		{
 			name: "with body file",
 			file: spec.File{
 				Name: "with body file",
@@ -191,3 +204,16 @@ func TestCurlExporter(t *testing.T) {
 		})
 	}
 }
+
+const largeBody = `
+{
+  "keys": "here",
+  "object": {
+    "yes": ["array", "here"],
+    "nested": {
+      "object": 3
+    }
+  },
+  "array": [1, 2, 3, 4]
+}
+`
