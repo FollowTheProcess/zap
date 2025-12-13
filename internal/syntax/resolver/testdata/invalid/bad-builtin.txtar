@@ -1,0 +1,27 @@
+# Using a builtin that doesn't exist
+
+-- src.http --
+@id = {{ $notreal }}
+-- diagnostics.json --
+[
+  {
+    "msg": "could not resolve interp of interpolated expression: no such builtin: \"notreal\"",
+    "position": {
+      "name": "bad-builtin.txtar",
+      "offset": 6,
+      "line": 1,
+      "startCol": 7,
+      "endCol": 21
+    }
+  },
+  {
+    "msg": "failed to resolve value expression for key id: resolve error: could not resolve interp of interpolated expression: no such builtin: \"notreal\"",
+    "position": {
+      "name": "bad-builtin.txtar",
+      "offset": 6,
+      "line": 1,
+      "startCol": 7,
+      "endCol": 21
+    }
+  }
+]
