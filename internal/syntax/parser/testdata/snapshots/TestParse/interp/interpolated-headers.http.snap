@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interpolated-headers.http
+name: interp/interpolated-headers.http
 statements:
   - value:
       value: shhh

@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: headers-interpolated.http
+name: interp/headers-interpolated.http
 statements:
   - value:
       value: application/json;charset=utf8

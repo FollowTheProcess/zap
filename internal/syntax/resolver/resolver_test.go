@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"slices"
 	"testing"
 
 	"go.followtheprocess.codes/test"
@@ -26,12 +25,14 @@ func TestValid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
-	files, err := filepath.Glob(pattern)
-	test.Ok(t, err)
+	dir := filepath.Join("testdata", "valid")
 
-	for _, file := range files {
-		name := filepath.Base(file)
+	for file, err := range syntaxtest.AllFilesWithExtension(dir, ".txtar") {
+		test.Ok(t, err)
+
+		name, err := filepath.Rel(dir, file)
+		test.Ok(t, err)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -89,12 +90,14 @@ func TestInvalid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
-	pattern := filepath.Join("testdata", "invalid", "*.txtar")
-	files, err := filepath.Glob(pattern)
-	test.Ok(t, err)
+	dir := filepath.Join("testdata", "invalid")
 
-	for _, file := range files {
-		name := filepath.Base(file)
+	for file, err := range syntaxtest.AllFilesWithExtension(dir, ".txtar") {
+		test.Ok(t, err)
+
+		name, err := filepath.Rel(dir, file)
+		test.Ok(t, err)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -161,21 +164,11 @@ func BenchmarkResolver(b *testing.B) {
 }
 
 func FuzzResolver(f *testing.F) {
-	// Get all valid .http source from testdata for the corpus
-	validPattern := filepath.Join("testdata", "valid", "*.txtar")
-	validFiles, err := filepath.Glob(validPattern)
-	test.Ok(f, err)
-
-	// Invalid ones too!
-	invalidPattern := filepath.Join("testdata", "invalid", "*.txtar")
-	invalidFiles, err := filepath.Glob(invalidPattern)
-	test.Ok(f, err)
-
-	files := slices.Concat(validFiles, invalidFiles)
-
 	defer goleak.VerifyNone(f)
 
-	for _, file := range files {
+	for file, err := range syntaxtest.AllFilesWithExtension("testdata", ".txtar") {
+		test.Ok(f, err)
+
 		archive, err := txtar.ParseFile(file)
 		test.Ok(f, err)
 

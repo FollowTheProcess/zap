@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interpolation-builtin-body.http
+name: interp/interpolation-builtin-body.http
 statements:
   - url:
       value: https://example.com/123

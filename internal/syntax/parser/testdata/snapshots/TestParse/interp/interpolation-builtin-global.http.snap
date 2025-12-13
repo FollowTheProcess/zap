@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interpolation-builtin-global.http
+name: interp/interpolation-builtin-global.http
 statements:
   - value:
       left: null

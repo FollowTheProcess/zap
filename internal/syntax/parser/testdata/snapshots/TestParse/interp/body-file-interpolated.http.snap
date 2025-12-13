@@ -1,88 +1,85 @@
 source: parser_test.go
 expression: parsed
 ---
-name: response-reference-interpolated.http
+name: interp/body-file-interpolated.http
 statements:
   - url:
       value: https://api.somewhere.com/items/1
       token:
         kind: Text
-        start: 46
-        end: 79
+        start: 40
+        end: 73
       type: TextLiteral
     body:
-      value: |-
-        {
-          "something": "here"
-        }
-      token:
-        kind: Body
-        start: 81
-        end: 108
-      type: Body
-    responseRedirect: null
-    responseReference:
-      file:
+      value:
         left: null
         right: null
         interp:
           expr:
-            name: response_ref
+            name: body
             token:
               kind: Ident
-              start: 114
-              end: 126
+              start: 89
+              end: 93
             type: Ident
           open:
             kind: OpenInterp
-            start: 111
-            end: 113
+            start: 86
+            end: 88
           close:
             kind: CloseInterp
-            start: 127
-            end: 129
+            start: 94
+            end: 96
           type: Interp
         type: InterpolatedExpression
       token:
-        kind: ResponseRef
-        start: 108
-        end: 110
-      type: ResponseReference
-    httpVersion: null
+        kind: LeftAngle
+        start: 84
+        end: 85
+      type: BodyFile
+    responseRedirect: null
+    responseReference: null
+    httpVersion:
+      version: "1.2"
+      token:
+        kind: HTTPVersion
+        start: 74
+        end: 82
+      type: HTTPVersion
     comment:
-      text: Body
+      text: Body File
       token:
         kind: Comment
         start: 4
-        end: 8
+        end: 13
       type: Comment
     vars:
       - value:
-          value: response.json
+          value: input.json
           token:
             kind: Text
-            start: 27
-            end: 40
+            start: 24
+            end: 34
           type: TextLiteral
         ident:
-          name: response_ref
+          name: body
           token:
             kind: Ident
-            start: 12
-            end: 24
+            start: 17
+            end: 21
           type: Ident
         at:
           kind: At
-          start: 11
-          end: 12
+          start: 16
+          end: 17
         type: VarStatement
     prompts: []
     headers: []
     method:
       token:
         kind: MethodPost
-        start: 41
-        end: 45
+        start: 35
+        end: 39
       type: Method
     sep:
       kind: Separator

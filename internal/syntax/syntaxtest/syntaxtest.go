@@ -1,7 +1,13 @@
 // Package syntaxtest provides syntax level test utilities.
 package syntaxtest
 
-import "go.followtheprocess.codes/zap/internal/syntax/resolver/builtins"
+import (
+	"io/fs"
+	"iter"
+	"path/filepath"
+
+	"go.followtheprocess.codes/zap/internal/syntax/resolver/builtins"
+)
 
 // Deterministic return values for test comparison.
 const (
@@ -34,4 +40,39 @@ func (t TestBuiltins) Get(name string) (builtins.Builtin, bool) {
 	}
 
 	return fn, true
+}
+
+// AllFilesWithExtension returns an iterator over all filepaths under
+// root with the matching extension, recursively.
+//
+// A call to AllFilesWithExtension like this:
+//
+//	for file, err := range AllFilesWithExtension(".", ".go") {
+//	    // Loop body
+//	}
+//
+// Is roughly equivalent to the following in bash:
+//
+//	for file in **/*.go; do { # stuff }; done
+func AllFilesWithExtension(root, ext string) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				yield("", walkErr)
+				return walkErr
+			}
+
+			if d.Type().IsRegular() && filepath.Ext(d.Name()) == ext {
+				if !yield(path, nil) {
+					return fs.SkipAll
+				}
+			}
+
+			return nil
+		})
+		// handle the error returned by WalkDir itself
+		if err != nil {
+			yield("", err)
+		}
+	}
 }

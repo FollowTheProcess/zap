@@ -1,14 +1,14 @@
 source: parser_test.go
 expression: parsed
 ---
-name: response-redirect-interpolated.http
+name: interp/response-reference-interpolated.http
 statements:
   - url:
       value: https://api.somewhere.com/items/1
       token:
         kind: Text
-        start: 47
-        end: 80
+        start: 46
+        end: 79
       type: TextLiteral
     body:
       value: |-
@@ -17,20 +17,21 @@ statements:
         }
       token:
         kind: Body
-        start: 82
-        end: 109
+        start: 81
+        end: 108
       type: Body
-    responseRedirect:
+    responseRedirect: null
+    responseReference:
       file:
         left: null
         right: null
         interp:
           expr:
-            name: response_file
+            name: response_ref
             token:
               kind: Ident
               start: 114
-              end: 127
+              end: 126
             type: Ident
           open:
             kind: OpenInterp
@@ -38,16 +39,15 @@ statements:
             end: 113
           close:
             kind: CloseInterp
-            start: 128
-            end: 130
+            start: 127
+            end: 129
           type: Interp
         type: InterpolatedExpression
       token:
-        kind: RightAngle
-        start: 109
+        kind: ResponseRef
+        start: 108
         end: 110
-      type: ResponseRedirect
-    responseReference: null
+      type: ResponseReference
     httpVersion: null
     comment:
       text: Body
@@ -61,15 +61,15 @@ statements:
           value: response.json
           token:
             kind: Text
-            start: 28
-            end: 41
+            start: 27
+            end: 40
           type: TextLiteral
         ident:
-          name: response_file
+          name: response_ref
           token:
             kind: Ident
             start: 12
-            end: 25
+            end: 24
           type: Ident
         at:
           kind: At
@@ -81,8 +81,8 @@ statements:
     method:
       token:
         kind: MethodPost
-        start: 42
-        end: 46
+        start: 41
+        end: 45
       type: Method
     sep:
       kind: Separator
