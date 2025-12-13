@@ -48,7 +48,7 @@ func (i Ident) expressionNode() {}
 // The Builtin AST node is functionality identical to an [Ident], but must
 // be separate to allow differentiating builtins from regular idents.
 type Builtin struct {
-	// Name is the ident's name.
+	// Name is the name of the builtin ident.
 	Name string `yaml:"name"`
 
 	// Dollar is the [token.Dollar] token marking

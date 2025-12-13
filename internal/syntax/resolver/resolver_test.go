@@ -15,6 +15,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
+	"go.followtheprocess.codes/zap/internal/syntax/syntaxtest"
 	"go.uber.org/goleak"
 	"go.yaml.in/yaml/v4"
 )
@@ -49,7 +50,7 @@ func TestValid(t *testing.T) {
 			t.Logf("Diagnostics: %+v\n", p.Diagnostics())
 			test.Ok(t, err, test.Context("unexpected parser error"))
 
-			res := resolver.New(name, []byte(src))
+			res := resolver.New(name, []byte(src), syntaxtest.NewTestLibrary())
 
 			resolved, err := res.Resolve(parsed)
 			if err != nil {
@@ -111,7 +112,7 @@ func TestInvalid(t *testing.T) {
 			parsed, err := p.Parse()
 			test.Ok(t, err, test.Context("unexpected parser error"))
 
-			res := resolver.New(name, []byte(src))
+			res := resolver.New(name, []byte(src), syntaxtest.NewTestLibrary())
 
 			_, err = res.Resolve(parsed)
 			test.Err(t, err, test.Context("resolved did not return an error but should have"))
@@ -153,7 +154,7 @@ func BenchmarkResolver(b *testing.B) {
 	test.Ok(b, err)
 
 	for b.Loop() {
-		res := resolver.New(file, []byte(src))
+		res := resolver.New(file, []byte(src), syntaxtest.NewTestLibrary())
 		_, err = res.Resolve(parsed)
 		test.Ok(b, err)
 	}
@@ -196,7 +197,7 @@ func FuzzResolver(f *testing.F) {
 
 		parsed, _ := parser.Parse() //nolint:errcheck // Just checking for panics and infinite loops
 
-		res := resolver.New(parsed.Name, []byte(src))
+		res := resolver.New(parsed.Name, []byte(src), syntaxtest.NewTestLibrary())
 
 		resolved, err := res.Resolve(parsed)
 		// Property: If there is an error, the file should be the zero spec.File{}

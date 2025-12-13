@@ -10,6 +10,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
 	"go.followtheprocess.codes/zap/internal/syntax/resolver"
+	"go.followtheprocess.codes/zap/internal/syntax/syntaxtest"
 )
 
 func TestPositionString(t *testing.T) {
@@ -306,7 +307,7 @@ func BenchmarkEntireParse(b *testing.B) {
 		parsed, err := p.Parse()
 		test.Ok(b, err)
 
-		res := resolver.New(file, src)
+		res := resolver.New(file, src, syntaxtest.NewTestLibrary())
 		_, err = res.Resolve(parsed)
 		test.Ok(b, err)
 	}

@@ -16,6 +16,7 @@ import (
 	"go.followtheprocess.codes/zap/internal/spec"
 	"go.followtheprocess.codes/zap/internal/syntax"
 	"go.followtheprocess.codes/zap/internal/syntax/ast"
+	"go.followtheprocess.codes/zap/internal/syntax/resolver/builtins"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 )
 
@@ -43,6 +44,7 @@ var ErrResolve = errors.New("resolve error")
 // parsing URLs and durations, and otherwise validating and checking the parse tree
 // along the way.
 type Resolver struct {
+	library     builtins.Library    // Library of builtins to draw from.
 	name        string              // The name of the file being resolved.
 	src         []byte              // Raw source
 	diagnostics []syntax.Diagnostic // Diagnostics collected during resolving.
@@ -50,10 +52,11 @@ type Resolver struct {
 }
 
 // New returns a new [Resolver].
-func New(name string, src []byte) *Resolver {
+func New(name string, src []byte, library builtins.Library) *Resolver {
 	return &Resolver{
-		name: name,
-		src:  src,
+		name:    name,
+		src:     src,
+		library: library,
 	}
 }
 
@@ -432,6 +435,8 @@ func (r *Resolver) resolveExpression(env *environment, expression ast.Expression
 		return expr.Value, nil
 	case ast.Ident:
 		return r.resolveIdent(env, expr)
+	case ast.Builtin:
+		return r.resolveBuiltin(expr)
 	case ast.InterpolatedExpression:
 		return r.resolveInterpolatedExpression(env, expr)
 	case ast.Interp:
@@ -650,4 +655,17 @@ func (r *Resolver) resolveIdent(env *environment, ident ast.Ident) (string, erro
 	}
 
 	return env.get(ident.Name)
+}
+
+// resolveBuiltin resolves an [ast.Builtin] into the concrete value it
+// refers to.
+//
+// Note: no environment here as builtins are well... built in.
+func (r *Resolver) resolveBuiltin(b ast.Builtin) (string, error) {
+	fn, ok := r.library.Get(b.Name)
+	if !ok {
+		return "", fmt.Errorf("no such builtin: %q", b.Name)
+	}
+
+	return fn()
 }
