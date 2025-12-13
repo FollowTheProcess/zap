@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interpolation-builtin-inline.http
+name: interp/interpolation-builtin-inline.http
 statements:
   - url:
       left:

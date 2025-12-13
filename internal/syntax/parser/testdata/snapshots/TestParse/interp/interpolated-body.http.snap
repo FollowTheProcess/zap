@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interpolated-body.http
+name: interp/interpolated-body.http
 statements:
   - url:
       value: https://api.somewhere.com/items/1

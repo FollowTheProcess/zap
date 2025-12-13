@@ -1,7 +1,7 @@
 source: parser_test.go
 expression: parsed
 ---
-name: interp-before-body.http
+name: interp/interp-before-body.http
 statements:
   - value:
       value: shhh

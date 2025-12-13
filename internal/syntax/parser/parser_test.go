@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax/parser"
+	"go.followtheprocess.codes/zap/internal/syntax/syntaxtest"
 	"go.uber.org/goleak"
 )
 
@@ -21,12 +21,19 @@ var (
 )
 
 func TestParse(t *testing.T) {
-	pattern := filepath.Join("testdata", "valid", "*.http")
-	files, err := filepath.Glob(pattern)
-	test.Ok(t, err)
+	// Force colour for diffs but only locally
+	test.ColorEnabled(os.Getenv("CI") == "")
 
-	for _, file := range files {
-		name := filepath.Base(file)
+	dir := filepath.Join("testdata", "valid")
+
+	for file, err := range syntaxtest.AllFilesWithExtension(dir, ".http") {
+		test.Ok(t, err)
+
+		name, err := filepath.Rel(dir, file)
+		test.Ok(t, err)
+
+		name = filepath.ToSlash(name)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -43,7 +50,10 @@ func TestParse(t *testing.T) {
 			p := parser.New(name, src)
 
 			parsed, err := p.Parse()
-			t.Logf("Diagnostics: %+v\n", p.Diagnostics())
+			if err != nil {
+				t.Logf("Diagnostics: %+v\n", p.Diagnostics())
+			}
+
 			test.Ok(t, err)
 
 			snap.Snap(parsed)
@@ -59,12 +69,16 @@ func TestInvalid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
-	pattern := filepath.Join("testdata", "invalid", "*.txtar")
-	files, err := filepath.Glob(pattern)
-	test.Ok(t, err)
+	dir := filepath.Join("testdata", "invalid")
 
-	for _, file := range files {
-		name := filepath.Base(file)
+	for file, err := range syntaxtest.AllFilesWithExtension(dir, ".txtar") {
+		test.Ok(t, err)
+
+		name, err := filepath.Rel(dir, file)
+		test.Ok(t, err)
+
+		name = filepath.ToSlash(name)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -118,20 +132,11 @@ func BenchmarkParser(b *testing.B) {
 }
 
 func FuzzParser(f *testing.F) {
-	// Get all the .http source from testdata for the corpus
-	validPattern := filepath.Join("testdata", "valid", "*.http")
-	validFiles, err := filepath.Glob(validPattern)
-	test.Ok(f, err)
-
-	invalidPattern := filepath.Join("testdata", "invalid", "*.http")
-	invalidFiles, err := filepath.Glob(invalidPattern)
-	test.Ok(f, err)
-
-	files := slices.Concat(validFiles, invalidFiles)
-
 	defer goleak.VerifyNone(f)
 
-	for _, file := range files {
+	for file, err := range syntaxtest.AllFilesWithExtension("testdata", ".http") {
+		test.Ok(f, err)
+
 		src, err := os.ReadFile(file)
 		test.Ok(f, err)
 

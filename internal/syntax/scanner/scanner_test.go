@@ -10,6 +10,7 @@ import (
 	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/txtar"
 	"go.followtheprocess.codes/zap/internal/syntax/scanner"
+	"go.followtheprocess.codes/zap/internal/syntax/syntaxtest"
 	"go.followtheprocess.codes/zap/internal/syntax/token"
 	"go.uber.org/goleak"
 )
@@ -20,12 +21,16 @@ func TestValid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
-	files, err := filepath.Glob(pattern)
-	test.Ok(t, err)
+	dir := filepath.Join("testdata", "valid")
 
-	for _, file := range files {
-		name := filepath.Base(file)
+	for file, err := range syntaxtest.AllFilesWithExtension(dir, ".txtar") {
+		test.Ok(t, err)
+
+		name, err := filepath.Rel(dir, file)
+		test.Ok(t, err)
+
+		name = filepath.ToSlash(name)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -71,12 +76,16 @@ func TestInvalid(t *testing.T) {
 	// Force colour for diffs but only locally
 	test.ColorEnabled(os.Getenv("CI") == "")
 
-	pattern := filepath.Join("testdata", "invalid", "*.txtar")
-	files, err := filepath.Glob(pattern)
-	test.Ok(t, err)
+	dir := filepath.Join("testdata", "invalid")
 
-	for _, file := range files {
-		name := filepath.Base(file)
+	for file, err := range syntaxtest.AllFilesWithExtension(dir, ".txtar") {
+		test.Ok(t, err)
+
+		name, err := filepath.Rel(dir, file)
+		test.Ok(t, err)
+
+		name = filepath.ToSlash(name)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -134,12 +143,9 @@ func TestInvalid(t *testing.T) {
 }
 
 func FuzzScanner(f *testing.F) {
-	// Get all the .http source from testdata for the corpus
-	pattern := filepath.Join("testdata", "valid", "*.txtar")
-	files, err := filepath.Glob(pattern)
-	test.Ok(f, err)
+	for file, err := range syntaxtest.AllFilesWithExtension("testdata", ".txtar") {
+		test.Ok(f, err)
 
-	for _, file := range files {
 		archive, err := txtar.ParseFile(file)
 		test.Ok(f, err)
 

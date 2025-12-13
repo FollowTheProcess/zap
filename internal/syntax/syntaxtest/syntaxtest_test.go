@@ -2,6 +2,9 @@
 package syntaxtest_test
 
 import (
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 
 	"go.followtheprocess.codes/test"
@@ -52,4 +55,27 @@ func TestTestLibrary(t *testing.T) {
 			test.Equal(t, got, tt.want)
 		})
 	}
+}
+
+func TestAllFilesWithExtension(t *testing.T) {
+	cwd, err := os.Getwd()
+	test.Ok(t, err)
+
+	var results []string
+
+	for file, err := range syntaxtest.AllFilesWithExtension(cwd, ".go") {
+		test.Ok(t, err)
+
+		results = append(results, file)
+	}
+
+	slices.Sort(results)
+
+	want := []string{
+		// Just the two files
+		filepath.Join(cwd, "syntaxtest.go"),
+		filepath.Join(cwd, "syntaxtest_test.go"),
+	}
+
+	test.EqualFunc(t, results, want, slices.Equal)
 }
