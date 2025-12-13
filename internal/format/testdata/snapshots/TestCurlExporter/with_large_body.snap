@@ -1,0 +1,10 @@
+source: curl_test.go
+expression: buf.String()
+---
+|2
+
+  curl \
+      --request POST \
+      --location \
+      --data '{"keys":"here","object":{"yes":["array","here"],"nested":{"object":3}},"array":[1,2,3,4]}' \
+      https://somewhere.org/api/items/1
