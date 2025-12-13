@@ -12,24 +12,25 @@ func _() {
 	_ = x[KindFile-1]
 	_ = x[KindVarStatement-2]
 	_ = x[KindIdent-3]
-	_ = x[KindTextLiteral-4]
-	_ = x[KindInterp-5]
-	_ = x[KindPrompt-6]
-	_ = x[KindRequest-7]
-	_ = x[KindComment-8]
-	_ = x[KindMethod-9]
-	_ = x[KindHeader-10]
-	_ = x[KindInterpolatedExpression-11]
-	_ = x[KindBody-12]
-	_ = x[KindBodyFile-13]
-	_ = x[KindResponseRedirect-14]
-	_ = x[KindResponseReference-15]
-	_ = x[KindHTTPVersion-16]
+	_ = x[KindBuiltin-4]
+	_ = x[KindTextLiteral-5]
+	_ = x[KindInterp-6]
+	_ = x[KindPrompt-7]
+	_ = x[KindRequest-8]
+	_ = x[KindComment-9]
+	_ = x[KindMethod-10]
+	_ = x[KindHeader-11]
+	_ = x[KindInterpolatedExpression-12]
+	_ = x[KindBody-13]
+	_ = x[KindBodyFile-14]
+	_ = x[KindResponseRedirect-15]
+	_ = x[KindResponseReference-16]
+	_ = x[KindHTTPVersion-17]
 }
 
-const _Kind_name = "InvalidFileVarStatementIdentTextLiteralInterpPromptRequestCommentMethodHeaderInterpolatedExpressionBodyBodyFileResponseRedirectResponseReferenceHTTPVersion"
+const _Kind_name = "InvalidFileVarStatementIdentBuiltinTextLiteralInterpPromptRequestCommentMethodHeaderInterpolatedExpressionBodyBodyFileResponseRedirectResponseReferenceHTTPVersion"
 
-var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 39, 45, 51, 58, 65, 71, 77, 99, 103, 111, 127, 144, 155}
+var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 35, 46, 52, 58, 65, 72, 78, 84, 106, 110, 118, 134, 151, 162}
 
 func (i Kind) String() string {
 	idx := int(i) - 0

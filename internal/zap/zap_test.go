@@ -15,6 +15,13 @@ import (
 	"go.followtheprocess.codes/zap/internal/zap"
 )
 
+// TODO(@FollowTheProcess): This is getting unwieldy and is a bit beyond what testscript is designed for
+//
+// Once I have builtins and selector expressions working, the http files will be able to
+// do e.g. '@base = {{ $env.TEST_SERVER_URL }}' and then I can host a local httpbin in
+// a testcontainer or even just create a simple inline server for the tests and it'll
+// be much nicer! :)
+
 var update = flag.Bool("update", false, "Update testscript snapshots")
 
 func TestMain(m *testing.M) {

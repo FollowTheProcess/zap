@@ -11,6 +11,7 @@ const (
 	KindFile                               // File
 	KindVarStatement                       // VarStatement
 	KindIdent                              // Ident
+	KindBuiltin                            // Builtin
 	KindTextLiteral                        // TextLiteral
 	KindInterp                             // Interp
 	KindPrompt                             // Prompt
