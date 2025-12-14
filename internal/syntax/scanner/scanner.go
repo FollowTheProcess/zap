@@ -481,8 +481,6 @@ func scanOpenInterp(s *Scanner) stateFn {
 
 // scanInsideInterp scans the inside of an interpolation.
 func scanInsideInterp(s *Scanner) stateFn {
-	s.skip(isLineSpace)
-
 	for {
 		s.skip(isLineSpace)
 
