@@ -497,8 +497,12 @@ func scanInsideInterp(s *Scanner) stateFn {
 
 	s.skip(isLineSpace)
 
-	if !s.restHasPrefix("}}") {
+	if s.peek() == '\n' || s.atEOF() {
 		return s.error("unterminated interpolation")
+	}
+
+	if !s.restHasPrefix("}}") {
+		return s.errorf("unexpected character in interpolation: %q", s.peek())
 	}
 
 	return scanCloseInterp
