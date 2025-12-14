@@ -35,7 +35,8 @@ func TestLookup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lib := builtins.NewLibrary()
+			lib, err := builtins.NewLibrary()
+			test.Ok(t, err)
 
 			_, ok := lib.Get(tt.fn)
 			test.Equal(t, ok, tt.ok, test.Context("Get(%s): expected %v, got %v", tt.fn, ok, tt.ok))
@@ -44,7 +45,8 @@ func TestLookup(t *testing.T) {
 }
 
 func TestBuiltins(t *testing.T) {
-	lib := builtins.NewLibrary()
+	lib, err := builtins.NewLibrary()
+	test.Ok(t, err)
 
 	tests := []struct {
 		fn      builtins.Builtin // Function under test

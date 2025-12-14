@@ -439,10 +439,13 @@ func (r *Resolver) resolveExpression(env *environment, expression ast.Expression
 		return r.resolveBuiltin(expr)
 	case ast.InterpolatedExpression:
 		return r.resolveInterpolatedExpression(env, expr)
+	case ast.SelectorExpression:
+		return r.resolveSelectorExpression(env, expr)
 	case ast.Interp:
 		return r.resolveExpression(env, expr.Expr)
 	case ast.BodyFile:
 		return r.resolveExpression(env, expr.Value)
+
 	default:
 		return "", fmt.Errorf("unhandled ast expression: %T", expr)
 	}
@@ -647,6 +650,24 @@ func (r *Resolver) resolveInterpolatedExpression(env *environment, expr ast.Inte
 	return leftResolved + interpResolved + rightResolved, nil
 }
 
+// resolveSelectorExpression resolves an [ast.SelectorExpression].
+func (r *Resolver) resolveSelectorExpression(env *environment, selector ast.SelectorExpression) (string, error) {
+	expr, err := r.resolveExpression(env, selector.Expr)
+	if err != nil {
+		return "", err
+	}
+
+	ident, err := r.resolveIdent(env, selector.Selector)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("Expr: %s\n", expr)
+	fmt.Printf("Ident: %s\n", ident)
+
+	return "TODO", nil
+}
+
 // resolveIdent resolves an [ast.Ident] into the concrete value it refers to given
 // the environment.
 func (r *Resolver) resolveIdent(env *environment, ident ast.Ident) (string, error) {
@@ -666,6 +687,16 @@ func (r *Resolver) resolveBuiltin(b ast.Builtin) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("no such builtin: %q", b.Name)
 	}
+
+	// TODO(@FollowTheProcess): For $env this doesn't work because it expects $env.VAR
+	//
+	// I need to refactor the environment stuff, or maybe make a BuiltinIdent to differentiate
+	// the two cases.
+	//
+	// Make it futureproof though because eventually I want to do things like
+	// {{ otherRequest.headers.Content-Type }}
+	// Or use JSONPath to get body elements:
+	// {{ otherRequest.body.$.items[0] }}
 
 	return fn()
 }

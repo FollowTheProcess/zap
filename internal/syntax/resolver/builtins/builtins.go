@@ -4,12 +4,13 @@ package builtins
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 )
 
 // Builtin is an implementation of a zap builtin.
-type Builtin func() (string, error)
+type Builtin func(args ...string) (string, error)
 
 // Library is a library of builtins.
 type Library interface {
@@ -24,14 +25,15 @@ type Builtins struct {
 }
 
 // NewLibrary returns the zap builtins library.
-func NewLibrary() Builtins {
+func NewLibrary() (Builtins, error) {
 	library := map[string]Builtin{
 		"uuid": builtinUUID,
+		"env":  builtinEnv,
 	}
 
 	return Builtins{
 		library: library,
-	}
+	}, nil
 }
 
 // Get looks up a builtin by name, returning the builtin and a boolean
@@ -46,11 +48,48 @@ func (b Builtins) Get(name string) (Builtin, bool) {
 }
 
 // builtinUUID is the implementation of the '$uuid' builtin.
-func builtinUUID() (string, error) {
+func builtinUUID(args ...string) (string, error) {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate a new uuid: %w", err)
 	}
 
 	return uid.String(), nil
+}
+
+// builtinEnv is the implementation of the '$env' builtin, the
+// ident in the selector expression is the env var to retrieve.
+//
+// For example:
+//
+//	$env.USER_ID
+//
+// Maps to:
+//
+//	os.Getenv("USER_ID")
+func builtinEnv(args ...string) (string, error) {
+	if len(args) != 1 {
+		return "", fmt.Errorf(
+			"env: usage error, expected a single argument (name of the env var), got %d: %v",
+			len(args),
+			args,
+		)
+	}
+
+	// TODO(@FollowTheProcess): I think we should move the os.Environ inside the resolver
+	//
+	// Expose the environment struct and have it contain os.Environ, then each builtin
+	// can actually return a function that takes in the environment.
+	//
+	// Then we can mock out the builtins library as well as the environment and have
+	// a complete sandbox for testing
+
+	key := args[0]
+
+	val, ok := os.LookupEnv(key)
+	if !ok || val == "" {
+		return "", fmt.Errorf("env: variable %q not set", key)
+	}
+
+	return val, nil
 }

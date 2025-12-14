@@ -33,6 +33,8 @@ func TestValid(t *testing.T) {
 		name, err := filepath.Rel(dir, file)
 		test.Ok(t, err)
 
+		name = filepath.ToSlash(name)
+
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
 
@@ -97,6 +99,8 @@ func TestInvalid(t *testing.T) {
 
 		name, err := filepath.Rel(dir, file)
 		test.Ok(t, err)
+
+		name = filepath.ToSlash(name)
 
 		t.Run(name, func(t *testing.T) {
 			defer goleak.VerifyNone(t)
