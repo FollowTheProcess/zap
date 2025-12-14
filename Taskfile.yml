@@ -81,6 +81,17 @@ tasks:
       - mkdir -p ./bin
       - goreleaser build --single-target --skip before --snapshot --clean --output ./bin/zap
 
+  snapshot:
+    desc: Create a snapshot release
+    preconditions:
+      - sh: command -v docker
+        msg: Requires docker installed and running
+
+      - sh: docker stats --no-stream
+        msg: The docker daemon must be running
+    cmds:
+      - goreleaser release --snapshot --clean
+
   bench:
     desc: Run all project benchmarks
     sources:
