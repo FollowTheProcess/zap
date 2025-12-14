@@ -616,13 +616,16 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	//
 	// In our case the Interp is the operator and carries the highest precedence.
 
-	for p.next.Is(token.OpenInterp) && precedence < p.next.Precedence() {
+	for p.next.Is(token.OpenInterp, token.Dot) && precedence < p.next.Precedence() {
 		p.advance()
 
 		switch p.current.Kind {
 		case token.OpenInterp:
 			// It's an interpolated expression where we already know the left hand side
 			expr, err = p.parseInterpolatedExpression(expr)
+		case token.Dot:
+			// It's a selector expression e.g request.body
+			expr, err = p.parseSelectorExpression(expr)
 		default:
 			p.errorf("parseExpression: unexpected token: %s", p.current.Kind)
 		}
@@ -661,6 +664,22 @@ func (p *Parser) parseInterpolatedExpression(left ast.Expression) (ast.Interpola
 
 		expr.Right = right
 	}
+
+	return expr, nil
+}
+
+// parseSelectorExpression parses a selector.
+func (p *Parser) parseSelectorExpression(left ast.Expression) (ast.SelectorExpression, error) {
+	expr := ast.SelectorExpression{
+		Expr: left,
+		Type: ast.KindSelector,
+	}
+
+	if err := p.expect(token.Ident); err != nil {
+		return expr, err
+	}
+
+	expr.Selector = p.parseIdent()
 
 	return expr, nil
 }

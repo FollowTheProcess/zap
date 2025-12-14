@@ -37,6 +37,8 @@ func (t Token) Precedence() int {
 	switch t.Kind {
 	case OpenInterp:
 		return HighestPrecedence
+	case Dot:
+		return HighestPrecedence - 1
 	default:
 		return LowestPrecedence
 	}
