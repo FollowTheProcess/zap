@@ -780,8 +780,6 @@ func (p *Parser) parseBuiltin() (ast.Builtin, error) {
 		return builtin, err
 	}
 
-	// TODO(@FollowTheProcess): Maybe Ident should be a child node in Builtin then?
-
 	// Now effectively just an ident
 	builtin.Token = p.current
 	builtin.Name = p.text()
