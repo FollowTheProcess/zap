@@ -7,7 +7,7 @@ Content-Type: application/json
   "id": "{{ $uuid }}"
 }
 -- want.yaml --
-name: interpolation-builtin-body.txtar
+name: interp/interpolation-builtin-body.txtar
 requests:
   - headers:
       Content-Type:

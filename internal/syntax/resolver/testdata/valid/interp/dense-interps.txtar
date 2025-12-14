@@ -6,7 +6,7 @@
 @version = v1
 @fullURL = {{ base }}/{{ version }}/{{ endpoint }}
 -- want.yaml --
-name: dense-interps.txtar
+name: interp/dense-interps.txtar
 vars:
   base: https://example.com
   endpoint: users

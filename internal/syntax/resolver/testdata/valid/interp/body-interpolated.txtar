@@ -11,7 +11,7 @@ Content-Type: application/json
   }
 }
 -- want.yaml --
-name: body-interpolated.txtar
+name: interp/body-interpolated.txtar
 requests:
   - vars:
       syntaxVar: syntax

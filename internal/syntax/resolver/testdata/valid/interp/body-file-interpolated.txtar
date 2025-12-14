@@ -5,7 +5,7 @@ POST https://api.somewhere.com/items/1 HTTP/1.2
 
 < {{ body }}
 -- want.yaml --
-name: body-file-interpolated.txtar
+name: interp/body-file-interpolated.txtar
 requests:
   - vars:
       body: input.json

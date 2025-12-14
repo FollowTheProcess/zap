@@ -1,23 +1,23 @@
 -- src.http --
 ### Body
-# @response_ref = response.json
+# @response_file = response.json
 POST https://api.somewhere.com/items/1
 
 {
   "something": "here"
 }
 
-<> {{ response_ref }}
+> {{ response_file }}
 -- want.yaml --
-name: response-reference-interpolated.txtar
+name: interp/response-redirect-interpolated.txtar
 requests:
   - vars:
-      response_ref: response.json
+      response_file: response.json
     name: '#1'
     comment: Body
     method: POST
     url: https://api.somewhere.com/items/1
-    responseRef: response.json
+    responseFile: response.json
     body: |-
       {
         "something": "here"

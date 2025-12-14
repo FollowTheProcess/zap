@@ -10,7 +10,7 @@ Content-Type: application/{{ json }}
 X-Something: hello-{{ something }}-middle
 Content-Length: 69
 -- want.yaml --
-name: headers-interpolated.txtar
+name: interp/headers-interpolated.txtar
 vars:
   accept: application/json;charset=utf8
   json: json
