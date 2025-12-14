@@ -20,6 +20,7 @@ const (
 	KindMethod                             // Method
 	KindHeader                             // Header
 	KindInterpolatedExpression             // InterpolatedExpression
+	KindSelector                           // KindSelector
 	KindBody                               // Body
 	KindBodyFile                           // BodyFile
 	KindResponseRedirect                   // ResponseRedirect

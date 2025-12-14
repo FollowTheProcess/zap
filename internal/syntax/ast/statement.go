@@ -10,18 +10,10 @@ type Statement interface {
 
 // A VarStatement is a single variable declaration.
 type VarStatement struct {
-	// Value is the expression that [Ident] is being assigned to.
-	Value Expression `yaml:"value"`
-
-	// Ident is the [Ident] node representing the identifier
-	// the expression Value is being assigned to.
-	Ident Ident `yaml:"ident"`
-
-	// At is the '@' token declaring the variable.
-	At token.Token `yaml:"at"`
-
-	// Type is the kind of node [KindVarStatement].
-	Type Kind `yaml:"type"`
+	Value Expression  `yaml:"value"` // Value is the expression that [Ident] is being assigned to.
+	Ident Ident       `yaml:"ident"` // Ident is the [Ident] node representing the assignee.
+	At    token.Token `yaml:"at"`    // At is the '@' token declaring the variable.
+	Type  Kind        `yaml:"type"`  // Type is the kind of node [KindVarStatement].
 }
 
 // Start returns the first token in a VarStatement, which is
@@ -50,20 +42,10 @@ func (v VarStatement) statementNode() {}
 
 // A PromptStatement is a single prompt declaration.
 type PromptStatement struct {
-	// Ident is the [Ident] node representing the identifier
-	// the prompt Value is being assigned to.
-	Ident Ident `yaml:"ident"`
-
-	// Description is the [Text] node containing the description
-	// of the prompt.
-	Description TextLiteral `yaml:"description"`
-
-	// At is the '@' token declaring the prompt.
-	At token.Token `yaml:"at"`
-
-	// Type is the kind of the node, in this case
-	// [KindPromptStatement].
-	Type Kind `yaml:"type"`
+	Ident       Ident       `yaml:"ident"`       // Ident is the [Ident] node representing the assignee.
+	Description TextLiteral `yaml:"description"` // Description is the [Text] node containing the prompt description.
+	At          token.Token `yaml:"at"`          // At is the '@' token declaring the prompt.
+	Type        Kind        `yaml:"type"`        // Type is the kind of the node, in this case [KindPromptStatement].
 }
 
 // Start returns the first token in a PromptStatement, which is
@@ -93,14 +75,9 @@ func (p PromptStatement) statementNode() {}
 
 // Comment represents a single line comment.
 type Comment struct {
-	// Text is the test contained in the comment.
-	Text string `yaml:"text"`
-
-	// Token is the [token.Comment] beginning the line comment.
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindComment].
-	Type Kind `yaml:"type"`
+	Text  string      `yaml:"text"`  // Text is the test contained in the comment.
+	Token token.Token `yaml:"token"` // Token is the [token.Comment] beginning the line comment.
+	Type  Kind        `yaml:"type"`  // Type is [KindComment].
 }
 
 // Start returns the [token.Comment].
@@ -123,11 +100,8 @@ func (c Comment) statementNode() {}
 
 // Method represents a HTTP method.
 type Method struct {
-	// Token is the method token e.g. [token.MethodGet].
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindMethod].
-	Type Kind `yaml:"type"`
+	Token token.Token `yaml:"token"` // Token is the method token e.g. [token.MethodGet].
+	Type  Kind        `yaml:"type"`  // Type is [KindMethod].
 }
 
 // Start returns the method token.
@@ -157,16 +131,13 @@ type Request struct {
 	// Body is the body expression.
 	Body Expression `yaml:"body"`
 
-	// ResponseRedirect is the optional response redirect statement
-	// provided for the request.
+	// ResponseRedirect is the optional response redirect statement.
 	ResponseRedirect *ResponseRedirect `yaml:"responseRedirect"`
 
-	// ResponseReference is the optional response reference statement
-	// provided for the request.
+	// ResponseReference is the optional response reference statement.
 	ResponseReference *ResponseReference `yaml:"responseReference"`
 
-	// HTTPVersion is the optional HTTPVersion statement provided
-	// for the request.
+	// HTTPVersion is the optional HTTPVersion statement.
 	HTTPVersion *HTTPVersion `yaml:"httpVersion"`
 
 	// Comment is the optional [Comment] node attached to a request.
@@ -230,17 +201,10 @@ func (r Request) statementNode() {}
 
 // Header is a HTTP header node.
 type Header struct {
-	// Value is the value expression of the header.
-	Value Expression `yaml:"value"`
-
-	// Key is the string containing the header key.
-	Key string `yaml:"key"`
-
-	// Token is the [token.Header] representing the header key.
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindHeader].
-	Type Kind `yaml:"type"`
+	Value Expression  `yaml:"value"` // Value is the value expression of the header.
+	Key   string      `yaml:"key"`   // Key is the string containing the header key.
+	Token token.Token `yaml:"token"` // Token is the [token.Header] representing the header key.
+	Type  Kind        `yaml:"type"`  // Type is [KindHeader].
 }
 
 // Start returns the first token associated with the header, in this
@@ -265,14 +229,9 @@ func (h Header) statementNode() {}
 
 // ResponseRedirect is a response redirection statement.
 type ResponseRedirect struct {
-	// File is the filepath to save the response body.
-	File Expression `yaml:"file"`
-
-	// Token is the [token.RightAngle] beginning the redirect statement.
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindResponseRedirect].
-	Type Kind `yaml:"type"`
+	File  Expression  `yaml:"file"`  // File is the filepath to save the response body.
+	Token token.Token `yaml:"token"` // Token is the [token.RightAngle] beginning the redirect statement.
+	Type  Kind        `yaml:"type"`  // Type is [KindResponseRedirect].
 }
 
 // Start returns the first token associated with the redirect, which
@@ -301,14 +260,9 @@ func (r ResponseRedirect) statementNode() {}
 
 // ResponseReference is a response reference statement.
 type ResponseReference struct {
-	// File is the filepath to compare the response body to.
-	File Expression `yaml:"file"`
-
-	// Token is the [token.ResponseRef] beginning the reference statement.
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindResponseReference].
-	Type Kind `yaml:"type"`
+	File  Expression  `yaml:"file"`  // File is the filepath to compare the response body to.
+	Token token.Token `yaml:"token"` // Token is the [token.ResponseRef] beginning the reference statement.
+	Type  Kind        `yaml:"type"`  // Type is [KindResponseReference].
 }
 
 // Start returns the first token associated with the reference, which
@@ -338,7 +292,7 @@ func (r ResponseReference) statementNode() {}
 // HTTPVersion is a HTTP version statement.
 type HTTPVersion struct {
 	// Version is the version number, i.e. in the statement
-	// 'HTTP/1.2' then Version is '1.2'.
+	// 'HTTP/1.2', Version is '1.2'.
 	Version string
 
 	// Token is the [token.HTTPVersion] token.

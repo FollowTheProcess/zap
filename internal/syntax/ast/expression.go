@@ -10,14 +10,9 @@ type Expression interface {
 
 // Ident is a named identifier expression.
 type Ident struct {
-	// Name is the ident's name.
-	Name string `yaml:"name"`
-
-	// The [token.Ident] token.
-	Token token.Token `yaml:"token"`
-
-	// Type is the kind of ast node, in this case [KindIdent].
-	Type Kind `yaml:"type"`
+	Name  string      `yaml:"name"`  // Name is the ident's name
+	Token token.Token `yaml:"token"` // The [token.Ident] token.
+	Type  Kind        `yaml:"type"`  // Type is the kind of ast node, in this case [KindIdent].
 }
 
 // Start returns the first token in the Ident, which is
@@ -48,18 +43,10 @@ func (i Ident) expressionNode() {}
 // The Builtin AST node is functionality identical to an [Ident], but must
 // be separate to allow differentiating builtins from regular idents.
 type Builtin struct {
-	// Name is the name of the builtin ident.
-	Name string `yaml:"name"`
-
-	// Dollar is the [token.Dollar] token marking
-	// the builtin.
-	Dollar token.Token `yaml:"dollar"`
-
-	// The [token.Ident] token.
-	Token token.Token `yaml:"token"`
-
-	// Type is the kind of ast node, in this case [KindBuiltin].
-	Type Kind `yaml:"type"`
+	Name   string      `yaml:"name"`   // Name is the name of the builtin ident.
+	Dollar token.Token `yaml:"dollar"` // Dollar is the opening [token.Dollar].
+	Token  token.Token `yaml:"token"`  // The [token.Ident] token.
+	Type   Kind        `yaml:"type"`   // Type is the kind of ast node, in this case [KindBuiltin].
 }
 
 // Start returns the first token in the Builtin, which is
@@ -84,14 +71,9 @@ func (b Builtin) expressionNode() {}
 
 // TextLiteral is a literal text expression.
 type TextLiteral struct {
-	// The text value (unquoted)
-	Value string `yaml:"value"`
-
-	// The [token.Text] token.
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindTextLiteral].
-	Type Kind `yaml:"type"`
+	Value string      `yaml:"value"` // The text value (unquoted)
+	Token token.Token `yaml:"token"` // The [token.Text] token.
+	Type  Kind        `yaml:"type"`  // Type is [KindTextLiteral].
 }
 
 // Start returns the first token of the TextLiteral, which is
@@ -116,17 +98,10 @@ func (t TextLiteral) expressionNode() {}
 
 // Interp is a text interpolation expression.
 type Interp struct {
-	// Expr is the expression inside the interpolation.
-	Expr Expression `yaml:"expr"`
-
-	// Open is the opening interpolation token.
-	Open token.Token `yaml:"open"`
-
-	// Close is the closing interpolation token.
-	Close token.Token `yaml:"close"`
-
-	// Type is [KindInterp].
-	Type Kind `yaml:"type"`
+	Expr  Expression  `yaml:"expr"`  // Expr is the expression inside the interpolation.
+	Open  token.Token `yaml:"open"`  // Open is the opening interpolation token.
+	Close token.Token `yaml:"close"` // Close is the closing interpolation token.
+	Type  Kind        `yaml:"type"`  // Type is [KindInterp].
 }
 
 // Start returns the first token of the interpolation, i.e
@@ -162,19 +137,10 @@ func (i Interp) expressionNode() {}
 // In our case, there is only one precedence based operator: an interp, which
 // has the highest precedence.
 type InterpolatedExpression struct {
-	// Left is the expression before the interp, it may itself
-	// be any other valid expression, including more nested InterpolatedExpressions.
-	Left Expression `yaml:"left"`
-
-	// Right is the expression immediately after the interp, like Left
-	// it may also be any valid expression.
-	Right Expression `yaml:"right"`
-
-	// Interp is the [Interp] expression in between Left and Right.
-	Interp Interp `yaml:"interp"`
-
-	// Type is [KindInterpolatedExpression].
-	Type Kind `yaml:"type"`
+	Left   Expression `yaml:"left"`   // Left is the expression before the interp
+	Right  Expression `yaml:"right"`  // Right is the expression immediately after the interp
+	Interp Interp     `yaml:"interp"` // Interp is the [Interp] expression in between Left and Right
+	Type   Kind       `yaml:"type"`   // Type is [KindInterpolatedExpression]
 }
 
 // Start returns the first token associated with the left expression if there is one,
@@ -239,14 +205,9 @@ func (b Body) expressionNode() {}
 
 // BodyFile is a http body from a filepath.
 type BodyFile struct {
-	// Value is the expression of the filepath.
-	Value Expression `yaml:"value"`
-
-	// Token is the [token.LeftAngle] token.
-	Token token.Token `yaml:"token"`
-
-	// Type is [KindBodyFile].
-	Type Kind `yaml:"type"`
+	Value Expression  `yaml:"value"` // Value is the expression of the filepath.
+	Token token.Token `yaml:"token"` // Token is the [token.LeftAngle] token.
+	Type  Kind        `yaml:"type"`  // Type is [KindBodyFile].
 }
 
 // Start returns the first token associated with the BodyFile, which
@@ -272,3 +233,34 @@ func (b BodyFile) Kind() Kind {
 
 // expressionNode marks a [BodyFile] as an [Expression].
 func (b BodyFile) expressionNode() {}
+
+// SelectorExpression represents an expression followed by a selector.
+type SelectorExpression struct {
+	Expr     Expression // Expr is the expression
+	Selector Ident      // Selector is the selector
+	Type     Kind       // Type is [KindSelector]
+}
+
+// Start returns the first token associated with the SelectorExpression, which
+// is the first token in the Expr.
+func (s SelectorExpression) Start() token.Token {
+	if s.Expr != nil {
+		return s.Expr.Start()
+	}
+
+	return s.Selector.Start()
+}
+
+// End returns the last token associated with the SelectorExpression, which
+// is the ident token of the selector.
+func (s SelectorExpression) End() token.Token {
+	return s.Selector.End()
+}
+
+// Kind returns [KindSelector].
+func (s SelectorExpression) Kind() Kind {
+	return s.Type
+}
+
+// expressionNode marks a [SelectorExpression] as an [Expression].
+func (s SelectorExpression) expressionNode() {}

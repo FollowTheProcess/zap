@@ -21,16 +21,17 @@ func _() {
 	_ = x[KindMethod-10]
 	_ = x[KindHeader-11]
 	_ = x[KindInterpolatedExpression-12]
-	_ = x[KindBody-13]
-	_ = x[KindBodyFile-14]
-	_ = x[KindResponseRedirect-15]
-	_ = x[KindResponseReference-16]
-	_ = x[KindHTTPVersion-17]
+	_ = x[KindSelector-13]
+	_ = x[KindBody-14]
+	_ = x[KindBodyFile-15]
+	_ = x[KindResponseRedirect-16]
+	_ = x[KindResponseReference-17]
+	_ = x[KindHTTPVersion-18]
 }
 
-const _Kind_name = "InvalidFileVarStatementIdentBuiltinTextLiteralInterpPromptRequestCommentMethodHeaderInterpolatedExpressionBodyBodyFileResponseRedirectResponseReferenceHTTPVersion"
+const _Kind_name = "InvalidFileVarStatementIdentBuiltinTextLiteralInterpPromptRequestCommentMethodHeaderInterpolatedExpressionKindSelectorBodyBodyFileResponseRedirectResponseReferenceHTTPVersion"
 
-var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 35, 46, 52, 58, 65, 72, 78, 84, 106, 110, 118, 134, 151, 162}
+var _Kind_index = [...]uint8{0, 7, 11, 23, 28, 35, 46, 52, 58, 65, 72, 78, 84, 106, 118, 122, 130, 146, 163, 174}
 
 func (i Kind) String() string {
 	idx := int(i) - 0
