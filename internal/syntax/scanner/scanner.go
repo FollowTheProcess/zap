@@ -494,6 +494,9 @@ func scanInsideInterp(s *Scanner) stateFn {
 		case '$':
 			s.next()
 			s.emit(token.Dollar)
+		case '.':
+			s.next()
+			s.emit(token.Dot)
 		default:
 			if !isAlpha(next) {
 				return s.errorf("unexpected character in interpolation: %q", next)
