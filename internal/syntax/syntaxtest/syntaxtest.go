@@ -2,7 +2,6 @@
 package syntaxtest
 
 import (
-	"fmt"
 	"io/fs"
 	"iter"
 	"path/filepath"
@@ -27,19 +26,6 @@ type TestBuiltins struct {
 func NewTestLibrary() TestBuiltins {
 	library := map[string]builtins.Builtin{
 		"uuid": func(...string) (string, error) { return UUID, nil },
-		"env": func(args ...string) (string, error) {
-			if len(args) != 1 {
-				return "", fmt.Errorf(
-					"env: usage error, expected a single argument (name of the env var), got %d: %v",
-					len(args),
-					args,
-				)
-			}
-
-			key := args[0]
-
-			return "env." + key, nil
-		},
 	}
 
 	return TestBuiltins{library: library}

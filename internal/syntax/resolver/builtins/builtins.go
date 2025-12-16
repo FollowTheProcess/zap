@@ -4,7 +4,6 @@ package builtins
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/google/uuid"
 )
@@ -28,7 +27,6 @@ type Builtins struct {
 func NewLibrary() (Builtins, error) {
 	library := map[string]Builtin{
 		"uuid": builtinUUID,
-		"env":  builtinEnv,
 	}
 
 	return Builtins{
@@ -57,39 +55,10 @@ func builtinUUID(args ...string) (string, error) {
 	return uid.String(), nil
 }
 
-// builtinEnv is the implementation of the '$env' builtin, the
-// ident in the selector expression is the env var to retrieve.
-//
-// For example:
-//
-//	$env.USER_ID
-//
-// Maps to:
-//
-//	os.Getenv("USER_ID")
-func builtinEnv(args ...string) (string, error) {
-	if len(args) != 1 {
-		return "", fmt.Errorf(
-			"env: usage error, expected a single argument (name of the env var), got %d: %v",
-			len(args),
-			args,
-		)
-	}
-
-	// TODO(@FollowTheProcess): I think we should move the os.Environ inside the resolver
-	//
-	// Expose the environment struct and have it contain os.Environ, then each builtin
-	// can actually return a function that takes in the environment.
-	//
-	// Then we can mock out the builtins library as well as the environment and have
-	// a complete sandbox for testing
-
-	key := args[0]
-
-	val, ok := os.LookupEnv(key)
-	if !ok || val == "" {
-		return "", fmt.Errorf("env: variable %q not set", key)
-	}
-
-	return val, nil
-}
+// 	// TODO(@FollowTheProcess): I think we should move the os.Environ inside the resolver
+// 	//
+// 	// Expose the environment struct and have it contain os.Environ, then each builtin
+// 	// can actually return a function that takes in the environment.
+// 	//
+// 	// Then we can mock out the builtins library as well as the environment and have
+// 	// a complete sandbox for testing e.g. $env.VAR
