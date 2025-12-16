@@ -8,8 +8,6 @@ import (
 	"go.followtheprocess.codes/zap/internal/syntax/resolver/builtins"
 )
 
-// TODO(@FollowTheProcess): Implement some tests
-
 func TestLookup(t *testing.T) {
 	tests := []struct {
 		name string // Name of the test case
