@@ -25,7 +25,7 @@ type TestBuiltins struct {
 // that return deterministic outputs.
 func NewTestLibrary() TestBuiltins {
 	library := map[string]builtins.Builtin{
-		"uuid": func() (string, error) { return UUID, nil },
+		"uuid": func(...string) (string, error) { return UUID, nil },
 	}
 
 	return TestBuiltins{library: library}

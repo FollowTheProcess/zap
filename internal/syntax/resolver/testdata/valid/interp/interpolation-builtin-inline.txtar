@@ -2,7 +2,7 @@
 ### Test
 GET https://example.com/{{ $uuid }}
 -- want.yaml --
-name: interpolation-builtin-inline.txtar
+name: interp/interpolation-builtin-inline.txtar
 requests:
   - name: '#1'
     comment: Test

@@ -2,7 +2,7 @@
 @version = v1
 @url = https://api.somewhere.com/{{ version }}/items/1
 -- want.yaml --
-name: interpolated-global.txtar
+name: interp/interpolated-global.txtar
 vars:
   url: https://api.somewhere.com/v1/items/1
   version: v1

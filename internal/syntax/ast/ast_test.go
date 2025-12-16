@@ -491,6 +491,44 @@ func TestNode(t *testing.T) {
 			kind:  ast.KindInterpolatedExpression,
 		},
 		{
+			// {{ $env.SOME_VAR }}
+			name: "selector",
+			node: ast.SelectorExpression{
+				Expr: ast.Builtin{
+					Name:   "env",
+					Dollar: token.Token{Kind: token.Dollar, Start: 4, End: 5},
+					Token:  token.Token{Kind: token.Ident, Start: 5, End: 8},
+					Type:   ast.KindBuiltin,
+				},
+				Selector: ast.Ident{
+					Name:  "SOME_VAR",
+					Token: token.Token{Kind: token.Ident, Start: 9, End: 17},
+					Type:  ast.KindIdent,
+				},
+				Type: ast.KindSelector,
+			},
+			start: token.Token{Kind: token.Dollar, Start: 4, End: 5},
+			end:   token.Token{Kind: token.Ident, Start: 9, End: 17},
+			kind:  ast.KindSelector,
+		},
+		{
+			// {{ <nil>.SOME_VAR }}
+			// Not sure if this is possible but oh well
+			name: "selector",
+			node: ast.SelectorExpression{
+				Expr: nil,
+				Selector: ast.Ident{
+					Name:  "SOME_VAR",
+					Token: token.Token{Kind: token.Ident, Start: 9, End: 17},
+					Type:  ast.KindIdent,
+				},
+				Type: ast.KindSelector,
+			},
+			start: token.Token{Kind: token.Ident, Start: 9, End: 17},
+			end:   token.Token{Kind: token.Ident, Start: 9, End: 17},
+			kind:  ast.KindSelector,
+		},
+		{
 			name: "body",
 			node: ast.Body{
 				Token: token.Token{Kind: token.Body, Start: 12, End: 136},

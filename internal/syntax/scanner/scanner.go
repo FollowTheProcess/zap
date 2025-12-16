@@ -481,27 +481,31 @@ func scanOpenInterp(s *Scanner) stateFn {
 
 // scanInsideInterp scans the inside of an interpolation.
 func scanInsideInterp(s *Scanner) stateFn {
-	s.skip(isLineSpace)
+	for {
+		s.skip(isLineSpace)
 
-	if s.take("$") {
-		s.emit(token.Dollar)
+		if s.restHasPrefix("}}") {
+			return scanCloseInterp
+		}
+
+		switch next := s.peek(); next {
+		case eof, '\n':
+			return s.error("unterminated interpolation")
+		case '$':
+			s.next()
+			s.emit(token.Dollar)
+		case '.':
+			s.next()
+			s.emit(token.Dot)
+		default:
+			if !isAlpha(next) {
+				return s.errorf("unexpected character in interpolation: %q", next)
+			}
+
+			s.takeWhile(isIdent)
+			s.emit(token.Ident)
+		}
 	}
-
-	// TODO(@FollowTheProcess): Handle more than just idents
-	//
-	// That's the whole reason I'm rewriting the scanner, to make this easier
-	if isAlpha(s.peek()) {
-		s.takeWhile(isIdent)
-		s.emit(token.Ident)
-	}
-
-	s.skip(isLineSpace)
-
-	if !s.restHasPrefix("}}") {
-		return s.error("unterminated interpolation")
-	}
-
-	return scanCloseInterp
 }
 
 // scanCloseInterp scans a closing '}}' marking the end of an interpolation.

@@ -9,7 +9,7 @@ import (
 )
 
 // Builtin is an implementation of a zap builtin.
-type Builtin func() (string, error)
+type Builtin func(args ...string) (string, error)
 
 // Library is a library of builtins.
 type Library interface {
@@ -24,14 +24,14 @@ type Builtins struct {
 }
 
 // NewLibrary returns the zap builtins library.
-func NewLibrary() Builtins {
+func NewLibrary() (Builtins, error) {
 	library := map[string]Builtin{
 		"uuid": builtinUUID,
 	}
 
 	return Builtins{
 		library: library,
-	}
+	}, nil
 }
 
 // Get looks up a builtin by name, returning the builtin and a boolean
@@ -46,7 +46,7 @@ func (b Builtins) Get(name string) (Builtin, bool) {
 }
 
 // builtinUUID is the implementation of the '$uuid' builtin.
-func builtinUUID() (string, error) {
+func builtinUUID(args ...string) (string, error) {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate a new uuid: %w", err)
@@ -54,3 +54,11 @@ func builtinUUID() (string, error) {
 
 	return uid.String(), nil
 }
+
+// 	// TODO(@FollowTheProcess): I think we should move the os.Environ inside the resolver
+// 	//
+// 	// Expose the environment struct and have it contain os.Environ, then each builtin
+// 	// can actually return a function that takes in the environment.
+// 	//
+// 	// Then we can mock out the builtins library as well as the environment and have
+// 	// a complete sandbox for testing e.g. $env.VAR

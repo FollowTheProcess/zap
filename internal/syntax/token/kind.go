@@ -13,6 +13,7 @@ const (
 	Separator                     // Separator
 	At                            // At
 	Ident                         // Ident
+	Dot                           // Dot
 	Eq                            // Eq
 	Dollar                        // Dollar
 	Colon                         // Colon

@@ -207,7 +207,7 @@ func run(options zap.RunOptions) func() {
 		err := app.Run(context.Background(), options)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1) //nolint:revive // Needed for testscript
+			os.Exit(1)
 		}
 	}
 }
@@ -220,7 +220,7 @@ func export(options zap.ExportOptions) func() {
 		err := app.Export(context.Background(), options)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1) //nolint:revive // Needed for testscript
+			os.Exit(1)
 		}
 	}
 }

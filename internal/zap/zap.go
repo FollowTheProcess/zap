@@ -76,7 +76,12 @@ func (z Zap) parseFile(file string) (spec.File, error) {
 		return spec.File{}, err
 	}
 
-	res := resolver.New(file, src, builtins.NewLibrary())
+	lib, err := builtins.NewLibrary()
+	if err != nil {
+		return spec.File{}, fmt.Errorf("failed to initialise the builtins library: %w", err)
+	}
+
+	res := resolver.New(file, src, lib)
 
 	resolved, err := res.Resolve(parsed)
 	if err != nil {

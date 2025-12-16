@@ -19,14 +19,9 @@ type Node interface {
 
 // File is an ast [Node] representing a single .http file.
 type File struct {
-	// Name is the name of the file.
-	Name string `yaml:"name"`
-
-	// Statements is the list of ast statements in the file.
-	Statements []Statement `yaml:"statements"`
-
-	// Type is the type of the node, in this case [KindFile].
-	Type Kind `yaml:"type"`
+	Name       string      `yaml:"name"`       // Name is the name of the file.
+	Statements []Statement `yaml:"statements"` // Statements is the list of ast statements in the file.
+	Type       Kind        `yaml:"type"`       // Type is the type of the node, in this case [KindFile].
 }
 
 // Start returns the first token in a file.

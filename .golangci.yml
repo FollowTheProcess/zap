@@ -161,3 +161,6 @@ linters:
 
         - name: unused-receiver
           disabled: true # As above
+
+        - name: deep-exit
+          disabled: true # TODO(@FollowTheProcess): Remove this once we don't use testscript

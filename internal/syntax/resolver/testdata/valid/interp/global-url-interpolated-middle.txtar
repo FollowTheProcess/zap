@@ -4,7 +4,7 @@
 ###
 GET https://api.something.com/{{ something }}/v1
 -- want.yaml --
-name: global-url-interpolated-middle.txtar
+name: interp/global-url-interpolated-middle.txtar
 vars:
   something: hello
 requests:
