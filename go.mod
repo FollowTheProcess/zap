@@ -3,7 +3,7 @@ module go.followtheprocess.codes/zap
 go 1.25.5
 
 require (
-	github.com/BurntSushi/toml v1.5.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/charmbracelet/huh v0.8.0
 	github.com/google/uuid v1.6.0
 	github.com/rogpeppe/go-internal v1.14.1
