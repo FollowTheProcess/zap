@@ -131,7 +131,11 @@ func (z Zap) Run(ctx context.Context, options RunOptions) error {
 	if len(options.Requests) == 0 {
 		logger.Debug("Executing all requests in file", slog.String("file", options.File))
 	} else {
-		logger.Debug("Executing specific request(s) in file", slog.String("file", options.File), slog.Any("requests", options.Requests))
+		logger.Debug(
+			"Executing specific request(s) in file",
+			slog.String("file", options.File),
+			slog.Any("requests", options.Requests),
+		)
 	}
 
 	logger.Debug("Run configuration", slog.String("options", fmt.Sprintf("%+v", options)))
@@ -299,7 +303,13 @@ func (z Zap) showResponse(file string, request spec.Request, response Response, 
 			dimmed.Text(response.Duration.String()),
 		)
 	} else {
-		fmt.Fprintf(z.stdout, "%s %s (%s)\n", hue.Bold.Text(response.Proto), success.Text(response.Status), dimmed.Text(response.Duration.String()))
+		fmt.Fprintf(
+			z.stdout,
+			"%s %s (%s)\n",
+			hue.Bold.Text(response.Proto),
+			success.Text(response.Status),
+			dimmed.Text(response.Duration.String()),
+		)
 	}
 
 	fmt.Fprintln(z.stdout) // Line space
