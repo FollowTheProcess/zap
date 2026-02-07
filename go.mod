@@ -1,6 +1,6 @@
 module go.followtheprocess.codes/zap
 
-go 1.25.5
+go 1.25.7
 
 require (
 	github.com/BurntSushi/toml v1.6.0
@@ -15,7 +15,7 @@ require (
 	go.followtheprocess.codes/test v1.1.0
 	go.followtheprocess.codes/txtar v0.8.0
 	go.uber.org/goleak v1.3.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.3
+	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/sync v0.19.0
 )
 
@@ -23,17 +23,17 @@ require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
-	github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7 // indirect
+	github.com/charmbracelet/bubbles v0.21.1 // indirect
 	github.com/charmbracelet/bubbletea v1.3.10 // indirect
 	github.com/charmbracelet/colorprofile v0.4.1 // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
-	github.com/charmbracelet/x/ansi v0.11.3 // indirect
-	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
-	github.com/charmbracelet/x/exp/strings v0.0.0-20260109001716-2fbdffcb221f // indirect
+	github.com/charmbracelet/x/ansi v0.11.6 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
+	github.com/charmbracelet/x/exp/strings v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
-	github.com/clipperhouse/displaywidth v0.6.2 // indirect
+	github.com/clipperhouse/displaywidth v0.9.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
+	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
@@ -48,7 +48,7 @@ require (
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/tools v0.40.0 // indirect
 )

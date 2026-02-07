@@ -1,7 +1,7 @@
 source: curl_test.go
 expression: buf.String()
 ---
-|2
+|
 
   curl \
       --request GET \
