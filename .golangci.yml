@@ -164,3 +164,6 @@ linters:
 
         - name: deep-exit
           disabled: true # TODO(@FollowTheProcess): Remove this once we don't use testscript
+
+        - name: var-naming
+          disabled: true # Doesn't like anything named the same as any std lib package
