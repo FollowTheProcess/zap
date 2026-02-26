@@ -87,6 +87,8 @@ linters:
     gosec:
       excludes:
         - G104 # Errors not checked, handled by errcheck
+        - G704 # Taint analysis false positive
+        - G705 # Taint analysis false positive
 
     govet:
       enable-all: true
