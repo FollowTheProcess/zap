@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/huh"
+	"charm.land/huh/v2"
 	"go.followtheprocess.codes/hue"
 	"go.followtheprocess.codes/log"
 	"go.followtheprocess.codes/zap/internal/spec"
@@ -339,7 +339,7 @@ func (z Zap) evaluateGlobalPrompts(logger *log.Logger, file spec.File) (spec.Fil
 			Title(prompt.Name).
 			Description(prompt.Description).
 			Value(&value).
-			WithTheme(huh.ThemeCatppuccin()).
+			WithTheme(huh.ThemeFunc(huh.ThemeCatppuccin)).
 			Run()
 		if err != nil {
 			return spec.File{}, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
@@ -399,7 +399,7 @@ func (z Zap) evaluateRequestPrompts(
 				Title(fmt.Sprintf("(%s) %s", request.Name, id)).
 				Description(prompt.Description).
 				Value(&value).
-				WithTheme(huh.ThemeCatppuccin()).
+				WithTheme(huh.ThemeFunc(huh.ThemeCatppuccin)).
 				Run()
 			if err != nil {
 				return nil, fmt.Errorf("failed to prompt user for %s: %w", prompt.Name, err)
