@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/charmbracelet/huh v1.0.0
+	github.com/charmbracelet/huh/v2 v2.0.3
 	github.com/google/uuid v1.6.0
 	github.com/rogpeppe/go-internal v1.14.1
 	go.followtheprocess.codes/cli v0.18.3
