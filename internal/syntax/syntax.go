@@ -80,7 +80,7 @@ func (p Position) String() string {
 	return fmt.Sprintf("%s:%d:%d-%d", p.Name, p.Line, p.StartCol, p.EndCol)
 }
 
-// ComparePosition is like [cmp.Compare] for a [syntax.Position].
+// ComparePosition is like [cmp.Compare] for a [Position].
 //
 // If x and y are equal ComparePosition returns 0.
 //
