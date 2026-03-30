@@ -3,7 +3,9 @@
 package builtins
 
 import (
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 )
@@ -27,6 +29,7 @@ type Builtins struct {
 func NewLibrary() (Builtins, error) {
 	library := map[string]Builtin{
 		"uuid": builtinUUID,
+		"env":  builtinEnv,
 	}
 
 	return Builtins{
@@ -53,6 +56,23 @@ func builtinUUID(args ...string) (string, error) {
 	}
 
 	return uid.String(), nil
+}
+
+// builtinEnv is the implementation of the '$env' builtin.
+//
+// It expects exactly 1 argument: the name of the environment variable to look up. It is
+// always called by a selector expression: $env.VAR.
+func builtinEnv(args ...string) (string, error) {
+	if len(args) == 0 {
+		return "", errors.New("$env requires a variable name, use $env.VAR")
+	}
+
+	value, ok := os.LookupEnv(args[0])
+	if !ok {
+		return "", fmt.Errorf("$env.%s: environment variable %s is not set", args[0], args[0])
+	}
+
+	return value, nil
 }
 
 // 	// TODO(@FollowTheProcess): I think we should move the os.Environ inside the resolver

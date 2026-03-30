@@ -2,6 +2,8 @@
 package syntaxtest
 
 import (
+	"errors"
+	"fmt"
 	"io/fs"
 	"iter"
 	"path/filepath"
@@ -23,9 +25,23 @@ type TestBuiltins struct {
 
 // NewTestLibrary returns a new [builtins.Library] with mock functions
 // that return deterministic outputs.
-func NewTestLibrary() TestBuiltins {
+//
+// It takes a map of env vars to be returned from the $env builtin.
+func NewTestLibrary(env map[string]string) TestBuiltins {
 	library := map[string]builtins.Builtin{
 		"uuid": func(...string) (string, error) { return UUID, nil },
+		"env": func(args ...string) (string, error) {
+			if len(args) == 0 {
+				return "", errors.New("$env requires a variable name, use $env.VAR_NAME")
+			}
+
+			val, ok := env[args[0]]
+			if !ok {
+				return "", fmt.Errorf("$env.%s: environment variable %s is not set", args[0], args[0])
+			}
+
+			return val, nil
+		},
 	}
 
 	return TestBuiltins{library: library}
@@ -40,6 +56,13 @@ func (t TestBuiltins) Get(name string) (builtins.Builtin, bool) {
 	}
 
 	return fn, true
+}
+
+// Env returns a fake os.Environ, primarily used to test $env builtin behaviour.
+func Env() map[string]string {
+	return map[string]string{
+		"ZAP_TEST_VAR": "test_env_value",
+	}
 }
 
 // AllFilesWithExtension returns an iterator over all filepaths under

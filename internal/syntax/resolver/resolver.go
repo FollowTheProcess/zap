@@ -651,21 +651,13 @@ func (r *Resolver) resolveInterpolatedExpression(env *environment, expr ast.Inte
 }
 
 // resolveSelectorExpression resolves an [ast.SelectorExpression].
-func (r *Resolver) resolveSelectorExpression(env *environment, selector ast.SelectorExpression) (string, error) {
-	expr, err := r.resolveExpression(env, selector.Expr)
-	if err != nil {
-		return "", err
+func (r *Resolver) resolveSelectorExpression(_ *environment, selector ast.SelectorExpression) (string, error) {
+	switch expr := selector.Expr.(type) {
+	case ast.Builtin:
+		return r.resolveBuiltin(expr, selector.Selector.Name)
+	default:
+		return "", fmt.Errorf("unsupported selector expression on %T", selector.Expr)
 	}
-
-	ident, err := r.resolveIdent(env, selector.Selector)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("Expr: %s\n", expr)
-	fmt.Printf("Ident: %s\n", ident)
-
-	return "TODO", nil
 }
 
 // resolveIdent resolves an [ast.Ident] into the concrete value it refers to given
@@ -682,21 +674,11 @@ func (r *Resolver) resolveIdent(env *environment, ident ast.Ident) (string, erro
 // refers to.
 //
 // Note: no environment here as builtins are well... built in.
-func (r *Resolver) resolveBuiltin(b ast.Builtin) (string, error) {
+func (r *Resolver) resolveBuiltin(b ast.Builtin, args ...string) (string, error) {
 	fn, ok := r.library.Get(b.Name)
 	if !ok {
 		return "", fmt.Errorf("no such builtin: %q", b.Name)
 	}
 
-	// TODO(@FollowTheProcess): For $env this doesn't work because it expects $env.VAR
-	//
-	// I need to refactor the environment stuff, or maybe make a BuiltinIdent to differentiate
-	// the two cases.
-	//
-	// Make it futureproof though because eventually I want to do things like
-	// {{ otherRequest.headers.Content-Type }}
-	// Or use JSONPath to get body elements:
-	// {{ otherRequest.body.$.items[0] }}
-
-	return fn()
+	return fn(args...)
 }
