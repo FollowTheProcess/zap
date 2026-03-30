@@ -32,7 +32,7 @@ func TestTestLibrary(t *testing.T) {
 			ok:   false,
 		},
 		{
-			name:    "valid",
+			name:    "valid uuid",
 			fn:      "uuid",
 			want:    syntaxtest.UUID,
 			ok:      true,
@@ -41,13 +41,22 @@ func TestTestLibrary(t *testing.T) {
 		{
 			name:    "valid env",
 			fn:      "env",
-			args:    []string{"var"},
+			args:    []string{"VAR"},
 			want:    "A value here",
 			ok:      true,
 			wantErr: false,
 			env: map[string]string{
-				"var": "A value here",
+				"VAR": "A value here",
 			},
+		},
+		{
+			name:    "missing env",
+			fn:      "env",
+			args:    []string{"var"},
+			want:    "",
+			ok:      true,
+			wantErr: true,
+			env:     map[string]string{},
 		},
 	}
 
