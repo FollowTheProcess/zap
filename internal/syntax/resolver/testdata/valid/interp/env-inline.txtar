@@ -1,0 +1,10 @@
+-- src.http --
+### Test
+GET https://example.com/{{ $env.ZAP_TEST_VAR }}
+-- want.yaml --
+name: interp/env-inline.txtar
+requests:
+  - name: '#1'
+    comment: Test
+    method: GET
+    url: https://example.com/test_env_value

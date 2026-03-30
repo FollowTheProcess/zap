@@ -1,0 +1,28 @@
+# Using $env without a selector (missing variable name)
+
+-- src.http --
+### Test
+GET https://example.com/{{ $env }}
+-- diagnostics.json --
+[
+  {
+    "msg": "failed to resolve URL expression: resolve error: could not resolve interp of interpolated expression: $env requires a variable name, use $env.VAR_NAME",
+    "position": {
+      "name": "env-no-selector.txtar",
+      "offset": 13,
+      "line": 2,
+      "startCol": 5,
+      "endCol": 35
+    }
+  },
+  {
+    "msg": "could not resolve interp of interpolated expression: $env requires a variable name, use $env.VAR_NAME",
+    "position": {
+      "name": "env-no-selector.txtar",
+      "offset": 33,
+      "line": 2,
+      "startCol": 25,
+      "endCol": 35
+    }
+  }
+]

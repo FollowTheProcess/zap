@@ -1,0 +1,28 @@
+# Using $env with a variable that is not set
+
+-- src.http --
+### Test
+GET https://example.com/{{ $env.UNSET_VAR }}
+-- diagnostics.json --
+[
+  {
+    "msg": "failed to resolve URL expression: resolve error: could not resolve interp of interpolated expression: $env.UNSET_VAR: environment variable UNSET_VAR is not set",
+    "position": {
+      "name": "env-not-set.txtar",
+      "offset": 13,
+      "line": 2,
+      "startCol": 5,
+      "endCol": 45
+    }
+  },
+  {
+    "msg": "could not resolve interp of interpolated expression: $env.UNSET_VAR: environment variable UNSET_VAR is not set",
+    "position": {
+      "name": "env-not-set.txtar",
+      "offset": 33,
+      "line": 2,
+      "startCol": 25,
+      "endCol": 45
+    }
+  }
+]

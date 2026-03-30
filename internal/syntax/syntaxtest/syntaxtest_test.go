@@ -13,11 +13,13 @@ import (
 
 func TestTestLibrary(t *testing.T) {
 	tests := []struct {
-		name    string // Name of the test case
-		fn      string // Name of the builtin to lookup
-		want    string // Expected return value
-		ok      bool   // The expected ok value of the lookup
-		wantErr bool   // Whether we want an error
+		env     map[string]string // Environment variables (fake obviously)
+		name    string            // Name of the test case
+		fn      string            // Name of the builtin to lookup
+		want    string            // Expected return value
+		args    []string          // Args to the function
+		ok      bool              // The expected ok value of the lookup
+		wantErr bool              // Whether we want an error
 	}{
 		{
 			name: "empty",
@@ -30,17 +32,37 @@ func TestTestLibrary(t *testing.T) {
 			ok:   false,
 		},
 		{
-			name:    "valid",
+			name:    "valid uuid",
 			fn:      "uuid",
 			want:    syntaxtest.UUID,
 			ok:      true,
 			wantErr: false,
 		},
+		{
+			name:    "valid env",
+			fn:      "env",
+			args:    []string{"VAR"},
+			want:    "A value here",
+			ok:      true,
+			wantErr: false,
+			env: map[string]string{
+				"VAR": "A value here",
+			},
+		},
+		{
+			name:    "missing env",
+			fn:      "env",
+			args:    []string{"var"},
+			want:    "",
+			ok:      true,
+			wantErr: true,
+			env:     map[string]string{},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			lib := syntaxtest.NewTestLibrary()
+			lib := syntaxtest.NewTestLibrary(tt.env)
 
 			fn, ok := lib.Get(tt.fn)
 			test.Equal(t, ok, tt.ok, test.Context("Get(%s): got %t, expected %t", tt.fn, ok, tt.ok))
@@ -50,7 +72,7 @@ func TestTestLibrary(t *testing.T) {
 				return
 			}
 
-			got, err := fn()
+			got, err := fn(tt.args...)
 			test.WantErr(t, err, tt.wantErr)
 			test.Equal(t, got, tt.want)
 		})

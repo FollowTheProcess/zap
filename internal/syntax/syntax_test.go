@@ -307,7 +307,7 @@ func BenchmarkEntireParse(b *testing.B) {
 		parsed, err := p.Parse()
 		test.Ok(b, err)
 
-		res := resolver.New(file, src, syntaxtest.NewTestLibrary())
+		res := resolver.New(file, src, syntaxtest.NewTestLibrary(syntaxtest.Env()))
 		_, err = res.Resolve(parsed)
 		test.Ok(b, err)
 	}

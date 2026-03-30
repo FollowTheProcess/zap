@@ -1,0 +1,14 @@
+-- src.http --
+@api_key = {{ $env.ZAP_TEST_VAR }}
+
+### Test
+GET https://example.com/{{ api_key }}
+-- want.yaml --
+name: interp/global-env-var.txtar
+vars:
+  api_key: test_env_value
+requests:
+  - name: '#1'
+    comment: Test
+    method: GET
+    url: https://example.com/test_env_value
