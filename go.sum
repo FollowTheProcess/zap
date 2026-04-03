@@ -70,8 +70,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
-go.followtheprocess.codes/cli v0.18.3 h1:B15Ho/4eMZGrAPjR1vuG3LFKLoJVMc8J6Ydrg5Dlyaw=
-go.followtheprocess.codes/cli v0.18.3/go.mod h1:wmv+04ywMsWqyJXyIEW1c4Z6qhrvjWK5prE6QWVCUKM=
+go.followtheprocess.codes/cli v0.19.0 h1:V0JjyQyJyu/aHYFFibpnUHfCu0R7qs2BGSZQR7MPadE=
+go.followtheprocess.codes/cli v0.19.0/go.mod h1:OKqn4Ps6y2cxUPBBxNfHBF5zRe4gIJk5a8u5SKnNuXs=
 go.followtheprocess.codes/hue v1.0.0 h1:0fYXAGR1o+w7Vja+Q+iVtqeEP3/CE6ET/pniyl8e9yo=
 go.followtheprocess.codes/hue v1.0.0/go.mod h1:gSn5xK6KJapih+eFgQk3woo1qg3/rx9XSrAanUIuDr8=
 go.followtheprocess.codes/log v1.2.0 h1:23MY3BRVe9fr+mFCofVixv//RcmaMVCk56MZY/aRWW8=
