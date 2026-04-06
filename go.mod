@@ -9,7 +9,7 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1
 	go.followtheprocess.codes/cli v0.19.0
 	go.followtheprocess.codes/hue v1.0.0
-	go.followtheprocess.codes/log v1.2.0
+	go.followtheprocess.codes/log v1.2.1
 	go.followtheprocess.codes/msg v1.9.2
 	go.followtheprocess.codes/snapshot v0.9.1
 	go.followtheprocess.codes/test v1.1.0
@@ -37,7 +37,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
-	github.com/mattn/go-runewidth v0.0.21 // indirect
+	github.com/mattn/go-runewidth v0.0.22 // indirect
 	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

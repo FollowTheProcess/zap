@@ -43,6 +43,7 @@ func Build() (*cli.Command, error) {
 			check,
 			export,
 			test,
+			cli.CompletionSubCommand(),
 		),
 		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
 			app := zap.New(debug, version, os.Stdin, os.Stdout, os.Stderr)
