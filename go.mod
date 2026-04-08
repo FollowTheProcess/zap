@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/rogpeppe/go-internal v1.14.1
 	go.followtheprocess.codes/cli v0.19.0
-	go.followtheprocess.codes/hue v1.0.0
+	go.followtheprocess.codes/hue v1.1.0
 	go.followtheprocess.codes/log v1.2.1
 	go.followtheprocess.codes/msg v1.9.2
 	go.followtheprocess.codes/snapshot v0.9.1
