@@ -13,6 +13,7 @@ import (
 )
 
 // TODO(@FollowTheProcess): A postman exporter
+// TODO(@FollowTheProcess): And an opencollection (bruno) importer/exporter
 
 // Exporter is the interface defining a mechanism for exporting a .http file
 // into an external format.

@@ -8,11 +8,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/rogpeppe/go-internal v1.14.1
 	go.followtheprocess.codes/cli v0.19.0
-	go.followtheprocess.codes/hue v1.0.0
+	go.followtheprocess.codes/hue v1.1.0
 	go.followtheprocess.codes/log v1.2.1
 	go.followtheprocess.codes/msg v1.9.2
-	go.followtheprocess.codes/snapshot v0.9.1
-	go.followtheprocess.codes/test v1.1.0
+	go.followtheprocess.codes/snapshot v0.10.0
+	go.followtheprocess.codes/test v1.2.0
 	go.followtheprocess.codes/txtar v0.8.0
 	go.uber.org/goleak v1.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
@@ -37,13 +37,14 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
-	github.com/mattn/go-runewidth v0.0.22 // indirect
+	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/term v0.41.0 // indirect
-	golang.org/x/tools v0.42.0 // indirect
+	go.followtheprocess.codes/diff v0.1.1 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/term v0.42.0 // indirect
+	golang.org/x/tools v0.44.0 // indirect
 )
