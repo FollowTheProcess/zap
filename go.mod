@@ -11,8 +11,8 @@ require (
 	go.followtheprocess.codes/hue v1.1.0
 	go.followtheprocess.codes/log v1.2.1
 	go.followtheprocess.codes/msg v1.9.2
-	go.followtheprocess.codes/snapshot v0.10.0
-	go.followtheprocess.codes/test v1.2.0
+	go.followtheprocess.codes/snapshot v0.10.1
+	go.followtheprocess.codes/test v1.2.2
 	go.followtheprocess.codes/txtar v0.8.0
 	go.uber.org/goleak v1.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
@@ -43,7 +43,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	go.followtheprocess.codes/diff v0.1.1 // indirect
+	go.followtheprocess.codes/diff v0.2.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
