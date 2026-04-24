@@ -82,8 +82,8 @@ go.followtheprocess.codes/msg v1.9.2 h1:h97UeKDW23PncdM+7U91Q763Uq+QwJjVRj/NdIlR
 go.followtheprocess.codes/msg v1.9.2/go.mod h1:/x18lCt8uyCWwrfMBXJkb4cV1yG9ipK++yoYECtU1tw=
 go.followtheprocess.codes/snapshot v0.10.1 h1:GWNOdDxGtRiw0HVKnidhCHI0ymmZaaiHAARimyjNVU4=
 go.followtheprocess.codes/snapshot v0.10.1/go.mod h1:vCkJeHMLa4mOP451SrA9m+Ym5tumx66hXm318jAwf5Y=
-go.followtheprocess.codes/test v1.2.2 h1:iaUSB6BhzH/UAsVMhMjUW1uSVn8GMa2GgqPMqwxGwuo=
-go.followtheprocess.codes/test v1.2.2/go.mod h1:/Lq3YrwTqU/tb1wbO+Kt7Gs1I3qzFu/o/CUykOavoVA=
+go.followtheprocess.codes/test v1.4.0 h1:LBZYn2MqOW20HLe1AJm3lMLplSWH+zycfC7mmS9NF2w=
+go.followtheprocess.codes/test v1.4.0/go.mod h1:/Lq3YrwTqU/tb1wbO+Kt7Gs1I3qzFu/o/CUykOavoVA=
 go.followtheprocess.codes/txtar v0.8.0 h1:vQJbo/asKBpuzub+Wok6vKr9lPt+Q8qdY7mPEPYZbHg=
 go.followtheprocess.codes/txtar v0.8.0/go.mod h1:hi6y/ZExrTIZ7BzydWIIdsxrWd1WX0cY3a7c+ibLl5E=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
