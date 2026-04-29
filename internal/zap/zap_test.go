@@ -181,7 +181,11 @@ func TestExport(t *testing.T) {
 			err = app.Export(t.Context(), f, options)
 			test.Ok(t, err)
 
-			snap := snapshot.New(t, snapshot.Update(*update))
+			snap := snapshot.New(
+				t,
+				snapshot.Update(*update),
+				snapshot.Filter(`\\([\w\d]|\.)`, "/$1"), // Replace windows paths
+			)
 			snap.Snap(stdout.String())
 		})
 	}
