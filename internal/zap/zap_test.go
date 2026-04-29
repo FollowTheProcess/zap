@@ -17,22 +17,9 @@ import (
 	"go.uber.org/goleak"
 )
 
-// TODO(@FollowTheProcess): This is getting unwieldy and is a bit beyond what testscript is designed for
-//
-// Once I have builtins and selector expressions working, the http files will be able to
-// do e.g. '@base = {{ $env.TEST_SERVER_URL }}' and then I can host a local httpbin in
-// a testcontainer or even just create a simple inline server for the tests and it'll
-// be much nicer! :)
-
 var update = flag.Bool("update", false, "Update testdata files")
 
 func TestRun(t *testing.T) {
-	// Loop through all files in testdata/run/*.txtar
-	// Each one expects a src.http and an expected.txt
-	// Set up the test server and export it's URL as an env var
-	// Read the txtar and parse src.http, each src.http entry has $env.ZAP_TEST_URL as base
-	// Execute it
-	// Diff result against expected.txt
 	pattern := filepath.Join("testdata", "run", "*.http")
 	files, err := filepath.Glob(pattern)
 	test.Ok(t, err)
@@ -51,7 +38,7 @@ func TestRun(t *testing.T) {
 			app := zap.New(false, "test", stdin, stdout, stderr)
 
 			options := zap.RunOptions{
-				File:              file,
+				File:              "src.http",
 				Output:            "stdout",
 				Timeout:           zap.DefaultTimeout,
 				ConnectionTimeout: zap.DefaultConnectionTimeout,
@@ -71,7 +58,6 @@ func TestRun(t *testing.T) {
 			snap := snapshot.New(
 				t,
 				snapshot.Update(*update),
-				snapshot.Description(fmt.Sprintf("response from %s", file)),
 				snapshot.Filter(`\d+(?:\.\d+)?(?:s|ms|µs)`, "[DURATION]"),
 			)
 

@@ -1,10 +1,9 @@
 source: zap_test.go
-description: response from testdata/run/ok.http
 expression: stdout.String()
 ---
 |
 
-  testdata/run/ok.http: getItem
+  src.http: getItem
   ────────────────────────────────────────────────────────────────────────────────
 
   HTTP/1.1 200 OK ([DURATION])
