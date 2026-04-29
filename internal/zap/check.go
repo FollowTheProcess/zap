@@ -62,8 +62,18 @@ func (z Zap) Check(ctx context.Context, options CheckOptions) error {
 
 	for _, path := range paths {
 		group.Go(func() error {
-			_, err := z.parseFile(path)
-			return err
+			f, err := os.Open(path)
+			if err != nil {
+				return fmt.Errorf("zap check: %w", err)
+			}
+			defer f.Close()
+
+			_, err = z.parseFile(path, f)
+			if err != nil {
+				return fmt.Errorf("zap check: %w", err)
+			}
+
+			return nil
 		})
 	}
 

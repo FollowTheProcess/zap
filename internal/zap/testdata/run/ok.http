@@ -1,0 +1,3 @@
+###
+# @name = getItem
+GET {{ $env.ZAP_TEST_URL }}/ok

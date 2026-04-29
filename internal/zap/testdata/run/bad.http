@@ -1,0 +1,6 @@
+###
+# @name = uhOh
+# @no-redirect
+POST {{ $env.ZAP_TEST_URL }}/bad
+
+{"a": "body"}

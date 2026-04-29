@@ -118,7 +118,7 @@ func (r RunOptions) Validate() error {
 }
 
 // Run implements the run subcommand.
-func (z Zap) Run(ctx context.Context, options RunOptions) error {
+func (z Zap) Run(ctx context.Context, r io.Reader, options RunOptions) error {
 	if err := options.Validate(); err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (z Zap) Run(ctx context.Context, options RunOptions) error {
 
 	start := time.Now()
 
-	httpFile, err := z.parseFile(options.File)
+	httpFile, err := z.parseFile(options.File, r)
 	if err != nil {
 		return err
 	}

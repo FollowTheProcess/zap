@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"go.followtheprocess.codes/cli"
 	"go.followtheprocess.codes/zap/internal/zap"
@@ -25,7 +27,14 @@ func export() (*cli.Command, error) {
 		cli.Flag(&options.Debug, "debug", 'd', "Enable debug logging"),
 		cli.Run(func(ctx context.Context, cmd *cli.Command) error {
 			app := zap.New(options.Debug, version, cmd.Stdin(), cmd.Stdout(), cmd.Stderr())
-			return app.Export(ctx, options)
+
+			f, err := os.Open(options.File)
+			if err != nil {
+				return fmt.Errorf("zap run: %w", err)
+			}
+			defer f.Close()
+
+			return app.Export(ctx, f, options)
 		}),
 	)
 }

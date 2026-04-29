@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 
 	"go.followtheprocess.codes/log"
 	"go.followtheprocess.codes/zap/internal/spec"
@@ -58,13 +57,13 @@ func (z Zap) Hello(ctx context.Context) {
 // parseFile reads a .http file, parses it and resolves it.
 //
 // Most operations begin by parsing the file so those steps are extracted here.
-func (z Zap) parseFile(file string) (spec.File, error) {
-	src, err := os.ReadFile(file)
+func (z Zap) parseFile(name string, r io.Reader) (spec.File, error) {
+	src, err := io.ReadAll(r)
 	if err != nil {
 		return spec.File{}, fmt.Errorf("could not read file: %w", err)
 	}
 
-	p := parser.New(file, src)
+	p := parser.New(name, src)
 	// TODO(@FollowTheProcess): Do something pretty with the diagnostics
 
 	parsed, err := p.Parse()
@@ -81,7 +80,7 @@ func (z Zap) parseFile(file string) (spec.File, error) {
 		return spec.File{}, fmt.Errorf("failed to initialise the builtins library: %w", err)
 	}
 
-	res := resolver.New(file, src, lib)
+	res := resolver.New(name, src, lib)
 
 	resolved, err := res.Resolve(parsed)
 	if err != nil {

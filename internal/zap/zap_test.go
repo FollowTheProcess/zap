@@ -1,163 +1,193 @@
 package zap_test
 
 import (
-	"context"
+	"bytes"
 	"flag"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strings"
 	"testing"
 
-	"github.com/rogpeppe/go-internal/testscript"
+	"go.followtheprocess.codes/snapshot"
+	"go.followtheprocess.codes/test"
 	"go.followtheprocess.codes/zap/internal/zap"
+	"go.uber.org/goleak"
 )
 
-// TODO(@FollowTheProcess): This is getting unwieldy and is a bit beyond what testscript is designed for
-//
-// Once I have builtins and selector expressions working, the http files will be able to
-// do e.g. '@base = {{ $env.TEST_SERVER_URL }}' and then I can host a local httpbin in
-// a testcontainer or even just create a simple inline server for the tests and it'll
-// be much nicer! :)
-
-var update = flag.Bool("update", false, "Update testscript snapshots")
-
-func TestMain(m *testing.M) {
-	testscript.Main(m, map[string]func(){
-		"run": run(zap.RunOptions{
-			Timeout:           zap.DefaultTimeout,
-			ConnectionTimeout: zap.DefaultConnectionTimeout,
-			OverallTimeout:    zap.DefaultOverallTimeout,
-			Output:            "stdout",
-			File:              os.Args[1],
-		}),
-		"run-verbose": run(zap.RunOptions{
-			Timeout:           zap.DefaultTimeout,
-			ConnectionTimeout: zap.DefaultConnectionTimeout,
-			OverallTimeout:    zap.DefaultOverallTimeout,
-			Output:            "stdout",
-			Verbose:           true,
-			File:              os.Args[1],
-		}),
-		"run-request": run(zap.RunOptions{
-			Timeout:           zap.DefaultTimeout,
-			ConnectionTimeout: zap.DefaultConnectionTimeout,
-			OverallTimeout:    zap.DefaultOverallTimeout,
-			Output:            "stdout",
-			Requests:          []string{"getItem"},
-			File:              os.Args[1],
-		}),
-		"export-curl": export(zap.ExportOptions{
-			Format: "curl",
-			File:   os.Args[1],
-		}),
-		"export-json": export(zap.ExportOptions{
-			Format: "json",
-			File:   os.Args[1],
-		}),
-		"export-yaml": export(zap.ExportOptions{
-			Format: "yaml",
-			File:   os.Args[1],
-		}),
-		"export-toml": export(zap.ExportOptions{
-			Format: "toml",
-			File:   os.Args[1],
-		}),
-	})
-}
+var update = flag.Bool("update", false, "Update testdata files")
 
 func TestRun(t *testing.T) {
-	server := NewTestServer(t)
-	t.Cleanup(server.Close)
+	pattern := filepath.Join("testdata", "run", "*.http")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
 
-	testscript.Run(t, testscript.Params{
-		Dir:                 filepath.Join("testdata", "run"),
-		UpdateScripts:       *update,
-		RequireExplicitExec: true,
-		RequireUniqueNames:  true,
-		Setup: func(e *testscript.Env) error {
-			e.Setenv("ZAP_TEST_URL", server.URL)
-			return nil
-		},
-		Cmds: map[string]func(ts *testscript.TestScript, neg bool, args []string){
-			"replace": Replace,
-			"expand":  Expand,
-		},
-	})
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			server := NewTestServer(t)
+			t.Cleanup(server.Close)
+
+			t.Setenv("ZAP_TEST_URL", server.URL)
+
+			stdin := &bytes.Buffer{}
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
+
+			app := zap.New(false, "test", stdin, stdout, stderr)
+
+			options := zap.RunOptions{
+				File:              "src.http",
+				Output:            "stdout",
+				Timeout:           zap.DefaultTimeout,
+				ConnectionTimeout: zap.DefaultConnectionTimeout,
+				OverallTimeout:    zap.DefaultOverallTimeout,
+				NoRedirect:        false,
+				Debug:             false,
+				Verbose:           false,
+			}
+
+			f, err := os.Open(file)
+			test.Ok(t, err)
+			t.Cleanup(func() { f.Close() })
+
+			err = app.Run(t.Context(), f, options)
+			test.Ok(t, err, test.Context("zap run returned an error: %v", stderr.String()))
+
+			snap := snapshot.New(
+				t,
+				snapshot.Update(*update),
+				snapshot.Filter(`\d+(?:\.\d+)?(?:s|ms|µs)`, "[DURATION]"),
+			)
+
+			snap.Snap(stdout.String())
+		})
+	}
+}
+
+func TestCheckValid(t *testing.T) {
+	pattern := filepath.Join("testdata", "check", "valid", "*.http")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	for _, file := range files {
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
+
+			app := zap.New(false, "test", os.Stdin, stdout, stderr)
+
+			err := app.Check(t.Context(), zap.CheckOptions{Path: file})
+			test.Ok(t, err)
+
+			test.Diff(t, stdout.String(), fmt.Sprintf("Success: %s is valid\n", file))
+			test.Diff(t, stderr.String(), "")
+		})
+	}
+}
+
+func TestCheckValidDir(t *testing.T) {
+	path := filepath.Join("testdata", "check", "valid")
+	pattern := filepath.Join(path, "*.http")
+
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	app := zap.New(false, "test", os.Stdin, stdout, stderr)
+
+	err = app.Check(t.Context(), zap.CheckOptions{Path: path})
+	test.Ok(t, err)
+
+	s := &strings.Builder{}
+
+	// Write a success line for every file in the dir
+	for _, file := range files {
+		fmt.Fprintf(s, "Success: %s is valid\n", file)
+	}
+
+	test.Diff(t, stdout.String(), s.String())
+	test.Diff(t, stderr.String(), "")
+}
+
+func TestCheckInvalid(t *testing.T) {
+	pattern := filepath.Join("testdata", "check", "invalid", "*.http")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
+
+	for _, file := range files {
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			defer goleak.VerifyNone(t)
+
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
+
+			app := zap.New(false, "test", os.Stdin, stdout, stderr)
+
+			err := app.Check(t.Context(), zap.CheckOptions{Path: file})
+			test.Err(t, err)
+
+			test.Equal(t, stdout.String(), "")
+
+			got := stderr.String()
+
+			// TODO(@FollowTheProcess): If we keep this, maybe have a flag to output parse/resolve errors
+			// as JSON?
+
+			t.Logf("stderr:\n\n%s\n", got)
+
+			// The actual error format is down to the handler and parse errors are tested
+			// extensively in internal/syntax/parser so all we care about here is it's printing
+			// something that looks like an error to stderr
+			test.True(
+				t,
+				strings.Contains(got, filepath.Base(file)),
+				test.Context("stderr output did not contain %s", filepath.Base(file)),
+			)
+		})
+	}
 }
 
 func TestExport(t *testing.T) {
-	testscript.Run(t, testscript.Params{
-		Dir:                 filepath.Join("testdata", "export"),
-		UpdateScripts:       *update,
-		RequireExplicitExec: true,
-		RequireUniqueNames:  true,
-	})
-}
+	pattern := filepath.Join("testdata", "export", "*.http")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err)
 
-// Replace is a testscript command that replaces text in a file by way of a regex
-// pattern match, useful for replacing non-deterministic output like UUIDs and durations
-// with placeholders to facilitate deterministic comparison in tests.
-//
-// Usage:
-//
-//	replace <file> <regex> <replacement>
-//
-// It cannot be negated, regex must be valid, and the file must be present in the
-// txtar archive, including "stdout" and "stderr".
-func Replace(ts *testscript.TestScript, neg bool, args []string) {
-	if neg {
-		ts.Fatalf("unsupported: ! filter")
-	}
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
 
-	if len(args) != 3 {
-		ts.Fatalf("Usage: filter <file> <regex> <replacement>")
-	}
+			app := zap.New(false, "test", os.Stdin, stdout, stderr)
 
-	file := ts.MkAbs(args[0])
-	ts.Logf("filter file: %s", file)
+			format := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 
-	stdout := ts.ReadFile("stdout")
-	regex := args[1]
-	replacement := args[2]
+			options := zap.ExportOptions{
+				File:   file,
+				Format: format,
+			}
 
-	re, err := regexp.Compile(regex)
-	ts.Check(err)
+			f, err := os.Open(file)
+			test.Ok(t, err)
+			t.Cleanup(func() { f.Close() })
 
-	replaced := re.ReplaceAllString(stdout, replacement)
+			err = app.Export(t.Context(), f, options)
+			test.Ok(t, err)
 
-	_, err = ts.Stdout().Write([]byte(replaced))
-	ts.Check(err)
-}
-
-// Expand expands environment variables in the given files and saves the new contents in place.
-//
-// Usage:
-//
-//	expand <files(s)...>
-//
-// It cannot be negated and works on "stdout" and "stderr".
-func Expand(ts *testscript.TestScript, neg bool, args []string) {
-	if neg {
-		ts.Fatalf("unsupported: ! expand")
-	}
-
-	if len(args) < 1 {
-		ts.Fatalf("usage: expand <file(s)...>")
-	}
-
-	for _, file := range args {
-		file = ts.MkAbs(file)
-		str := ts.ReadFile(file)
-
-		str = os.Expand(str, func(key string) string {
-			return ts.Getenv(key)
+			snap := snapshot.New(
+				t,
+				snapshot.Update(*update),
+				snapshot.Filter(`\\+([\w\d]|\.)`, "/$1"), // Replace windows paths (handles JSON/TOML \\-escaping)
+			)
+			snap.Snap(stdout.String())
 		})
-
-		err := os.WriteFile(file, []byte(str), 0o644)
-		ts.Check(err)
 	}
 }
 
@@ -169,7 +199,7 @@ func Expand(ts *testscript.TestScript, neg bool, args []string) {
 // The routes defined are:
 //
 //   - GET /ok: returns a 200 OK
-//   - POST /bad-request: returns a 400 Bad Request
+//   - POST /bad: returns a 400 Bad Request
 //
 // The caller is responsible for calling server.Close via t.Cleanup.
 func NewTestServer(tb testing.TB) *httptest.Server {
@@ -193,34 +223,7 @@ func NewTestServer(tb testing.TB) *httptest.Server {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ok", successHandler)
-	mux.HandleFunc("POST /bad-request", badRequestHandler)
+	mux.HandleFunc("POST /bad", badRequestHandler)
 
 	return httptest.NewServer(mux)
-}
-
-// run returns a testscript function that invokes the [zap.Zap.Run] method
-// with the options passed in.
-func run(options zap.RunOptions) func() {
-	return func() {
-		app := zap.New(false, "test", os.Stdin, os.Stdout, os.Stderr)
-
-		err := app.Run(context.Background(), options)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-	}
-}
-
-// export returns a testscript function that invokes the [zap.Zap.Export] method.
-func export(options zap.ExportOptions) func() {
-	return func() {
-		app := zap.New(false, "test", os.Stdin, os.Stdout, os.Stderr)
-
-		err := app.Export(context.Background(), options)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-	}
 }
