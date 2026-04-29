@@ -184,7 +184,7 @@ func TestExport(t *testing.T) {
 			snap := snapshot.New(
 				t,
 				snapshot.Update(*update),
-				snapshot.Filter(`\\([\w\d]|\.)`, "/$1"), // Replace windows paths
+				snapshot.Filter(`\\+([\w\d]|\.)`, "/$1"), // Replace windows paths (handles JSON/TOML \\-escaping)
 			)
 			snap.Snap(stdout.String())
 		})
