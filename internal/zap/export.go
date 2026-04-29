@@ -3,6 +3,7 @@ package zap
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"slices"
 	"strings"
@@ -44,7 +45,7 @@ func (e ExportOptions) Validate() error {
 }
 
 // Export handles the export subcommand.
-func (z Zap) Export(ctx context.Context, options ExportOptions) error {
+func (z Zap) Export(ctx context.Context, r io.Reader, options ExportOptions) error {
 	logger := z.logger.Prefixed("export")
 
 	logger.Debug("Export configuration", slog.String("options", fmt.Sprintf("%+v", options)))
@@ -55,7 +56,7 @@ func (z Zap) Export(ctx context.Context, options ExportOptions) error {
 
 	start := time.Now()
 
-	httpFile, err := z.parseFile(options.File)
+	httpFile, err := z.parseFile(options.File, r)
 	if err != nil {
 		return err
 	}

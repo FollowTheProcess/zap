@@ -1,0 +1,15 @@
+source: zap_test.go
+expression: stdout.String()
+---
+|
+
+  curl \
+      --request PUT \
+      --connect-timeout 10 \
+      --max-time 30 \
+      --data '{"stuff":"here"}' \
+      --header 'Accept: application/json' \
+      --header 'Authorization: Bearer shhh' \
+      --header 'Content-Type: application/json' \
+      --header 'X-Something-Else: yes' \
+      https://api.somewhere.com/items/1
